@@ -53,3 +53,7 @@ function GUI:__new__(args)
 
   self.composer = compose.Composer(self)
 end
+
+return {
+  GUI = GUI
+}

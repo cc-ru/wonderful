@@ -7,3 +7,7 @@ function Buffer:__new__(args)
   self.h = args.h
   self.depth = args.depth
 end
+
+return {
+  Buffer = Buffer
+}

@@ -23,3 +23,7 @@ end
 function Renderer:updateBinds()
   -- TODO
 end
+
+return {
+  Renderer = Renderer
+}

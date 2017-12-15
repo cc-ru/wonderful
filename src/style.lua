@@ -23,3 +23,7 @@ function Style.fromString(str)
   -- parse
   return style
 end
+
+return {
+  Style = Style
+}

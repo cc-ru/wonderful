@@ -1,7 +1,11 @@
 local class = require("lua-objects")
 
-local Event = class(nil, {name = "Event"})
+local Engine = class(nil, {name = "Engine"})
 
-function Event:__new__(renderer)
+function Engine:__new__(renderer)
   self.renderer = renderer
 end
+
+return {
+  Engine = Engine
+}
