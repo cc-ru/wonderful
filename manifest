@@ -1,0 +1,7 @@
+{name = "wonderful",
+ version = "0.0.0",
+ dependencies = {
+  {name = "lua-objects", version = "^0.1.0", type="required"},
+ },
+ files = {
+ }}
