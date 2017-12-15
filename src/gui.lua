@@ -1,11 +1,11 @@
 local com = require("component")
 local comp = require("computer")
 
+local class = require("lua-objects")
+
 local compose = require("wonderful.compose")
 local style = require("wonderful.style")
 local wbuffer = require("wonderful.buffer")
-
-local class = require("lua-objects")
 
 local GUI = class(nil, {name = "GUI"})
 
