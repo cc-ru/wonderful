@@ -3,11 +3,12 @@ local comp = require("computer")
 
 local class = require("lua-objects")
 
+local component = require("wonderful.component")
 local compose = require("wonderful.compose")
 local style = require("wonderful.style")
 local wbuffer = require("wonderful.buffer")
 
-local GUI = class(nil, {name = "GUI"})
+local GUI = class(component.Component, {name = "GUI"})
 
 function GUI:__new__(args)
   if args.gpu and com.type(args.gpu) == "gpu" then
