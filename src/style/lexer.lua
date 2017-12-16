@@ -22,8 +22,8 @@ local function checkDelimeters(char)
   return icontains(DELIMETERS, char)
 end
 
-local function checkIdentifiers(char)
-  return icontains(IDENTIFIERS, char)
+local function checkIdentifiers(char, idents)
+  return icontains(idents, char)
 end
 
 local function isNumber(char)
@@ -48,7 +48,13 @@ local function find(tbl, value, pos)
   return -1
 end
 
-function tokenize(str)
+function tokenize(str, idents)
+  local identifiers = nil
+  if idents ~= nil then
+    identifiers = idents
+  else
+    identifiers = IDENTIFIERS
+  end
   local tokens = {}
   local strLen = #str
   local i = 0
@@ -64,7 +70,7 @@ function tokenize(str)
     if t == TOKEN_TYPE.WORD and type(token) == "string" and #token == 0 then
       return
     end
-    tble.insert(tokens, {value = token, type = t})
+    table.insert(tokens, {value = token, type = t})
   end
 
   local currentToken = ""
@@ -75,16 +81,25 @@ function tokenize(str)
       local string, pos = getString(str, '"', i)
       addToken(string, TOKEN_TYPE.STRING)
       i = pos
-    elseif char == "/" and next() == "*" then
-      local _, pos = string.find(str, "*/", i)
-      addToken(string.sub(str, i, pos), TOKEN_TYPE.COMMENT)
-      i = pos + 1
+    elseif char == "/" then
+      local oneLineComment = string.match(str, "//.-\n", i)
+      local multiLineComment = string.match(str, "/%*.*%*/")
+      if oneLineComment ~= nil then
+        local commentLen = #oneLineComment
+        addToken(string.sub(oneLineComment, 3, commentLen - 1), TOKEN_TYPE.COMMENT)
+        i = i + commentLen - 1
+      end
+      if multiLineComment ~= nil then
+        local commentLen = #multiLineComment
+        addToken(string.sub(multiLineComment, 3, commentLen - 2), TOKEN_TYPE.COMMENT)
+        i = i + commentLen
+      end
     else
       if isNumber(char) then
         local number = getNumber(str, i)
         i = i + #number - 1
         addToken(tonumber(number), TOKEN_TYPE.NUMBER)
-      elseif checkIdentifiers(char) then
+      elseif checkIdentifiers(char, identifiers) then
         addToken(currentToken, TOKEN_TYPE.WORD)
         currentToken = ""
         addToken(char, TOKEN_TYPE.IDENTIFIER)
@@ -94,6 +109,9 @@ function tokenize(str)
           if not checkDelimeters(current()) then
             break
           end
+        end
+        if i >= strLen then
+          break
         end
         i = i - 1
         addToken(currentToken, TOKEN_TYPE.WORD)
