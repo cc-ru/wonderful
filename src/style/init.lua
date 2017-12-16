@@ -1,6 +1,6 @@
 local class = require("lua-objects")
 
-local Style = class(nil, {name = "Style"})
+local Style = class(nil, {name = "wonderful.style.Style"})
 
 function Style:__new__()
   self.rules = {}

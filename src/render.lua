@@ -4,13 +4,13 @@ local class = require("lua-objects")
 
 local event = require("wonderful.event")
 
-local Bind = class(nil, {name = "Bind"})
+local Bind = class(nil, {name = "wonderful.render.Bind"})
 
 function Bind:__new__(args)
   -- TODO
 end
 
-local Renderer = class(nil, {name = "Renderer"})
+local Renderer = class(nil, {name = "wonderful.render.Renderer"})
 
 function Renderer:__new__(...)
   self.guis = {...}

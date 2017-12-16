@@ -8,9 +8,10 @@ local compose = require("wonderful.compose")
 local style = require("wonderful.style")
 local wbuffer = require("wonderful.buffer")
 
-local GUI = class(component.Component, {name = "GUI"})
+local GUI = class(component.Component, {name = "wonderful.gui.GUI"})
 
 function GUI:__new__(args)
+  self:superCall('__new__')
   if args.gpu and com.type(args.gpu) == "gpu" then
     self.gpuAddr = args.gpu
   else
@@ -42,8 +43,6 @@ function GUI:__new__(args)
     depth = args.depth or gpu.getDepth()
   }
 
-  self.components = {}
-
   if args.style and args.style:isa(style.Style) then
     self.style = args.style
   elseif type(args.style) == "table" and args.style.read then
@@ -51,6 +50,8 @@ function GUI:__new__(args)
   elseif type(args.style) == "string" then
     self.style = style.Style.fromString(args.style)
   end
+
+  self.style:setGUI(self)
 
   self.composer = compose.Composer(self)
 end
