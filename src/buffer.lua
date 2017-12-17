@@ -1,5 +1,7 @@
 local class = require("lua-objects")
 
+local util = require("wonderful.util")
+
 local floor = math.floor
 
 local function channels(color)
@@ -18,6 +20,15 @@ function Buffer:__new__(args)
   self.h = args.h
   self.depth = args.depth
   self.cells = {}
+  if self.depth == 1 then
+    self.palette = util.palette.t1
+  elseif self.depth == 4 then
+    self.palette = util.palette.t2
+  elseif self.depth == 8 then
+    self.palette = util.palette.t3
+  end
+  self.defaultFg = self:approximate(self.defaultFg)
+  self.defaultBg = self:approximate(self.defaultBg)
 end
 
 function Buffer:index(x, y)
@@ -33,6 +44,10 @@ end
 
 function Buffer:inRange(x, y)
   return x >= 1 and x <= self.w and y >= 1 and y <= self.h
+end
+
+function Buffer:approximate(color)
+  return self.palette:inflate(self.palette:deflate(color))
 end
 
 function Buffer:alphaBlend(color1, color2, alpha)
@@ -57,13 +72,13 @@ function Buffer:set(x, y, fg, bg, alpha, char)
   local i = self:index(x, y)
 
   local cfg = self.cells[i]
-  fg = self:alphaBlend(cfg, fg, alpha)
+  fg = self:approximate(self:alphaBlend(cfg, fg, alpha))
   if fg == self.defaultFg then
     fg = nil
   end
 
   local cbg = self.cells[i + 1]
-  bg = self:alphaBlend(cbg, bg, alpha)
+  bg = self:approximate(self:alphaBlend(cbg, bg, alpha))
   if bg == self.defaultBg then
     bg = nil
   end
