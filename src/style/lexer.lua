@@ -82,7 +82,7 @@ function tokenize(str, identifiers)
       i = pos
     elseif char == "/" then
       local oneLineComment = smatch(str, "//.-\n", i)
-      local multiLineComment = smatch(str, "/%*.*%*/")
+      local multiLineComment = smatch(str, "/%*.-%*/")
       if oneLineComment ~= nil then
         local commentLen = #oneLineComment
         addToken(ssub(oneLineComment, 3, commentLen - 1), TOKEN_TYPE.COMMENT)
