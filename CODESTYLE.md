@@ -1,4 +1,4 @@
-# Code style
+# Lua
 Indent with **2 spaces**. Don't use tabs. Indent:
 * Body of `if`/`elseif`/`else`/`end`, `for`/`end`, `while`/`end`, `do`/`end`,
   `function`/`end`, `repeat`/`until`.
@@ -164,3 +164,47 @@ local tbl = {1, 2, 3;
 Do not shadow-name variables, including the standard libraries. Do not name
 function parameters the same as the standard libraries, though you may
 shadow-name variables in the scopes above.
+
+# Git
+When writing commit messages, write verbs in the infinitive form.
+
+```
+# DO NOT:
+Created a new file
+Creates a new file
+
+# DO:
+Create a new file
+```
+
+GitHub commit keywords, like `closes` and `fixes`, must be written in the
+third-person form.
+
+```
+# DO NOT:
+Create a new file. Close #5.
+
+# DO:
+Create a new file. Closes #5.
+```
+
+Start from the capital letter. Don't put full stop at the end if the message
+is one-sentence-long.
+
+```
+# DO NOT:
+create a new file.
+create a new file. closes #5
+
+# DO:
+Create a new file
+Create a new file. Closes #5.
+```
+
+If the origin rejects your commits because someone else pushed their commits
+earlier, pull the changes using `git pull --rebase`. Don't forget the `--rebase`
+flag, or you'll be creating a merge commit instead even when not necessary.
+
+Don't force-push.
+
+When merging branches, do `git merge --no-ff`.
