@@ -1,3 +1,7 @@
+local sfind = string.find
+local smatch = string.match
+local ssub = string.sub
+
 local DELIMETERS = {" ", "\n", "  "}
 local IDENTIFIERS = {"{", "}", "#", "=", '"', '"', ";", ":", ".", "$", "@",
                      "[", "]", "!"}
@@ -27,16 +31,16 @@ local function checkIdentifiers(char, idents)
 end
 
 local function isNumber(char)
-  return string.match(char, "%d")
+  return smatch(char, "%d")
 end
 
 local function getNumber(str, pos)
-  return string.match(str, "%d+", pos)
+  return smatch(str, "%d+", pos)
 end
 
 local function getString(str, ch, pos)
-  local _, e = string.find(str, ch, pos + 1)
-  return string.sub(str, pos + 1, e - 1), e
+  local _, e = sfind(str, ch, pos + 1)
+  return ssub(str, pos + 1, e - 1), e
 end
 
 local function find(tbl, value, pos)
@@ -48,22 +52,17 @@ local function find(tbl, value, pos)
   return -1
 end
 
-function tokenize(str, idents)
-  local identifiers = nil
-  if idents ~= nil then
-    identifiers = idents
-  else
-    identifiers = IDENTIFIERS
-  end
+function tokenize(str, identifiers)
+  identifiers = identifiers or IDENTIFIERS
   local tokens = {}
   local strLen = #str
   local i = 0
-  local next = function()
-    return string.sub(str, i + 1, i + 1)
+  local nextChar = function()
+    return ssub(str, i + 1, i + 1)
   end
 
-  local current = function()
-    return string.sub(str, i, i)
+  local currentChar = function()
+    return ssub(str, i, i)
   end
 
   local addToken = function(token, t)
@@ -76,22 +75,22 @@ function tokenize(str, idents)
   local currentToken = ""
   while i < strLen do
     i = i + 1
-    local char = current()
+    local char = currentChar()
     if char == '"' then
       local string, pos = getString(str, '"', i)
       addToken(string, TOKEN_TYPE.STRING)
       i = pos
     elseif char == "/" then
-      local oneLineComment = string.match(str, "//.-\n", i)
-      local multiLineComment = string.match(str, "/%*.*%*/")
+      local oneLineComment = smatch(str, "//.-\n", i)
+      local multiLineComment = smatch(str, "/%*.*%*/")
       if oneLineComment ~= nil then
         local commentLen = #oneLineComment
-        addToken(string.sub(oneLineComment, 3, commentLen - 1), TOKEN_TYPE.COMMENT)
+        addToken(ssub(oneLineComment, 3, commentLen - 1), TOKEN_TYPE.COMMENT)
         i = i + commentLen - 1
       end
       if multiLineComment ~= nil then
         local commentLen = #multiLineComment
-        addToken(string.sub(multiLineComment, 3, commentLen - 2), TOKEN_TYPE.COMMENT)
+        addToken(ssub(multiLineComment, 3, commentLen - 2), TOKEN_TYPE.COMMENT)
         i = i + commentLen
       end
     else
@@ -106,7 +105,7 @@ function tokenize(str, idents)
       elseif checkDelimeters(char) then
         while i < strLen do
           i = i + 1
-          if not checkDelimeters(current()) then
+          if not checkDelimeters(currentChar()) then
             break
           end
         end
