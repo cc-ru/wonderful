@@ -76,8 +76,8 @@ function tokenize(str, identifiers)
   while i < strLen do
     i = i + 1
     local char = currentChar()
-    if char == '"' then
-      local string, pos = getString(str, '"', i)
+    if char == '"' or char == "'" then
+      local string, pos = getString(str, char, i)
       addToken(string, TOKEN_TYPE.STRING)
       i = pos
     elseif char == "/" then
