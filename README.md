@@ -2,7 +2,6 @@ We're building a new GUI library for OpenComputers. Here's how it's going to be
 different from other libraries:
 
 - **Multi-monitor setup support.** The following setups will be supported:
-  - 1 GUI, 1 GPU, multiple screens
   - multiple GUIs, 1 GUI, multiple screens
   - multiple GUIs, multiple GPUs, multiple screens
 - **Advanced event system.** Event handlers are called in the top-to-bottom
