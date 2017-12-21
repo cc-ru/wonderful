@@ -3,7 +3,8 @@ different from other libraries:
 
 - **Multi-monitor setup support.** The following setups will be supported:
   - 1 GUI, 1 GPU, multiple screens
-  - multiple GUIs, multiple GPUs, multiple screens (one GUI per screen)
+  - multiple GUIs, 1 GUI, multiple screens
+  - multiple GUIs, multiple GPUs, multiple screens
 - **Advanced event system.** Event handlers are called in the top-to-bottom
   order, and any handler can stop the event from descending.
 - **Styles.** No need to touch the code if you feel that your green color isn't
