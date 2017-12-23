@@ -11,9 +11,7 @@ local function channels(color)
 end
 
 local Buffer = class(nil, {name = "wonderful.buffer.Buffer"})
-
-Buffer.defaultFg = 0xffffff
-Buffer.defaultBg = 0x000000
+local BufferView = class(Buffer, {name = "wonderful.buffer:BufferView"})
 
 function Buffer:__new__(args)
   self.w = args.w
@@ -27,8 +25,8 @@ function Buffer:__new__(args)
   elseif self.depth == 8 then
     self.palette = util.palette.t3
   end
-  self.defaultFg = self:approximate(self.defaultFg)
-  self.defaultBg = self:approximate(self.defaultBg)
+  self.defaultFg = self:approximate(0xffffff)
+  self.defaultBg = self:approximate(0x000000)
 end
 
 function Buffer:index(x, y)
@@ -44,6 +42,13 @@ end
 
 function Buffer:inRange(x, y)
   return x >= 1 and x <= self.w and y >= 1 and y <= self.h
+end
+
+function Buffer:rectInRange(x, y, w, h)
+  return x >= 1 and x <= self.w and
+         y >= 1 and y <= self.y and
+         w >= 1 and x + w - 1 <= self.w and
+         h >= 1 and y + h - 1 <= self.h
 end
 
 function Buffer:approximate(color)
@@ -69,6 +74,9 @@ function Buffer:alphaBlend(color1, color2, alpha)
 end
 
 function Buffer:set(x, y, fg, bg, alpha, char)
+  if not self:inRange(x, y) then
+    return false
+  end
   local i = self:index(x, y)
 
   local cfg = self.cells[i]
@@ -89,7 +97,12 @@ function Buffer:set(x, y, fg, bg, alpha, char)
 end
 
 function Buffer:get(x, y)
+  if not self:inRange(x, y) then
+    return false
+  end
   local i = self:index(x, y)
+
+  -- char, fg, bg
   return self.cells[i + 2], self.cells[i], self.cells[i + 1]
 end
 
@@ -105,6 +118,51 @@ function Buffer:fill(x0, y0, w, h, fg, bg, alpha, char)
       self:set(x, y, fg, bg, alpha, char)
     end
   end
+end
+
+function Buffer:view(x, y, w, h)
+  if not self:rectInRange(x, y, w, h) then
+    return false
+  end
+  return BufferView(self, x, y, w, h)
+end
+
+function BufferView:__new__(buffer, x, y, w, h)
+  self.buffer = buffer
+  self.x = x
+  self.y = y
+  self.w = w
+  self.h = h
+end
+
+-- Converts view-relative coords to buffer-relative coords
+function BufferView:absCoords(x, y)
+  return x + self.x - 1,
+         y + self.y - 1
+end
+
+function BufferView:set(x, y, fg, bg, alpha, char)
+  if not self:inRange(x, y) then
+    return false
+  end
+  x, y = self:absCoords(x, y)
+  self.buffer:set(x, y, fg, bg, alpha, char)
+end
+
+function BufferView:get(x, y)
+  if not self:inRange(x, y) then
+    return false
+  end
+  x, y = self:absCoords(x, y)
+  return self.buffer:get(x, y)
+end
+
+function BufferView.__getters:depth()
+  return self.buffer.depth
+end
+
+function BufferView.__getters:palette()
+  return self.buffer.palette
 end
 
 return {
