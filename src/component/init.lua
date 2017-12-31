@@ -31,11 +31,13 @@ function Layout:__new__()
 end
 
 function Layout:addChild(child)
+  -- TODO: events
   table.insert(self.children, child)
   child.parent = self
 end
 
 function Layout:removeChild(child)
+  -- TODO: events
   for i = 1, #self.children, 1 do
     if self.children[i] == child then
       table.remove(self.children, i)

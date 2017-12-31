@@ -8,10 +8,10 @@ local compose = require("wonderful.compose")
 local style = require("wonderful.style")
 local wbuffer = require("wonderful.buffer")
 
-local GUI = class(component.Component, {name = "wonderful.gui.GUI"})
+local GUI = class(component.Layout, {name = "wonderful.gui.GUI"})
 
 function GUI:__new__(args)
-  self:superCall('__new__')
+  self:superCall("__new__")
   if args.gpu and com.type(args.gpu) == "gpu" then
     self.gpuAddr = args.gpu
   else
