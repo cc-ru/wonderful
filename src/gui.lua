@@ -56,6 +56,11 @@ function GUI:__new__(args)
   self.composer = compose.Composer(self)
 end
 
+-- redefine wonderful.component:Component's method to end the call chain here
+function GUI:getGUI()
+  return self
+end
+
 return {
   GUI = GUI
 }

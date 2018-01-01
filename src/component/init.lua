@@ -20,6 +20,32 @@ function Component:getProperty(name)
   return self.style:get(self, name)
 end
 
+function Component:getGUI()
+  if self.parent then
+    return self.parent:getGUI()
+  else
+    return nil
+  end
+end
+
+function Component:getRenderer()
+  local gui = self:getGUI()
+  if gui then
+    return gui.renderer
+  else
+    return nil
+  end
+end
+
+function Component:getEvtEngine()
+  local renderer = self:getRenderer()
+  if renderer then
+    return renderer.eventEngine
+  else
+    return nil
+  end
+end
+
 local Layout = class(
   Component,
   {name = "wonderful.component.Layout"}

@@ -17,6 +17,10 @@ function Renderer:__new__(...)
   self.binds = {}
   self.eventEngine = event.Engine(self)
 
+  for _, v in pairs(self.guis) do
+    k.renderer = self
+  end
+
   self:updateBinds()
 end
 
