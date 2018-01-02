@@ -1,16 +1,9 @@
-local smix = require("wonderful.style.mixin")
-
 local class = require("lua-objects")
 
-local Component = class(
-  smix.Position,
-  {name = "wonderful.component.Component"}
-)
+local Component = class(nil, {name = "wonderful.component.Component"})
 
 function Component:__new__(x, y, w, h)
-  self.styleClass = nil
   self.parent = nil
-  self.style = nil
   self:requestGeometry(x, y, w, h)
 end
 
@@ -42,6 +35,15 @@ function Component:getEvtEngine()
   local renderer = self:getRenderer()
   if renderer then
     return renderer.eventEngine
+  else
+    return nil
+  end
+end
+
+function Component:getStyle()
+  local gui = self:getGUI()
+  if gui then
+    return gui.style
   else
     return nil
   end
