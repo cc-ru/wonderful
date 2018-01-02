@@ -7,10 +7,11 @@ local Component = class(
   {name = "wonderful.component.Component"}
 )
 
-function Component:__new__()
+function Component:__new__(x, y, w, h)
   self.styleClass = nil
   self.parent = nil
   self.style = nil
+  self:requestGeometry(x, y, w, h)
 end
 
 function Component:render(view)
@@ -93,8 +94,8 @@ local Layout = class(
   {name = "wonderful.component.Layout"}
 )
 
-function Layout:__new__()
-  self:superCall("__new__")
+function Layout:__new__(x, y, w ,h)
+  self:superCall("__new__", x, y, w, h)
   self.children = {}
 end
 

@@ -10,7 +10,6 @@ local wbuffer = require("wonderful.buffer")
 local GUI = class(component.Layout, {name = "wonderful.gui.GUI"})
 
 function GUI:__new__(args)
-  self:superCall("__new__")
   if args.gpu and com.type(args.gpu) == "gpu" then
     self.gpuAddr = args.gpu
   else
@@ -36,9 +35,13 @@ function GUI:__new__(args)
     self.screenAddr = gpu.getScreen()
   end
 
+  local w = args.w or gpu.getResolution()
+  local h = args.h or select(2, gpu.getResolution())
+  self:superCall("__new__", 1, 1, w, h)
+
   self.buffer = wbuffer.Buffer {
-    w = args.w or gpu.getWidth(),
-    h = args.h or gpu.getHeight(),
+    w = w,
+    h = h,
     depth = args.depth or gpu.getDepth()
   }
 
