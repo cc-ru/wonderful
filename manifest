@@ -5,11 +5,12 @@
  },
  files = {
   {url = "src/buffer.lua", path = "/usr/lib/wonderful/buffer.lua"},
-  {url = "src/compose.lua", path = "/usr/lib/wonderful/compose.lua"},
   {url = "src/event.lua", path = "/usr/lib/wonderful/event.lua"},
   {url = "src/gui.lua", path = "/usr/lib/wonderful/gui.lua"},
   {url = "src/init.lua", path = "/usr/lib/wonderful/init.lua"},
   {url = "src/render.lua", path = "/usr/lib/wonderful/render.lua"},
   {url = "src/style.lua", path = "/usr/lib/wonderful/style.lua"},
+  {url = "src/util.lua", path = "/usr/lib/wonderful/util.lua"},
   {url = "src/component/init.lua", path = "/usr/lib/wonderful/component/init.lua"},
+  {url = "src/style/init.lua", path = "/usr/lib/wonderful/style/init.lua"},
  }}

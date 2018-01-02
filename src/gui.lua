@@ -4,7 +4,6 @@ local comp = require("computer")
 local class = require("lua-objects")
 
 local component = require("wonderful.component")
-local compose = require("wonderful.compose")
 local style = require("wonderful.style")
 local wbuffer = require("wonderful.buffer")
 
@@ -52,8 +51,6 @@ function GUI:__new__(args)
   end
 
   self.style:setGUI(self)
-
-  self.composer = compose.Composer(self)
 end
 
 -- redefine wonderful.component:Component's method to end the call chain here
