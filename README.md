@@ -8,7 +8,7 @@ different from other libraries:
   order, and any handler can stop the event from descending.
 - **Styles.** No need to touch the code if you feel that your green color isn't
   green enough: just change a variable in your style file.
-- **Layouts.** Why calculate the position yourself when the computer can do it
+- **Layouts.** Why calculate the position yourself if the computer can do it
   just as well, and even better?
 - **Customization and extendability.** To modify a component, just extend from
   another one. Inherit from the base class `wonderful.component:Component` if

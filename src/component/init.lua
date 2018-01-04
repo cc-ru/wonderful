@@ -105,6 +105,12 @@ function Layout:addChild(child)
   -- TODO: events
   table.insert(self.children, child)
   child.parent = self
+
+  -- TODO: redo in events
+  local gui = self:getGUI()
+  if gui then
+    gui:updateLayers()
+  end
 end
 
 function Layout:removeChild(child)

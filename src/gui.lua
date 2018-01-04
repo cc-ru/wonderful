@@ -37,6 +37,9 @@ function GUI:__new__(args)
 
   local w = args.w or gpu.getResolution()
   local h = args.h or select(2, gpu.getResolution())
+
+  self.layers = {}
+
   self:superCall("__new__", 1, 1, w, h)
 
   self.buffer = wbuffer.Buffer {
@@ -59,6 +62,39 @@ end
 -- redefine wonderful.component:Component's method to end the call chain here
 function GUI:getGUI()
   return self
+end
+
+function GUI:updateLayers()
+  self.layers = {}
+  local layer = 1
+  local popupLayer = -1
+
+  local function update(component, popup)
+    for _, child in ipairs(component.children) do
+      if child.popup or popup then
+        self.layers[popupLayer] = child
+        popupLayer = popupLayer - 1
+      else
+        self.layers[layer] = child
+        layer = layer + 1
+      end
+    end
+    for _, child in ipairs(component.children) do
+      if child:isa(Layout) then
+        update(child, child.popup or popup)
+      end
+    end
+  end
+
+  self.layers[layer] = self
+  layer = layer + 1
+  update(self, false)
+
+  -- Make pop-ups float above all non-popup elements.
+  for i = -1, popupLayer + 1, -1 do
+    self.layers[layer - i - 1] = self.layers[i]
+    self.layers[i] = nil
+  end
 end
 
 return {
