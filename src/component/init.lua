@@ -105,6 +105,7 @@ function Layout:addChild(child)
   -- TODO: events
   table.insert(self.children, child)
   child.parent = self
+  self:recompose()
 
   -- TODO: redo in events
   local gui = self:getGUI()
@@ -119,10 +120,10 @@ function Layout:removeChild(child)
     if self.children[i] == child then
       table.remove(self.children, i)
       child.parent = nil
-      return true
+      break
     end
   end
-  return false
+  self:recompose()
 end
 
 function Layout:compose(component, x, y, w, h)
@@ -131,7 +132,11 @@ end
 
 function Layout:requestGeometry(x, y, w, h)
   self:superCall("requestGeometry", x, y, w, h)
-  -- Recompose
+  -- FIXME: causes a call loop if this is called while composing a child
+  self:recompose()
+end
+
+function Layout:recompose()
   for _, child in ipairs(self.children) do
     child:requestGeometry(child.x, child.y, child.w, child.h)
   end
