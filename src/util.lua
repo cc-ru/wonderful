@@ -1,5 +1,29 @@
 local class = require("class")
 
+function util.shallowcopy(orig)
+  if type(orig) ~= "table" then return orig end
+
+  local copy = {}
+  print(copy)
+
+  for k, v in pairs(orig) do
+      copy[k] = v
+  end
+
+  return copy
+end
+
+function util.shalloweq(lhs, rhs)
+  if lhs == rhs then return true end
+
+  if type(lhs) ~= type(rhs) then return false end
+  if type(lhs) ~= "table" then return false end
+
+  for k, v in pairs(lhs) do
+    if not rhs[k] or rhs[k] ~= v then return false end
+  end
+end
+
 local function extract(color)
   color = color % 0x1000000
   local r = math.floor(color / 0x10000)
@@ -116,14 +140,11 @@ local function generateT3Palette()
   }})
 end
 
-local t1 = generateT1Palette()
-local t2 = generateT2Palette()
-local t3 = generateT3Palette()
-
-return {
-  palette = {
-    t1 = t1,
-    t2 = t2,
-    t3 = t3,
-  },
+util.palette = {
+  t1 = generateT1Palette(),
+  t2 = generateT2Palette(),
+  t3 = generateT3Palette()
 }
+
+return util
+
