@@ -1,4 +1,4 @@
-local class = require("class")
+local util = {}
 
 function util.shallowcopy(orig)
   if type(orig) ~= "table" then return orig end
