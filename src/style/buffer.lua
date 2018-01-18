@@ -16,13 +16,17 @@ function Buffer:__new__(buf)
   while true do
     local line = buf:readLine()
     if line then
-      table.insert(self.lines, line)
+      table.insert(self.lines, line .. "\n")
     end
   end
 end
 
 function Buffer:getCur()
   return usub(self.lines[self.line], self.col, self.col)
+end
+
+function Buffer:getLine(n)
+  return self.lines[n]
 end
 
 function Buffer:read(n, noSeek)
@@ -79,8 +83,25 @@ function Buffer:seek(n)
   return sought
 end
 
+function Buffer:seekLines(n)
+  if n == 0 then
+    return 0
+  end
+  local sought = n
+  if n < 0 and (self.line + sought) < 1 then
+    sought = -(self.line - 1)
+  elseif n > 0 and (self.line + sought) > #self.lines + 1 then
+    sought = #self.lines - self.line + 1
+  end
+  self.line = self.line + sought
+  self.col = 1
+  return sought
+end
+
 function Buffer:readTo(stopAt)
-  if not stopAt or #stopAt == 0 then
+  if type(stopAt) == "string" then
+    stopAt = {stopAt}
+  elseif not stopAt or #stopAt == 0 then
     stopAt = {""}
   end
 
@@ -95,9 +116,9 @@ function Buffer:readTo(stopAt)
   while true do
     local block = self:read(blockSize, true)
     if block == "" then
-      return result, "eof"
+      return result, nil, "eof"
     end
-    for k, v in pairs(stopAt) do
+    for k, v in ipairs(stopAt) do
       if v == usub(block, 1, ulen(v)) then
         self:seek(ulen(v))
         return result, v
@@ -108,14 +129,21 @@ function Buffer:readTo(stopAt)
   end
 end
 
-function Buffer:readWhileIn(allowed)
+function Buffer:readWhileIn(allowed, plain)
+  plain = plain == nil and true
+  return self:readWhile(function(char)
+    return allowed:find(char, 1, plain)
+  end)
+end
+
+function Buffer:readWhile(predicate)
   local result = ""
   while true do
     local char = self:getCur()
     if not char then
       return result, "eof"
     end
-    if not allowed:find(char, 1, true) then
+    if not predicate(char) then
       return result
     end
     result = result .. char
@@ -127,3 +155,7 @@ end
 function Buffer:getPosition()
   return self.line, self.col
 end
+
+return {
+  Buffer = Buffer,
+}
