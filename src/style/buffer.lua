@@ -115,11 +115,15 @@ function Buffer:readWhileIn(allowed)
     if not char then
       return result, "eof"
     end
-    if not allowed:find(char) then
+    if not allowed:find(char, 1, true) then
       return result
     end
     result = result .. char
     self:seek(1)
   end
   return result
+end
+
+function Buffer:getPosition()
+  return self.line, self.col
 end
