@@ -44,15 +44,22 @@ local ClassNameNode = class(Node, {name = "wonderful.style.node.ClassNameNode"})
 
 local RuleNode = class(node, {name = "wonderful.style.node.RuleNode"})
 
-function RuleNode:__new__(line, col, type, classes, selectors, properties,
-                          public)
+function RuleNode:__new__(line, col, targets, properties, public)
+  self.line = line
+  self.col = col
+  self.targets = targets
+  self.properties = properties
+  self.public = public
+end
+
+local TargetNode = class(Node, {name = "wonderful.style.node.TargetNode"})
+
+function TargetNode:__new__(line, col, type, classes, selectors)
   self.line = line
   self.col = col
   self.type = type
   self.classes = classes
   self.selectors = selectors
-  self.properties = properties
-  self.public = public
 end
 
 local PropertyNode = class(Node, {name = "wonderful.style.node.PropertyNode"})
@@ -97,6 +104,8 @@ return {
   ClassNameNode = ClassNameNode,
 
   RuleNode = RuleNode,
+
+  TargetNode = TargetNode,
 
   PropertyNode = PropertyNode,
 

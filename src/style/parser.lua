@@ -36,31 +36,38 @@ function Context:error(token, ...)
   error(msg)
 end
 
-function Context:parseStmt()
+function Context:parseStmt(skipSep)
+  skipSep = skipSep == nil and true
+
   local token = self.stream:peek()
+
+  local public = false
+  if token:isa(lexer.KwToken) and token.value == "pub" then
+    public = true
+    self.stream:next()
+    token = self.stream:peek()
+  end
 
   local stmt
   if token:isa(lexer.KwToken) then
-    if token.value == "import" then
+    if token.value == "import" and not public then
       stmt = self:parseImport()
     elseif token.value == "type" then
-      stmt = self:parseTypeAlias(false)
-    elseif token.value == "pub" then
-      stmt = self:parsePub()
+      stmt = self:parseTypeAlias(public)
     else
-      self:error(token, "Unknown keyword")
+      self:error(token, "Bad keyword")
     end
   elseif token:isa(lexer.IdentToken) then
-    stmt = self:parseVar(false)
+    stmt = self:parseVar(public)
   elseif token:isa(lexer.NameToken) then
-    stmt = self:parseRule(false)
+    stmt = self:parseRule(public)
   elseif token:isa(lexer.PuncToken) then
     if token.value == "@" then
       -- type ref
-      stmt = self:parseRule()
+      stmt = self:parseRule(public)
     elseif token.value == "." then
       -- class
-      stmt = self:parseRule()
+      stmt = self:parseRule(public)
     end
   end
 
@@ -68,7 +75,9 @@ function Context:parseStmt()
     self:error(token, "Unknown token")
   end
 
-  self:skip(lexer.PuncToken, ";")
+  if skipSep then
+    self:skip(lexer.PuncToken, ";")
+  end
   return stmt
 end
 
@@ -111,4 +120,21 @@ function self:parseIdent()
     self:error(token, "Expected identifier")
   end
   return token.value
+end
+
+function self:parseVar(public)
+  local varToken = self.stream:peek()
+  local name = self:parseIdent()
+  local token = self.stream:next()
+  local varType = nil
+  if token:isa(lexer.PuncToken) and token.value == ":" then
+    -- Type specifier
+    varType = self:parseName(false)
+    token = self.stream:next()
+  end
+  if not (token:isa(lexer.PuncToken) and token.value == "=") then
+    self:error(token, "Expected ", lexer.PuncToken(token.line, token.col, "="))
+  end
+  local value = self:parseExpr(varType)
+  return node.VarNode(varToken.line, varToken.col, name, varType, value)
 end
