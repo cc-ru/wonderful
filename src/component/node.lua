@@ -9,19 +9,29 @@ end
 
 function Node:appendChild(node, at)
   node.parentNode = self
+  node.rootMemo = self.rootNode
+
   table.insert(self.childNodes, at or (#self.childNodes + 1), node)
 end
 
 function Node:removeChild(at)
   local node = table.remove(self.childNodes, at)
+
   node.parentNode = nil
+  node.rootMemo = nil
 end
 
 function Node:replaceChild(at, new)
   local old = self.childNodes[at]
+
   old.parentNode = nil
+  old.rootMemo = nil
+
   new.parentNode = self
+  new.rootMemo = self.rootNode
+
   self.childNodes[at] = new
+
   return old
 end
 
@@ -34,27 +44,23 @@ function Node.__getters:hasParentNode()
 end
 
 function Node.__getters:rootNode()
+  if self.rootMemo then
+    return self.rootMemo
+  end
+
   local cur = self
+
   while true do
     if cur.parentNode then
       cur = cur.parentNode
     else
+      self.rootMemo = cur
       return cur
     end
   end
 end
 
-local LeafNode = class(Node, {name = "wonderful.component.node.LeafNode"})
-
-function LeafNode:appendChild()
-  error("LeafNode can contain no children")
-end
-
-function LeafNode:removeChild()
-  error("LeafNode can contain no children")
-end
-
-function LeafNode:replaceChild()
-  error("LeafNode can contain no children")
-end
+return {
+  Node = Node
+}
 
