@@ -4,8 +4,8 @@ local element = require("wonderful.component.element")
 local style = require("wonderful.style")
 local render = require("wonderful.render")
 
-local Document = class(
-    element.Element, {name = "wonderful.component.document.Document"})
+local Document = class(element.Element,
+    {name = "wonderful.component.document.Document"})
 
 function Document:__new__(args)
   self:superCall(element.Element, "__new__")
@@ -27,6 +27,8 @@ function Document:__new__(args)
     self.globalRenderer = render.Renderer()
     self.globalRenderTarget = self.globalRenderer:newTarget()
   end
+
+  self.calculatedBox = self.globalRenderTarget.box
 end
 
 return {

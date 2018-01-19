@@ -79,12 +79,12 @@ function EventTarget:removeDefaultEventListener(cls)
   self.defaultListeners[cls] = nil
 end
 
-function EventTarget:etCapturingParent()
-  error("unimplemented abstract method EventTarget:etCapturingParent")
+function EventTarget:getCapturingParent()
+  error("unimplemented abstract method EventTarget:getCapturingParent")
 end
 
-function EventTarget:etBubblingChildren()
-  error("unimplemented abstract method EventTarget:etBubblingChildren")
+function EventTarget:getBubblingChildren()
+  error("unimplemented abstract method EventTarget:getBubblingChildren")
 end
 
 function EventTarget:dispatchEvent(event)
