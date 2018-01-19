@@ -51,11 +51,15 @@ end
 
 function TokenStream:next()
   self.pos = self.pos + 1
-  return self.tokens[pos - 1]
+  return self.tokens[self.pos - 1]
 end
 
 function TokenStream:peek()
-  return self.tokens[pos]
+  return self.tokens[self.pos]
+end
+
+function TokenStream:eof()
+  return self.pos > #self.tokens
 end
 
 function TokenStream:error(msg)
