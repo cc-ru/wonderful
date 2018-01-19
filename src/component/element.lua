@@ -30,13 +30,15 @@ function Element:appendChild(node, at)
 end
 
 function Element:removeChild(at)
-  self:superCall(node.Node, "removeChild", at)
+  local ret = self:superCall(node.Node, "removeChild", at)
   self.layout:recompose(self)
+  return ret
 end
 
 function Element:replaceChild(at, new)
-  self:superCall(node.Node, "replaceChild", at, new)
+  local ret = self:superCall(node.Node, "replaceChild", at, new)
   self.layout:recompose(self)
+  return ret
 end
 
 function Element.__getters:isLeaf()

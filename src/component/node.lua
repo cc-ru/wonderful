@@ -19,6 +19,8 @@ function Node:removeChild(at)
 
   node.parentNode = nil
   node.rootMemo = nil
+
+  return node
 end
 
 function Node:replaceChild(at, new)
