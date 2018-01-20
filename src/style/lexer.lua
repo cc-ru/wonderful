@@ -25,11 +25,17 @@ local IdentToken = class(Token, {name = "wonderful.style.lexer.IdentToken"})
 local OpToken = class(Token, {name = "wonderful.style.lexer.OpToken"})
 local CodeToken = class(Token, {name = "wonderful.style.lexer.CodeToken"})
 local NameToken = class(Token, {name = "wonderful.style.lexer.NameToken"})
+local ClassNameToken = class(
+  Token,
+  {name = "wonderful.style.lexer.ClassNameToken"}
+)
+local VarRefToken = class(Token, {name = "wonderful.style.lexer.VarRefToken"})
+local TypeRefToken = class(Token, {name = "wonderful.style.lexer.TypeRefToken"})
 
 local TokenStream = class(nil, {name = "wonderful.style.lexer.TokenStream"})
 
 TokenStream.keywords = {"import", "pub", "type"}
-TokenStream.punc = ",.{}();@~$:*"
+TokenStream.punc = ",.{}();@~:*"
 TokenStream.identFirst = "[A-Za-z_]"
 TokenStream.ident = "[A-Za-z0-9_-]"
 TokenStream.operators = {"=", ">", ">>", "~>", "~>>"}
@@ -91,6 +97,10 @@ function TokenStream:readNext()
     self:readCode()
   elseif char == '"' or char == "'" then
     self:readString()
+  elseif char == "[" then
+    self:readClassName()
+  elseif char == "<" then
+    self:readName()
   elseif tonumber(char, 10) then
     self:readNumber()
   else
@@ -111,12 +121,14 @@ function TokenStream:readNext()
     end
     if operator then
       self:readOperator(operator)
-    elseif self.punc:find(char, 1, true) then
-      self:readPunc()
     elseif char2:match("#%x") then
       self:readColor()
+    elseif char == "$" then
+      self:readVarRef()
     elseif char:match(self.identFirst) then
       self:readIdent()
+    elseif self.punc:find(char, 1, true) then
+      self:readPunc()
     end
   end
 end
@@ -186,11 +198,20 @@ end
 
 function TokenStream:readName()
   self.buf:seek(1)
-  local result, endChar = self.buf:readTo("]")
-  if endChar ~= "]" then
+  local result, endChar = self.buf:readTo(">")
+  if endChar ~= ">" then
     self:error("Name not closed")
   end
   table.insert(self.tokens, NameToken(result))
+end
+
+function TokenStream:readClassName()
+  self.buf:seek(1)
+  local result, endChar = self.buf:readTo("]")
+  if endChar ~= "]" then
+    self:error("Class name not closed")
+  end
+  table.insert(self.tokens, ClassNameToken(result))
 end
 
 function TokenStream:readOperator(op)
@@ -199,13 +220,32 @@ function TokenStream:readOperator(op)
 end
 
 function TokenStream:readIdent()
-  local firstChar = self.buf:read(1)
-  local result = self.buf:readWhileIn(self.ident, false)
+  local result = self:getIdent()
   if isin(result, self.keywords) then
     table.insert(self.tokens, KwToken(result))
   else
-    table.insert(self, tokens, IdentToken(result))
+    table.insert(self.tokens, IdentToken(result))
   end
+end
+
+function TokenStream:readVarRef()
+  self.buf:seek(1)
+  local name = self:getIdent()
+  table.insert(self.tokens, VarRefToken(name))
+end
+
+function TokenStream:readTypeRef()
+  self.buf:seek(1)
+  local name = self:getIdent()
+  table.insert(self.tokens, TypeRefToken(name))
+end
+
+function TokenStream:getIdent()
+  local firstChar = self.buf:read(1)
+  if not firstChar:match(self.identFirst) then
+    self:error("Bad identifier name")
+  end
+  return firstChar .. self.buf:readWhileIn(self.ident, false)
 end
 
 return {
@@ -220,6 +260,9 @@ return {
   OpToken = OpToken,
   CodeToken = CodeToken,
   NameToken = NameToken,
+  ClassNameToken = ClassNameToken,
+  VarRefToken = VarRefToken,
+  TypeRefToken = TypeRefToken,
 
   TokenStream = TokenStream,
 }

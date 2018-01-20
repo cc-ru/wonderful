@@ -27,10 +27,25 @@ function Parser:error(token, ...)
     end
   end
   if token then
-    local line, col = token.line, token.col
+    local line, col
+    if token == "cur" then
+      local cur = self.stream:peek()
+      if cur then
+        line = cur.line
+        col = cur.col
+      else
+        -- EOF
+        line = #self.stream.buf.lines + 1
+        col = 1
+      end
+    else
+      line, col = token.line, token.col
+    end
     local prefix = "L" .. line .. ":" .. col .. ": "
-    msg = (prefix .. "[" .. token.NAME .. " '" .. tostring(token.value) ..
-           "'] " .. msg)
+    if token ~= "cur" then
+      msg = (prefix .. "[" .. token.NAME .. " '" .. tostring(token.value) ..
+             "'] " .. msg)
+    end
     local lineMsg = prefix .. self.stream.buf:getLine(line)
     io.stderr:write(lineMsg)
     io.stderr:write((" "):rep(ulen(lineMsg) - 1) .. "^")
@@ -63,6 +78,8 @@ function Parser:parseStmt(skipSep)
     stmt = self:parseVar(public)
   elseif token:isa(lexer.NameToken) then
     stmt = self:parseRule(public)
+  elseif token:isa(lexer.ClassNameToken) then
+    stmt = self:parseRule(public)
   elseif token:isa(lexer.PuncToken) then
     if self.rulePuncs:find(token.value, 1, true) then
       stmt = self:parseRule(public)
@@ -92,6 +109,9 @@ end
 
 function self:parseImport()
   local token = self.stream:next()
+  if not token:isa(lexer.KwToken) or token.value ~= "import" then
+    self:error(token, "Import statement expected")
+  end
   local nameToken = self.stream:peek()
   local name
   if nameToken:isa(lexer.NameToken) then
@@ -99,13 +119,16 @@ function self:parseImport()
   elseif nameToken:isa(lexer.StrToken) then
     name = self:parsePath()
   else
-    self:error(token, "Expected style object name or path")
+    self:error(token, "Expected a style object name or path")
   end
   return node.ImportNode(token.line, token.col, name)
 end
 
 function self:parseTypeAlias(public)
   local token = self.stream:next()
+  if not token:isa(lexer.kwToken) or token.value ~= "type" then
+    self:error(token, "Type alias statement expected")
+  end
   local alias = self:parseIdent()
   self:skip(lexer.OpToken, "=")
   local name = self:parseName(true)
@@ -133,7 +156,7 @@ function self:parseVar(public)
   if not (token:isa(lexer.OpToken) and token.value == "=") then
     self:error(token, "Expected ", lexer.OpToken(token.line, token.col, "="))
   end
-  local value = self:parseExpr(varType)
+  local value = self:parseExpr(lexer.PuncToken, ";")
   return node.VarNode(varToken.line, varToken.col, name, varType, value)
 end
 
@@ -159,7 +182,7 @@ function self:parseDelimited(startp, delimiter, endp, parser)
     end
 
     if not token then
-      self:error(nil, "Delimited section not closed")
+      self:error("cur", "Delimited section not closed")
     end
 
     self:skip(lexer.PuncToken, delimiter)
@@ -210,24 +233,122 @@ function self:parseProp()
   local name = self:parseIdent()
   self:skip(lexer.PuncToken, ":")
 
-  local value = self:parseExpr()
+  local value = self:parseExpr(lexer.PuncToken, ";")
 
   return node.PropertyNode(token.line, token.col, name, value, custom)
 end
 
 function self:parseName(classNameAllowed)
-  error("unimplemented")
+  local token = self.stream:next()
+  if token:isa(lexer.NameToken) then
+    local name = token.value:match("^%s*(.-)%s*$")
+    local module = true
+    local path, varName
+    if name:sub(1, 1) == '"' or name:sub(1, 1) == "'" then
+      local _
+      _, path, name = name:match("^(['\"])(.+)%1:([%a_][%w_]*)$")
+      module = false
+    else
+      path, name = name:match("^(.+):([%a_][%w]*)$")
+    end
+    if not path then
+      self:error(token, "Malformed name")
+    end
+    return node.NameNode(token.line, token.col, path, name, module)
+  elseif classNameAllowed and token:isa(lexer.ClassNameToken) then
+    return node.ClassNameNode(token.line, token.col, token.value)
+  elseif token:isa(lexer.TypeRefToken) then
+    return node.TypeRefNode(token.line, token.col, token.name)
+  else
+    self:error(token, "Name " .. (classNameAllowed and "or class name" or "") ..
+               "expected")
+  end
 end
 
 function self:parsePath()
-  error("unimplemented")
+  local token = self.stream:next()
+  if not token:isa(lexer.StrToken) then
+    self:error(token, "Path expected")
+  end
+  return node.PathNode(token.line, token.col, token.value)
 end
 
-function self:parseExpr(varType)
-  error("unimplemeted")
+function self:parseExpr(endType, endValue)
+  -- Expressions are actually evaluated by the interpreter itself
+  -- since we need the type and context information for this
+  local tokens = {}
+  while true do
+    local token = self.stream:peek()
+    if token:isa(endType) and (not endValue or token.value == endValue) then
+      break
+    end
+    if token:isa(lexer.PuncToken) or token:isa(lexer.NumToken) or
+        token:isa(lexer.ColorToken) or token:isa(StrToken) or
+        token:isa(lexer.IdentToken) or token:isa(lexer.CodeToken) or
+        token:isa(lexer.VarRefToken) then
+      table.insert(token)
+    else
+      self:error(token, "Unexpected token in expression")
+    end
+  end
+  return node.ValueNode(token.line, token.col, tokens)
 end
 
 function self:parseTarget()
-  error("unimplemented")
+  local component
+  local classes = {}
+  local selectors = {}
+
+  -- Component name
+  local token = self.stream:seek()
+  if token:isa(lexer.NameToken) or token:isa(lexer.ClassNameToken) or
+      token:isa(lexer.TypeRefToken) then
+    component = self:parseName(true)
+  elseif token:isa(lexer.PuncToken) and token.value == "*" then
+    component = node.AnyTypeNode()
+  end
+
+  -- Classes
+  while true do
+    local token = self.stream:seek()
+    if token:isa(lexer.PuncToken) and token.value == "." then
+      self.stream:next()
+      table.insert(classes, node.ClassNode(token.line, token.col,
+                                           self:readIdent()))
+    else
+      break
+    end
+  end
+
+  -- Selectors
+  while true do
+    local token = self.stream:seek()
+    if token:isa(lexer.PuncToken) and token.value == ":" then
+      self.stream:next()
+      local custom = false
+      local nextToken = self.stream:peek()
+      if nextToken:isa(PuncToken) and nextToken.value == "~" then
+        custom = true
+      end
+
+      local name = self:readIdent()
+
+      local value
+      nextToken = self.stream:peek()
+      if nextToken:isa(PuncToken) and nextToken.value == "(" then
+        value = self:readExpr(lexer.PuncToken, ")")
+      end
+
+      table.insert(selectors, node.SelectorNode(token.line, token.col,
+                                                name, value, custom))
+    else
+      break
+    end
+  end
+  if not component and #classes == 0 and #selectors == 0 then
+    self:error("cur", "Target expected")
+  end
+
+  return node.TargetNode(token.line, token.col, component, classes, selectors)
 end
 

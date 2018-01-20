@@ -15,6 +15,14 @@ local PathNode = class(Node, {name = "wonderful.style.node.PathNode"})
 
 local NameNode = class(Node, {name = "wonderful.style.node.NameNode"})
 
+function NameNode:__new__(line, col, path, name, isModule)
+  self.line = line
+  self.col = col
+  self.path = path
+  self.name = name
+  self.module = isModule
+end
+
 local VarNode = class(Node, {name = "wonderful.style.node.VarNode"})
 
 function VarNode:__new__(line, col, name, type, value, public)
@@ -27,7 +35,6 @@ function VarNode:__new__(line, col, name, type, value, public)
 end
 
 local ValueNode = class(Node, {name = "wonderful.style.node.ValueNode"})
-local VarRefNode = class(Node, {name = "wonderful.style.node.VarRefNode"})
 
 local TypeAliasNode = class(Node, {name = "wonderful.style.node.TypeAliasNode"})
 
@@ -84,6 +91,13 @@ function SelectorNode:__new__(line, col, name, value, custom)
   self.custom = custom
 end
 
+local AnyTypeNode = class(Node, {name = "wonderful.style.node.AnyTypeNode"})
+
+function AnyTypeNode:__new__(line, col)
+  self.line = line
+  self.col = col
+end
+
 return {
   Node = Node,
 
@@ -96,7 +110,6 @@ return {
   VarNode = VarNode,
 
   ValueNode = ValueNode,
-  VarRefNode = VarRefNode,
 
   TypeAliasNode = TypeAliasNode,
 
@@ -112,5 +125,7 @@ return {
   ClassNode = ClassNode,
 
   SelectorNode = SelectorNode,
+
+  AnyTypeNode = AnyTypeNode,
 }
 
