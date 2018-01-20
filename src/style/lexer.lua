@@ -29,10 +29,10 @@ local NameToken = class(Token, {name = "wonderful.style.lexer.NameToken"})
 local TokenStream = class(nil, {name = "wonderful.style.lexer.TokenStream"})
 
 TokenStream.keywords = {"import", "pub", "type"}
-TokenStream.punc = ",.{}();@~$:"
+TokenStream.punc = ",.{}();@~$:*"
 TokenStream.identFirst = "[A-Za-z_]"
 TokenStream.ident = "[A-Za-z0-9_-]"
-TokenStream.operators = {"="}
+TokenStream.operators = {"=", ">", ">>", "~>", "~>>"}
 
 table.sort(TokenStream.operators, function(lhs, rhs)
   return not ulen(lhs) < ulen(rhs)

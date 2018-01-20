@@ -3,9 +3,11 @@ local class = require("lua-objects")
 local node = require("wonderful.style.node")
 local lexer = require("wonderful.style.lexer")
 
-local Context = class(nil, {name = "wonderful.style.parser.Context"})
+local Parser = class(nil, {name = "wonderful.style.parser.Parser"})
 
-function Context:__new__(stream)
+Parser.rulePuncs = "*.:"
+
+function Parser:__new__(stream)
   self.stream = stream
 
   local stmts = {}
@@ -15,7 +17,7 @@ function Context:__new__(stream)
   self.ast = node.RootNode(1, 1, stmts)
 end
 
-function Context:error(token, ...)
+function Parser:error(token, ...)
   local msg = ""
   for _, v in ipairs({...}) do
     if type(v) == "string" then
@@ -36,7 +38,7 @@ function Context:error(token, ...)
   error(msg)
 end
 
-function Context:parseStmt(skipSep)
+function Parser:parseStmt(skipSep)
   skipSep = skipSep == nil and true
 
   local token = self.stream:peek()
@@ -62,11 +64,7 @@ function Context:parseStmt(skipSep)
   elseif token:isa(lexer.NameToken) then
     stmt = self:parseRule(public)
   elseif token:isa(lexer.PuncToken) then
-    if token.value == "@" then
-      -- type ref
-      stmt = self:parseRule(public)
-    elseif token.value == "." then
-      -- class
+    if self.rulePuncs:find(token.value, 1, true) then
       stmt = self:parseRule(public)
     end
   end
@@ -132,9 +130,103 @@ function self:parseVar(public)
     varType = self:parseName(false)
     token = self.stream:next()
   end
-  if not (token:isa(lexer.PuncToken) and token.value == "=") then
-    self:error(token, "Expected ", lexer.PuncToken(token.line, token.col, "="))
+  if not (token:isa(lexer.OpToken) and token.value == "=") then
+    self:error(token, "Expected ", lexer.OpToken(token.line, token.col, "="))
   end
   local value = self:parseExpr(varType)
   return node.VarNode(varToken.line, varToken.col, name, varType, value)
+end
+
+function self:parseRule(public)
+  local targets = self:parseDelimited(nil, ",", "{", self.parseSpec)
+  local props = self:parseDelimited("{", ";", "}", self.parseProp)
+end
+
+function self:parseDelimited(startp, delimiter, endp, parser)
+  if startp then
+    self:skip(lexer.PuncToken, startp)
+  end
+
+  local result = {}
+  while true do
+    table.insert(result, parser(self))
+    local token = self.stream:peek()
+
+    if token and token:isa(lexer.PuncToken) then
+      if token.value == endp then
+        break
+      end
+    end
+
+    if not token then
+      self:error(nil, "Delimited section not closed")
+    end
+
+    self:skip(lexer.PuncToken, delimiter)
+  end
+
+  return result
+end
+
+function self:parseSpec()
+  local target = self:parseTarget()
+
+  local processed = false
+  repeat
+    processed = false
+    local token = self.stream:peek()
+    if token:isa(lexer.OpToken) then
+      if token.value == ">>" or token.value == ">" or
+          token.value == "~>>" or token.value == "~>" then
+        self.stream:next()
+        local right = self:parseTarget()
+
+        if token.value == ">>" then
+          right.ascendant = target
+        elseif token.value == ">" then
+          right.parent = target
+        elseif token.value == "~>>" then
+          right.above = target
+        elseif token.value == "~>" then
+          right.dirAbove = target
+        end
+
+        target = right
+        processed = true
+      end
+    end
+  until not processed
+
+  return target
+end
+
+function self:parseProp()
+  local token = self.stream:peek()
+  local custom = false
+  if token:isa(lexer.PuncToken) and token.value == "~" then
+    custom = true
+  end
+
+  local name = self:parseIdent()
+  self:skip(lexer.PuncToken, ":")
+
+  local value = self:parseExpr()
+
+  return node.PropertyNode(token.line, token.col, name, value, custom)
+end
+
+function self:parseName(classNameAllowed)
+  error("unimplemented")
+end
+
+function self:parsePath()
+  error("unimplemented")
+end
+
+function self:parseExpr(varType)
+  error("unimplemeted")
+end
+
+function self:parseTarget()
+  error("unimplemented")
 end
