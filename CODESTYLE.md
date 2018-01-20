@@ -85,8 +85,10 @@ local var do
 end
 ```
 
-Sort requires alphabetically. Separate the three groups of requires with a new
-line:
+Leave the last line of a file blank.
+
+Sort requires alphabetically. Separate the three groups of requires with blank
+lines:
 
 * OpenOS / Lua libraries (`component`, `term`).
 * User libraries (stored in `/usr/lib/`, installed using a package manager).

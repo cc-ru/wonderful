@@ -58,7 +58,9 @@ function Element.__getters:renderTarget()
 end
 
 local LeafElement = class(
-    Element, {name = "wonderful.component.element.LeafElement"})
+  Element,
+  {name = "wonderful.component.element.LeafElement"}
+)
 
 function LeafElement:__new__()
   self:superCall(Element, "__new__")

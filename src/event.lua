@@ -120,7 +120,7 @@ function EventTarget:_handleEvent(listener, event)
   event.phase = EventPhase.AtTarget
   event.currentTarget = self
   listener.handler(event)
-  
+
   event.phase = EventPhase.Bubbling
 
   for _, child in ipairs(self:etBubblingChildren()) do

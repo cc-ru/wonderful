@@ -12,7 +12,7 @@ local Direction = {
 local BoxLayout = class(Layout, {name = "wonderful.layout.box.BoxLayout"})
 
 function BoxLayout:__new__(direction)
-  self.direction = direction  
+  self.direction = direction
 end
 
 function BoxLayout:recompose(el)

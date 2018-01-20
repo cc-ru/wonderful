@@ -1,26 +1,36 @@
 local util = {}
 
 function util.shallowcopy(orig)
-  if type(orig) ~= "table" then return orig end
+  if type(orig) ~= "table" then
+    return orig
+  end
 
   local copy = {}
   print(copy)
 
   for k, v in pairs(orig) do
-      copy[k] = v
+    copy[k] = v
   end
 
   return copy
 end
 
 function util.shalloweq(lhs, rhs)
-  if lhs == rhs then return true end
+  if lhs == rhs then
+    return true
+  end
 
-  if type(lhs) ~= type(rhs) then return false end
-  if type(lhs) ~= "table" then return false end
+  if type(lhs) ~= type(rhs) then
+    return false
+  end
+  if type(lhs) ~= "table" then
+    return false
+  end
 
   for k, v in pairs(lhs) do
-    if not rhs[k] or rhs[k] ~= v then return false end
+    if not rhs[k] or rhs[k] ~= v then
+      return false
+    end
   end
 end
 
