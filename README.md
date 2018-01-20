@@ -14,5 +14,5 @@ different from other libraries:
 - **Buffered rendering.** The library only issues GPU calls for the parts that
   changed since the previous update, and packs them together beforehand.
 - **OOP.** I mean, proper OOP. Multi-inheritance, getters and setters, and
-  more — thanks to the lua-objects library.
+  more—thanks to the lua-objects library.
 
