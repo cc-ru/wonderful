@@ -1,5 +1,6 @@
 local class = require("lua-objects")
 
+local Box = require("wonderful.geometry").Box
 local Layout = require("wonderful.layout").Layout
 local LayoutItem = require("wonderful.layout").LayoutItem
 
@@ -25,33 +26,37 @@ function BoxLayout:recompose(el)  -- do not touch
   -- TODO: handle BTT and RTL directions
 
   local chunks = {}
-  local i = 1
+  local i = 0
   local filled = 0
   local count = 0
+  local lastMut = 0
 
   for _, child in ipairs(el:getLayoutItems()) do
     if child:getStretch() == 0 then
       local w, h = child:sizeHint()
       local margin = child:getMargin()
 
-      if not chunks[i] then
+      if not chunks[i] or not chunks[i].const then
+        i = i + 1
         chunks[i] = {const = true}
       end
 
       table.insert(chunks[i], child)
       filled = filled + (isVertical(self.direction)
-                         and h + margin.top + margin.bottom
-                          or w + margin.left + margin.right)
+                         and h + margin.t + margin.b
+                          or w + margin.l + margin.r)
     else
       local margin = child:getMargin()
 
       i = i + 1
-      count = count + 1
+      count = count + child:getStretch()
+
       filled = filled + (isVertical(self.direction)
                          and margin.t + margin.b
                           or margin.l + margin.r)
 
       chunks[i] = {const = false, stretch = child:getStretch(), el = child}
+      lastMut = i
     end
   end
 
@@ -62,11 +67,11 @@ function BoxLayout:recompose(el)  -- do not touch
            and (box.h - pad.t - pad.b)
             or (box.w - pad.l - pad.r)
 
-  local basis = (filled - full) / count
+  local basis = (full - filled) / count
   local x, y = box.x + pad.l, box.y + pad.t
 
   for j, chunk in ipairs(chunks) do
-    if chunk.constant then
+    if chunk.const then
       for _, el in ipairs(chunk) do
         local w, h = el:sizeHint()
         local margin = el:sizeHint()
@@ -91,19 +96,19 @@ function BoxLayout:recompose(el)  -- do not touch
         w = math.floor(basis * chunk.stretch + 0.5)
       end
 
-      if j == #chunks and isVertical(self.direction) then
-        h = filled - full 
+      if j == lastMut and isVertical(self.direction) then
+        h = full - filled 
       elseif j == #chunks then
-        w = filled - full
+        w = full - filled
       end
 
       el:boxCalculated(Box(x + margin.l, y + margin.t, w, h))
 
       if isVertical(self.direction) then
-        filled = filled + h + margin.t + margin.b
+        filled = filled + h
         y = y + h + margin.t + margin.b
       else
-        filled = filled + w + margin.l + margin.r
+        filled = filled + w
         x = x + w + margin.l + margin.r
       end
     end

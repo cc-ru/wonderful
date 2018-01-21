@@ -29,6 +29,10 @@ end
 
 local ParentNode = class(nil, {name = "wonderful.component.node.ParentNode"})
 
+function ParentNode:__new__()
+  self.childNodes = {}
+end
+
 function ParentNode:appendChild(node, at)
   node.parentNode = self
   node.rootMemo = self.rootNode
@@ -45,7 +49,7 @@ function ParentNode:removeChild(at)
   return node
 end
 
-function Parent:replaceChild(at, new)
+function ParentNode:replaceChild(at, new)
   local old = self.childNodes[at]
 
   old.parentNode = nil

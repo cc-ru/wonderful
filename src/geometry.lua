@@ -9,6 +9,13 @@ function Box:__new__(x, y, w, h)
   self.h = h
 end
 
+function Box:__tostring__()
+  return ("Box { x = %d, y = %d, w = %d, h = %d }"):format(
+    self.x, self.y,
+    self.w, self.h
+  )
+end
+
 function Box:intersects(other)
   return (math.abs(self.x - other.x) * 2 < (self.w + other.w)) and
          (math.abs(self.y - other.y) * 2 < (self.h + other.h))

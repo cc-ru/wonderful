@@ -1,7 +1,6 @@
 local class = require("lua-objects")
 
 local Margin = require("wonderful.geometry").Margin
-local box = require("wonderful.layout.box")
 
 local Layout = class(nil, {name = "wonderful.layout.Layout"})
 
@@ -44,10 +43,6 @@ end
 return {
   Layout = Layout,
   LayoutItem = LayoutItem,
-  LayoutContainer = LayoutContainer,
-  Direction = box.Direction,
-  BoxLayout = box.BoxLayout,
-  VBoxLayout = box.VBoxLayout,
-  HBoxLayout = box.HBoxLayout
+  LayoutContainer = LayoutContainer
 }
 

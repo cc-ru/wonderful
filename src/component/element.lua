@@ -12,9 +12,9 @@ local LeafElement = class(
 
 function LeafElement:__new__()
   self:superCall(node.ChildNode, "__new__")
-  self:superCall(node.EventTarget, "__new__")
+  self:superCall(event.EventTarget, "__new__")
 
-  self.calculatedBox = Box()
+  self.calculatedBox = geometry.Box()
   self.attributes = {}
 end
 
@@ -61,7 +61,7 @@ function Element:__new__()
   self:superCall(LeafElement, "__new__")
   self:superCall(node.ParentNode, "__new__")
 
-  self.layout = layout.VBoxLayout()
+  self.layout = VBoxLayout()
 end
 
 function Element:getBubblingChildren()
@@ -80,8 +80,8 @@ function Element:getLayoutBox()
   return self.calculatedBox 
 end
 
-function Element:appendChild(node, at)
-  self:superCall(node.ParentNode, "appendChild", node, at)
+function Element:appendChild(child, at)
+  self:superCall(node.ParentNode, "appendChild", child, at)
   self.layout:recompose(self)
 end
 
@@ -108,7 +108,7 @@ function Element.__getters:isLeaf()
 end
 
 return {
-  LeafElement = LeafElement
-  Element = Element,
+  LeafElement = LeafElement,
+  Element = Element
 }
 
