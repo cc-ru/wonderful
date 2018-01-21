@@ -19,6 +19,7 @@ function Buffer:__new__(buf)
       table.insert(self.lines, line .. "\n")
     end
   end
+  buf:close()
 end
 
 function Buffer:getCur()

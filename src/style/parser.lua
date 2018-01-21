@@ -352,3 +352,8 @@ function self:parseTarget()
   return node.TargetNode(token.line, token.col, component, classes, selectors)
 end
 
+
+return {
+  Parser = Parser
+}
+

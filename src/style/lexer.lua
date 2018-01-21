@@ -47,25 +47,30 @@ end)
 TokenStream.opMaxLen = ulen(TokenStream.operators[1])
 
 function TokenStream:__new__(buf)
-  self.tokens = {}
-  self.pos = 1
+  self.currentToken = nil
   self.col = 0
   self.line = 0
   self.buf = buf
-  self:tokenize()
+  self._eof = false
 end
 
 function TokenStream:next()
-  self.pos = self.pos + 1
-  return self.tokens[self.pos - 1]
+  if not self:eof() then
+    local token = self.currentToken or self:readNext()
+    self.currentToken = nil
+    return token
+  else
+    return nil, "eof"
+  end
 end
 
 function TokenStream:peek()
-  return self.tokens[self.pos]
+  self.currentToken = self.currentToken or self:readNext()
+  return self.currentToken
 end
 
 function TokenStream:eof()
-  return self.pos > #self.tokens
+  return self._eof
 end
 
 function TokenStream:error(msg)
@@ -80,6 +85,7 @@ function TokenStream:readNext()
   local char2 = self.buf:read(2, true)
 
   if char2 == "" then
+    self._eof = true
     return "eof"
   end
 
