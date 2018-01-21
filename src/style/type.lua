@@ -1,9 +1,9 @@
 local class = require("lua-objects")
 
-local Type = class(nil, {name = "wonderful.style.type.Type"})
+local ExprType = class(nil, {name = "wonderful.style.type.ExprType"})
 
-function Type.parse(expr)
+function ExprType.parse(expr)
 end
 
-function Type:get()
+function ExprType:get()
 end

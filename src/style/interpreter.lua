@@ -35,8 +35,37 @@ end
 
 local TypeRef = class(nil, {name = "wonderful.style.interpreter.TypeRef"})
 
-function TypeRef:__new__(name)
+function TypeRef:__new__(name, public)
   self.name = name
+  self.public = public
+end
+
+local Type = class(nil, {name = "wonderful.style.interpreter.Type"})
+
+function Type:__new__(clazz)
+  self.class = clazz
+end
+
+function Type:matches(instance)
+  return instance:isa(self.class)
+end
+
+local NamedType = class(Type, {name = "wonderful.style.interpreter.NamedType"})
+
+function NamedType:__new__(name)
+  self.name = name
+end
+
+function NamedType:matches(instance)
+  return instance.NAME == self.name
+end
+
+local AnyType = class(Type, {name = "wonderful.style.interpreter.AnyType"})
+
+function AnyType:__new__() end
+
+function AnyType:matches()
+  return true
 end
 
 local Spec = class(nil, {name = "wonderful.style.interpreter.Spec"})
@@ -159,7 +188,7 @@ function Context:interpret()
   end
 
   self:resolveTypeRefs()
-  self:resolveCustomRules()
+  self:processRules()
   self:packValues()
   self:evalExpressions()
 end
@@ -239,10 +268,51 @@ function Context:addRule(stmt)
 end
 
 function Context:resolveTypeRefs()
-  error("unimplemented")
+  for k in pairs(self.types) do
+    self.types[k] = self:resolveType(self.types[k])
+  end
+
+  -- Now find any references
+  for k, v in pairs(self.vars) do
+    if v.type then
+      v.type = self:resolveType(v.type)
+    end
+  end
+
+  for _, rule in pairs(self.rules) do
+    for _, target in pairs(rule.spec.targets) do
+      if target.type then
+        target.type = self:resolveType(target.type)
+      end
+    end
+  end
 end
 
-function Context:resolveCustomRules()
+-- Resolves TypeRef to Type
+function Context:resolveType(typeRef)
+  if typeRef:isa(Type) then
+    return typeRef
+  end
+
+  local name = typeRef.name
+  if name:isa(node.TypeRefNode) then
+    local referenced = self.types[name.value]
+    self.types[name.value] = self:resolveType(referenced)
+    return self.types[name.value]
+  elseif name:isa(node.NameNode) then
+    if name.module then
+      return self:importName(name.path, name.name)
+    else
+      return self:loadName(name.path, name.name)
+    end
+  elseif name:isa(node.ClassNameNode) then
+    return NamedType(name.value)
+  elseif name:isa(node.AnyTypeNode) then
+    return AnyType()
+  end
+end
+
+function Context:processRules()
   error("unimplemented")
 end
 
@@ -251,6 +321,14 @@ function Context:packValues()
 end
 
 function Context:evalExpressions()
+  error("unimplemented")
+end
+
+function Context:importName(modPath, name)
+  error("unimplemented")
+end
+
+function Context:loadName(path, name)
   error("unimplemented")
 end
 
