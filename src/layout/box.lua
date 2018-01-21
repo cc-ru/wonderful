@@ -74,7 +74,7 @@ function BoxLayout:recompose(el)  -- do not touch
     if chunk.const then
       for _, el in ipairs(chunk) do
         local w, h = el:sizeHint()
-        local margin = el:sizeHint()
+        local margin = el:getMargin()
 
         el:boxCalculated(Box(x + margin.l, y + margin.t, el:sizeHint()))
 

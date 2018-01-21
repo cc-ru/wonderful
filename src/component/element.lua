@@ -2,6 +2,7 @@ local class = require("lua-objects")
 
 local geometry = require("wonderful.geometry")
 local layout = require("wonderful.layout")
+local VBoxLayout = require("wonderful.layout.box").VBoxLayout
 local event = require("wonderful.event")
 local node = require("wonderful.component.node")
 
@@ -18,11 +19,11 @@ function LeafElement:__new__()
   self.attributes = {}
 end
 
-function Element:getCapturingParent()
+function LeafElement:getCapturingParent()
   return self.parentNode
 end
 
-function Element:getBubblingChildren()
+function LeafElement:getBubblingChildren()
   return {}
 end
 
@@ -38,15 +39,15 @@ function LeafElement:boxCalculated(new)
   self.calculatedBox = new
 end
 
-function Element.__getters:style()
+function LeafElement.__getters:style()
   return self.rootNode.globalStyle
 end
 
-function Element.__getters:renderer()
+function LeafElement.__getters:renderer()
   return self.rootNode.globalRenderer
 end
 
-function Element.__getters:renderTarget()
+function LeafElement.__getters:renderTarget()
   return self.rootNode.globalRenderTarget
 end
 
