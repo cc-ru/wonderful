@@ -1,9 +1,10 @@
-local gui = require("wonderful.gui")
+local document = require("wonderful.component.document")
 local render = require("wonderful.render")
 
 -- Re-export
 return {
-  GUI = gui.GUI;
-  Renderer = render.Renderer;
+  Document = document.Document,
+  Renderer = render.Renderer,
+  RenderTarget = render.RenderTarget
 }
 
