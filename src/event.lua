@@ -11,10 +11,7 @@ local EventPhase = {
 
 local Event = class(nil, {name = "wonderful.event.Event"})
 
-function Event:__new__(name, payload)
-  self.name = name
-  self.payload = payload or {}
-
+function Event:__new__()
   self.cancelled = false
   self.propagationStopped = false
   self.defaultPrevented = false
