@@ -18,10 +18,27 @@ end
 
 local RenderTarget = class(nil, {name = "wonderful.render.RenderTarget"})
 
-function RenderTarget:__new__(renderer, screen, box)
+function RenderTarget:__new__(renderer, screen, box, depth)
   self.renderer = renderer
   self.screen = screen
   self.box = box
+
+  local bufferArgs = {
+    w = box.w,
+    h = box.h,
+    depth = depth
+  }
+
+  self.oldBuffer = wbuffer.Buffer(bufferArgs)
+  self.newBuffer = wbuffer.Buffer(bufferArgs)
+end
+
+function RenderTarget:flush()
+  local gpu = component.proxy(self.renderer:getGPU(self))
+
+  local tmp = self.oldBuffer
+  self.oldBuffer = self.newBuffer
+  self.newBuffer = tmp
 end
 
 local Renderer = class(nil, {name = "wonderful.render.Renderer"})
@@ -39,7 +56,7 @@ function Renderer:__new__()
     self.screens[address] = {
       proxy = component.proxy(address),
       address = address,
-      depth = computer.getDeviceInfo()[address].width,
+      depth = ((computer.getDeviceInfo() or {})[address] or {}).width or 3,
       regions = {},
       preferredResolution = nil,
       forcedGPU = nil
@@ -52,7 +69,7 @@ function Renderer:__new__()
     self.gpus[address] = {
       proxy = component.proxy(address),
       address = address,
-      depth = computer.getDeviceInfo()[address].width
+      depth = ((computer.getDeviceInfo() or {})[address] or {}).width or 3
     }
 
     local curDepth = component.invoke(address, "maxDepth")
@@ -84,16 +101,24 @@ function Renderer:forceScreenGPU(screen, gpu)
 end
 
 function Renderer:getScreenResolution(screen)
-  local screen = self.screens[screen]
-
-  local depth = math.min(screen.depth,
-      screen.forcedGPU and self.gpus[screen.forcedGPU].depth or self.maxDepth)
+  local depth = self:getScreenDepth(screen)
 
   local dw, dh = depthResolution(depth)
   local w, h = table.unpack(screen.preferredResolution
       or {math.huge, math.huge})
 
   return math.min(w, dw), math.min(h, dh)
+end
+
+function Renderer:getScreenDepth(screen)
+  local screen = self.screens[screen]
+
+  -- TODO: Render here
+
+  return math.min(
+    screen.depth,
+    screen.forcedGPU and self.gpus[screen.forcedGPU].depth or self.maxDepth
+  )
 end
 
 function Renderer:newTarget(spec)
@@ -133,14 +158,47 @@ function Renderer:newTarget(spec)
       end
     end
 
-    local primary = table.remove(candidates, primaryIndex)
-    table.insert(candidates, 1, primary)
+    if primaryIndex then
+      local primary = table.remove(candidates, primaryIndex)
+      table.insert(candidates, 1, primary)
+    end
 
     spec.screen = candidates[1]
     spec.box = candidates[1].box
   end
 
-  return RenderTarget(self, spec.screen, spec.box)
+  return RenderTarget(self, spec.screen, spec.box, getScreenDepth(spec.screen))
+end
+
+function Renderer:getGPU(target)
+  local candidates = {}
+  local screen = self.screens[target.screen]
+
+  for _, gpu in ipairs(self.gpus) do
+    if gpu.depth >= screen.depth then
+      table.insert(candidates, gpu.address)
+    end
+  end
+
+  table.sort(candidates, function(rhs, lhs)
+    return rhs.depth < lhs.depth
+  end)
+
+  local bindIndex
+  for i, gpu in ipairs(candidates) do
+    if component.invoke(gpu, "getScreen") == screen.address then
+      bindIndex = i
+    end
+  end
+
+  if bindIndex then
+    local bind = table.remove(candidates, bindIndex)
+    table.insert(candidates, 1, bind)
+  else
+    component.invoke(candidates[1], "bind", screen.address, false)
+  end
+
+  return candidates[1]
 end
 
 return {
