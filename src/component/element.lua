@@ -5,15 +5,17 @@ local layout = require("wonderful.layout")
 local event = require("wonderful.event")
 local node = require("wonderful.component.node")
 
-local Element = class({node.Node, event.EventTarget},
-                      {name = "wonderful.component.element.Element"})
+local LeafElement = class(
+  {node.ChildNode, event.EventTarget, layout.LayoutItem},
+  {name = "wonderful.component.element.LeafElement"}
+)
 
-function Element:__new__()
-  -- Root node relative positions
+function LeafElement:__new__()
+  self:superCall(node.ChildNode, "__new__")
+  self:superCall(node.EventTarget, "__new__")
+
   self.calculatedBox = Box()
   self.attributes = {}
-  self.parameters = {}
-  self.layout = layout.VBoxLayout()
 end
 
 function Element:getCapturingParent()
@@ -21,28 +23,19 @@ function Element:getCapturingParent()
 end
 
 function Element:getBubblingChildren()
-  return self.childNodes
+  return {}
 end
 
-function Element:appendChild(node, at)
-  self:superCall(node.Node, "appendChild", node, at)
-  self.layout:recompose(self)
+function LeafElement:sizeHint()
+  return 0, 0
 end
 
-function Element:removeChild(at)
-  local ret = self:superCall(node.Node, "removeChild", at)
-  self.layout:recompose(self)
-  return ret
+function LeafElement:getMargin()
+  return self.attributes.margin or geometry.Margin(2, 1, 2, 1)
 end
 
-function Element:replaceChild(at, new)
-  local ret = self:superCall(node.Node, "replaceChild", at, new)
-  self.layout:recompose(self)
-  return ret
-end
-
-function Element.__getters:isLeaf()
-  return false
+function LeafElement:boxCalculated(new)
+  self.calculatedBox = new
 end
 
 function Element.__getters:style()
@@ -57,34 +50,65 @@ function Element.__getters:renderTarget()
   return self.rootNode.globalRenderTarget
 end
 
-local LeafElement = class(
-  Element,
-  {name = "wonderful.component.element.LeafElement"}
-)
-
-function LeafElement:__new__()
-  self:superCall(Element, "__new__")
-  self.layout = nil
-end
-
-function LeafElement:appendChild()
-  error("LeafElement can not have any elements")
-end
-
-function LeafElement:removeChild()
-  error("LeafElement can not have any elements")
-end
-
-function LeafElement:replaceChild()
-  error("LeafElement can not have any elements")
-end
-
 function LeafElement.__getters:isLeaf()
   return true
 end
 
+local Element = class({LeafElement, node.ParentNode, layout.LayoutContainer},
+                      {name = "wonderful.component.element.Element"})
+
+function Element:__new__()
+  self:superCall(LeafElement, "__new__")
+  self:superCall(node.ParentNode, "__new__")
+
+  self.layout = layout.VBoxLayout()
+end
+
+function Element:getBubblingChildren()
+  return self.childNodes
+end
+
+function Element:getLayoutItems()
+  return self.childNodes
+end
+
+function Element:getLayoutPadding()
+  return self.attributes.padding or geometry.Padding(0, 0, 0, 0)
+end
+
+function Element:getLayoutBox()
+  return self.calculatedBox 
+end
+
+function Element:appendChild(node, at)
+  self:superCall(node.ParentNode, "appendChild", node, at)
+  self.layout:recompose(self)
+end
+
+function Element:removeChild(at)
+  local ret = self:superCall(node.ParentNode, "removeChild", at)
+  self.layout:recompose(self)
+  return ret
+end
+
+function Element:replaceChild(at, new)
+  local ret = self:superCall(node.ParentNode, "replaceChild", at, new)
+  self.layout:recompose(self)
+  return ret
+end
+
+function Element:sizeHint()
+  local width, height = self.layout:sizeHint()
+  local padding = self:getLayoutPadding()
+  return width + padding.l + padding.r, height + padding.t + padding.b
+end
+
+function Element.__getters:isLeaf()
+  return false
+end
+
 return {
-  Element = Element,
   LeafElement = LeafElement
+  Element = Element,
 }
 

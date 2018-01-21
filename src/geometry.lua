@@ -36,7 +36,27 @@ function Box.__getters:isPosStrict()
   return self.w and self.h
 end
 
+local Margin = class(nil, {name = "wonderful.geometry.Margin"})
+
+function Margin:__new__(l, t, r, b)
+  self.l = l
+  self.t = t
+  self.r = r
+  self.b = b
+end
+
+local Padding = class(nil, {name = "wonderful.geometry.Padding"})
+
+function Padding:__new__(l, t, r, b)
+  self.l = l
+  self.t = t
+  self.r = r
+  self.b = b
+end
+
 return {
-  Box = Box
+  Box = Box,
+  Margin = Margin,
+Padding = Padding
 }
 
