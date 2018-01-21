@@ -36,6 +36,8 @@ end
 function RenderTarget:flush()
   local gpu = component.proxy(self.renderer:getGPU(self))
 
+  -- TODO: Render here
+
   local tmp = self.oldBuffer
   self.oldBuffer = self.newBuffer
   self.newBuffer = tmp
@@ -112,8 +114,6 @@ end
 
 function Renderer:getScreenDepth(screen)
   local screen = self.screens[screen]
-
-  -- TODO: Render here
 
   return math.min(
     screen.depth,
