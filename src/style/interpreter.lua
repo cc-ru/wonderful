@@ -1,21 +1,25 @@
 local class = require("lua-objects")
 
 local lexer = require("wonderful.style.lexer")
-local parser = require("wonderful.style.parser")
-local textBuf = require("wonderful.style.buffer")
 local node = require("wonderful.style.node")
+local parser = require("wonderful.style.parser")
+local property = require("wonderful.style.property")
+local sels = require("wonderful.style.selector")
+local textBuf = require("wonderful.style.buffer")
 local util = require("wonderful.util")
+local wtype = require("wonderful.style.type")
 
 local isin = util.isin
 
 local Variable = class(nil, {name = "wonderful.style.interpreter.Context"})
 
-function Variable:__new__(name, value, type, public)
+function Variable:__new__(name, value, priority, type, public, custom)
   self.name = name
-  self.priority = priority
   self.value = self.value
+  self.priority = priority
   self.type = type
   self.public = public
+  self.custom = custom
 end
 
 local Rule = class(nil, {name = "wonderful.style.interpreter.Rule"})
@@ -42,8 +46,9 @@ end
 
 local Type = class(nil, {name = "wonderful.style.interpreter.Type"})
 
-function Type:__new__(clazz)
+function Type:__new__(clazz, custom)
   self.class = clazz
+  self.custom = custom
 end
 
 function Type:matches(instance)
@@ -52,8 +57,9 @@ end
 
 local NamedType = class(Type, {name = "wonderful.style.interpreter.NamedType"})
 
-function NamedType:__new__(name)
+function NamedType:__new__(name, custom)
   self.name = name
+  self.custom = custom
 end
 
 function NamedType:matches(instance)
@@ -62,7 +68,9 @@ end
 
 local AnyType = class(Type, {name = "wonderful.style.interpreter.AnyType"})
 
-function AnyType:__new__() end
+function AnyType:__new__(custom)
+  self.custom = custom
+end
 
 function AnyType:matches()
   return true
@@ -163,15 +171,110 @@ function Spec:targetMatches(target, component)
   return true
 end
 
+local function traverseSpec(spec, func)
+  local function _traverse(target)
+    func(target)
+    if target.ascendant then
+      _traverse(target.ascendant)
+    end
+    if target.parent then
+      _traverse(target.parent)
+    end
+    if target.above then
+      _traverse(target.above)
+    end
+    if target.dirAbove then
+      _traverse(target.dirAbove)
+    end
+  end
+  for k, v in pairs(spec) do
+    _traverse(v)
+  end
+end
+
 local Context = class(nil, {name = "wonderful.style.interpreter.Context"})
 
-function Context:__new__(parser)
-  self.ast = parser.ast
+function Context:__new__(args)
+  self.ast = args.parser.ast
   self.importPriority = 1
   self.vars = {}
   self.rules = {}
   self.types = {}
-  self:interpret()
+  self.selectors = {}
+  self.properties = {}
+  self:addVars(args.vars, true)
+  self:addSelectors(args.selectors, true)
+  self:addProperties(args.properties, true)
+  self:addTypes(args.types, true)
+end
+
+function Context:addVars(vars, custom)
+  for name, value in pairs(vars) do
+    if type(name) ~= "string" or #name == 0 then
+      error("Variable name must be a non-empty string")
+    end
+    if not value:isa(wtype.ExprType) then
+      error("The value of user-specified variable '" .. name .. "' is not " ..
+            "derived from ExprType.")
+    end
+    self.vars[name] = Variable(name, math.huge, value, value.class, true,
+                               custom)
+  end
+end
+
+function Context:addSelectors(selectors, custom)
+  for name, selector in pairs(selectors) do
+    self.selectors[name] = {selector = selector, custom = custom}
+  end
+end
+
+function Context:addProperties(properties, custom)
+  for name, property in pairs(properties) do
+    self.properties[name] = {property = property, custom = custom}
+  end
+end
+
+function Context:addTypes(types, custom)
+  for name, type in pairs(types) do
+    type.custom = true
+    self.types[name] = type
+  end
+end
+
+function Context:getCustomVars()
+  local result = {}
+  for k, v in pairs(self.vars) do
+    if v.custom then
+      result[k] = v.value
+    end
+  end
+end
+
+function Context:getCustomSels()
+  local result = {}
+  for k, v in pairs(self.selectors) do
+    if v.custom then
+      result[k] = v.value
+    end
+  end
+end
+
+function Context:getCustomProps()
+  local result = {}
+  for k, v in pairs(self.properties) do
+    if v.custom then
+      result[k] = v.value
+    end
+  end
+end
+
+function Context:getCustomTypes()
+  local result = {}
+  for k, v in pairs(self.types) do
+    if v.custom then
+      result[k] = v.class
+    end
+  end
 end
 
 function Context:interpret()
@@ -188,9 +291,9 @@ function Context:interpret()
   end
 
   self:resolveTypeRefs()
+  self:evalVars()
   self:processRules()
   self:packValues()
-  self:evalExpressions()
 end
 
 function Context:import(stmt)
@@ -199,7 +302,14 @@ function Context:import(stmt)
     local buf = textBuf(file)
     local tokStream = lexer.TokenStream(buf)
     local parser = parser.Parser(tokStream)
-    local ctx = Context(parser)
+    local ctx = Context({
+      parser = parser,
+      vars = self:getCustomVars(),
+      selectors = self:getCustomSels(),
+      properties = self:getCustomProps(),
+      types = self:getCustomTypes()
+    })
+    ctx:interpret()
     self:merge(ctx)
   end
 end
@@ -210,13 +320,14 @@ end
 
 function Context:merge(ctx)
   for k, v in pairs(ctx.vars) do
-    if v.public then
+    if v.public and not v.custom then
+      v.priority = self.importPriority
       self.vars[k] = v
     end
   end
 
   for k, v in pairs(ctx.types) do
-    if v.public then
+    if v.public and not v.custom then
       self.types[k] = v
     end
   end
@@ -246,7 +357,7 @@ function Context:merge(ctx)
     end
   end
 
-  self.importPriority = self.importPriority + priority + (huge and 1 or 0)
+  self.importPriority = self.importPriority + priority + (huge and 1 or 0) + 1
 end
 
 function Context:setType(stmt)
@@ -254,7 +365,7 @@ function Context:setType(stmt)
 end
 
 function Context:setVar(stmt)
-  self.vars[stmt.name] = Variable(stmt.name, stmt.value,
+  self.vars[stmt.name] = Variable(stmt.name, stmt.value, math.huge,
                                   TypeRef(stmt.type), stmt.public)
 end
 
@@ -280,11 +391,11 @@ function Context:resolveTypeRefs()
   end
 
   for _, rule in pairs(self.rules) do
-    for _, target in pairs(rule.spec.targets) do
+    traverseSpec(rule.spec, function(target)
       if target.type then
         target.type = self:resolveType(target.type)
       end
-    end
+    end)
   end
 end
 
@@ -306,22 +417,58 @@ function Context:resolveType(typeRef)
       return self:loadName(name.path, name.name)
     end
   elseif name:isa(node.ClassNameNode) then
-    return NamedType(name.value)
+    return NamedType(name.value, false)
   elseif name:isa(node.AnyTypeNode) then
-    return AnyType()
+    return AnyType(false)
   end
 end
 
 function Context:processRules()
-  error("unimplemented")
+  for _, rule in pairs(self.rules) do
+    -- Selectors
+    traverseSpec(rule.spec, function(target)
+      local selector = self.selectors[target.selector.name]
+      if not selector or selector.custom ~= target.selector.custom then
+        error("Unknown selector: " .. (target.selector.custom and "~" or "") ..
+              target.selector.name)
+      end
+      target.selector = selector.selector(target.selector.value)
+    end)
+
+    -- Properties
+    for k, v in pairs(rule.props) do
+      local prop = self.properties[v.name]
+      if not prop or prop.custom ~= v.custom then
+        error("Unknown property: " .. (v.custom and "~" or "") .. v.name)
+      end
+      rule.props[k] = prop.property(v.value)
+    end
+
+    -- Classes
+    traverseSpec(rule.spec, function(target)
+      for k, v in pairs(target.classes) do
+        target.classes[k] = v.value
+      end
+    end)
+  end
 end
 
 function Context:packValues()
   error("unimplemented")
 end
 
-function Context:evalExpressions()
-  error("unimplemented")
+function Context:evalVars()
+  for name, var in pairs(self.vars) do
+    local exprType = var.type or self:guessType(var.value)
+    if not exprType then
+      error("Variable " .. name .. " has no associated type")
+    end
+    if not exprType:isa(wtype.ExprType) then
+      error("The specified type of variable " .. name .. " isn't derived " ..
+            "from ExprType.")
+    end
+    var.value = exprType:parse(var.value)
+  end
 end
 
 function Context:importName(modPath, name)
@@ -329,6 +476,10 @@ function Context:importName(modPath, name)
 end
 
 function Context:loadName(path, name)
+  error("unimplemented")
+end
+
+function Context:guessType(value)
   error("unimplemented")
 end
 
