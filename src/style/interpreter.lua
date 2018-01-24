@@ -11,6 +11,27 @@ local wtype = require("wonderful.style.type")
 
 local isin = util.isin
 
+local function traverseSpec(spec, func)
+  local function _traverse(target)
+    func(target)
+    if target.ascendant then
+      _traverse(target.ascendant)
+    end
+    if target.parent then
+      _traverse(target.parent)
+    end
+    if target.above then
+      _traverse(target.above)
+    end
+    if target.dirAbove then
+      _traverse(target.dirAbove)
+    end
+  end
+  for k, v in pairs(spec) do
+    _traverse(v)
+  end
+end
+
 local Variable = class(nil, {name = "wonderful.style.interpreter.Context"})
 
 function Variable:__new__(name, value, type, public, custom)
@@ -34,6 +55,15 @@ end
 
 function Rule:matches(component)
   return self.spec:matches(component)
+end
+
+function Rule:getSpecificity()
+  local classSpec, selSpec = 0, 0, 0
+  traverseSpec(self.spec, function(target)
+    classSpec = classSpec + #target.classes
+    selSpec = selSpec + #target.selectors
+  end)
+  return classSpec, selSpec
 end
 
 local TypeRef = class(nil, {name = "wonderful.style.interpreter.TypeRef"})
@@ -168,27 +198,6 @@ function Spec:targetMatches(target, component)
   end
 
   return true
-end
-
-local function traverseSpec(spec, func)
-  local function _traverse(target)
-    func(target)
-    if target.ascendant then
-      _traverse(target.ascendant)
-    end
-    if target.parent then
-      _traverse(target.parent)
-    end
-    if target.above then
-      _traverse(target.above)
-    end
-    if target.dirAbove then
-      _traverse(target.dirAbove)
-    end
-  end
-  for k, v in pairs(spec) do
-    _traverse(v)
-  end
 end
 
 -- TODO: sane error handling!
@@ -389,7 +398,7 @@ end
 function Context:addRule(stmt)
   local props = {}
   for k, v in ipairs(stmt.properties) do
-    table.insert(props, Property(v.name, v.value, v.custom))
+    props[v.name] = Property(v.name, v.value, v.custom)
   end
   table.insert(self.rules, Rule(math.huge, Spec(stmt.targets), props,
                                 stmt.line, stmt.col, stmt.public))
