@@ -13,10 +13,9 @@ local isin = util.isin
 
 local Variable = class(nil, {name = "wonderful.style.interpreter.Context"})
 
-function Variable:__new__(name, value, priority, type, public, custom)
+function Variable:__new__(name, value, type, public, custom)
   self.name = name
   self.value = self.value
-  self.priority = priority
   self.type = type
   self.public = public
   self.custom = custom
@@ -192,6 +191,7 @@ local function traverseSpec(spec, func)
   end
 end
 
+-- TODO: sane error handling!
 local Context = class(nil, {name = "wonderful.style.interpreter.Context"})
 
 function Context:__new__(args)
@@ -217,7 +217,7 @@ function Context:addVars(vars, custom)
       error("The value of user-specified variable '" .. name .. "' is not " ..
             "derived from ExprType.")
     end
-    self.vars[name] = Variable(name, math.huge, value, value.class, true,
+    self.vars[name] = Variable(name, value, value.class, true,
                                custom)
   end
 end
@@ -293,13 +293,13 @@ function Context:interpret()
   self:resolveTypeRefs()
   self:evalVars()
   self:processRules()
-  self:packValues()
 end
 
 function Context:import(stmt)
   if stmt.value:isa(node.PathNode) then
-    local file = self:openFile(stmt.value, stmt.value.value)
-    local buf = textBuf(file)
+    -- import "path.wsf";
+    local file = self:tryOpenFile(stmt.value.value)
+    local buf = textBuf.Buffer(file)
     local tokStream = lexer.TokenStream(buf)
     local parser = parser.Parser(tokStream)
     local ctx = Context({
@@ -311,11 +311,28 @@ function Context:import(stmt)
     })
     ctx:interpret()
     self:merge(ctx)
+  elseif stmt.value:isa(node.NameNode) or stmt.value:isa(node.TypeRefNode) then
+    -- import [module:name];
+    -- import @Type;
+    local ref = TypeRef(stmt.value)
+    local ctx = self:resolveType(ref)
+
+    -- TODO: support wonderful.style.Style, too
+    if not ctx:isa(Context) then
+      error("Imported name must be a wonderful.style.interpreter:Context")
+    end
+
+    self:merge(ctx)
   end
 end
 
-function Context:tryOpenFile(stmt, path)
-  error("unimplemented")
+function Context:tryOpenFile(path)
+  -- TODO: it's a good idea to use fs.exists before io.opening
+  local f, reason = io.open(path)
+  if not f then
+    error("Could not open the file at " .. path .. ": " .. reason)
+  end
+  return f
 end
 
 function Context:merge(ctx)
@@ -365,7 +382,7 @@ function Context:setType(stmt)
 end
 
 function Context:setVar(stmt)
-  self.vars[stmt.name] = Variable(stmt.name, stmt.value, math.huge,
+  self.vars[stmt.name] = Variable(stmt.name, stmt.value,
                                   TypeRef(stmt.type), stmt.public)
 end
 
@@ -453,10 +470,6 @@ function Context:processRules()
   end
 end
 
-function Context:packValues()
-  error("unimplemented")
-end
-
 function Context:evalVars()
   for name, var in pairs(self.vars) do
     local exprType = var.type or self:guessType(var.value)
@@ -472,14 +485,16 @@ function Context:evalVars()
 end
 
 function Context:importName(modPath, name)
-  error("unimplemented")
+  -- TODO: error handling!
+  return require(modPath)[name]
 end
 
 function Context:loadName(path, name)
-  error("unimplemented")
+  -- TODO: error handling!
+  return load(path, "t", _G)[name]
 end
 
 function Context:guessType(value)
-  error("unimplemented")
+  -- TODO: add guessers
 end
 
