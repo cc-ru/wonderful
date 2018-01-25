@@ -13,12 +13,21 @@ function Buffer:__new__(buf)
   self.col = 1
   self.line = 1
 
-  while true do
-    local line = buf:readLine()
-    if line then
-      table.insert(self.lines, line .. "\n")
+  if type(buf) == "string" then
+    for line in buf:gmatch("[^\n]") do
+      table.insert(self.lines, line:gsub("\r$", ""))
+    end
+  else
+    while true do
+      local line = buf:readLine()
+      if line then
+        table.insert(self.lines, line .. "\n")
+      else
+        break
+      end
     end
   end
+
   buf:close()
 end
 
