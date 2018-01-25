@@ -67,7 +67,7 @@ do
     return function()
       if keys[i] then
         i = i + 1
-        return table[keys[i - 1]]
+        return i - 1, table[keys[i - 1]]
       end
     end
   end
@@ -78,7 +78,7 @@ do
     return function()
       if table[i] then
         i = i - 1
-        return table[i + 1]
+        return i + 1, table[i + 1]
       end
     end
   end

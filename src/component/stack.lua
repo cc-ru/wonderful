@@ -10,6 +10,7 @@ local StackingContext = class(
 function StackingContext:__new__()
   self.static = {}
   self.indexed = {}
+  self.indexedCache = nil
 end
 
 function StackingContext:insertStatic(index, element)
@@ -29,22 +30,54 @@ function StackingContext:removeStatic(index)
   end
 end
 
+function StackingContext:insertIndexed(index, order, element)
+  if not self.indexed[index] then
+    self.indexed[index] = {}
+  end
+
+  self.indexed[index][order] = element
+end
+
+function StackingContext:removeIndexed(index, order)
+  self.indexed[index][order] = nil
+end
+
 function StackingContext.__getters:iter()
-  -- return util.iter.chain(
-  --   util.iter.wrap(ipairs(self.static)),
-  --   util.iter.wrap(util.iter.ipairsSorted(self.indexed))
-  -- )
-  
-  return ipairs(self.static)
+  local indexed = {}
+
+  if self.indexedCache then
+    indexed = self.indexedCache
+  else
+    for _, index in util.iter.ipairsSorted(self.indexed) do
+      for _, element in util.iter.ipairsSorted(index) do
+        table.insert(indexed, element)
+      end
+    end
+  end
+
+  return util.iter.chain(
+    util.iter.wrap(ipairs(self.static)),
+    util.iter.wrap(ipairs(indexed))
+  )
 end
 
 function StackingContext.__getters:iterRev()
-  -- return util.iter.chain(
-  --   util.iter.wrap(util.iter.ipairsSorted(self.indexed, true)),
-  --   util.iter.wrap(util.iter.ipairsRev(self.static))
-  -- )
+  local indexed = {}
 
-  return util.iter.ipairsRev(self.static)
+  if self.indexedCache then
+    indexed = self.indexedCache
+  else
+    for _, index in util.iter.ipairsSorted(self.indexed) do
+      for _, element in util.iter.ipairsSorted(index) do
+        table.insert(indexed, element)
+      end
+    end
+  end
+
+  return util.iter.chain(
+    util.iter.wrap(util.iter.ipairsRev(indexed)),
+    util.iter.wrap(util.iter.ipairsRev(self.static))
+  )
 end
 
 return {

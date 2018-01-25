@@ -5,6 +5,7 @@ local layout = require("wonderful.layout")
 local VBoxLayout = require("wonderful.layout.box").VBoxLayout
 local event = require("wonderful.event")
 local node = require("wonderful.component.node")
+local attribute = require("wonderful.component.attribute")
 
 local LeafElement = class(
   {node.ChildNode, event.EventTarget, layout.LayoutItem},
@@ -55,6 +56,11 @@ function LeafElement.__getters:isLeaf()
   return true
 end
 
+function LeafElement.__getters:isStaticPositioned()
+  return not self.attributes.position
+          or self.attributes.position == attribute.Position.Static
+end
+
 local Element = class({LeafElement, node.ParentNode, layout.LayoutContainer},
                       {name = "wonderful.component.element.Element"})
 
@@ -83,13 +89,32 @@ end
 
 function Element:appendChild(index, child)
   self:superCall(node.ParentNode, "appendChild", index, child)
-  self.stackingContext:insertStatic(self.stackingIndex + index, child)
+
+  if child.isStaticPositioned then
+    self.stackingContext:insertStatic(self.stackingIndex + index, child)
+  else
+    self.stackingContext:insertIndexed(
+      self.stackingIndex + index,
+      child.zIndex or self.stackingIndex + index
+    )
+  end
+
   self.layout:recompose(self)
 end
 
 function Element:removeChild(index)
   local ret = self:superCall(node.ParentNode, "removeChild", index)
-  self.stackingContext:removeStatic(self.stackingIndex + index)
+
+  if ret.isStaticPositioned then
+    self.stackingContext:removeStatic(self.stackingIndex + index)
+  else
+    self.stackingContext:removeIndexed(
+      self.stackingIndex + index,
+      child.zIndex or self.stackingIndex + index,
+      child
+    )
+  end
+
   self.layout:recompose(self)
   return ret
 end
