@@ -1,6 +1,7 @@
 local class = require("lua-objects")
 
 local element = require("wonderful.component.element")
+local StackingContext = require("wonderful.component.stack").StackingContext
 local style = require("wonderful.style")
 local render = require("wonderful.render")
 
@@ -30,7 +31,13 @@ function Document:__new__(args)
     self.globalRenderTarget = self.globalRenderer:newTarget()
   end
 
+  self.rootStackingContext = StackingContext()
+
   self.calculatedBox = self.globalRenderTarget.box
+end
+
+function Document.__getters:stackingContext()
+  return self.rootStackingContext
 end
 
 return {

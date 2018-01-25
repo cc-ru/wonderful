@@ -43,6 +43,71 @@ function util.isin(value, tbl)
   return false
 end
 
+util.iter = {}
+do
+  function util.iter.wrap(iter, state, var)
+    return {
+      iter = iter,
+      state = state,
+      var = var
+    }
+  end
+
+  function util.iter.ipairsSorted(table, rev)
+    local keys = {}
+
+    for k, v in pairs(keys) do
+      table.insert(keys, k)
+    end
+
+    table.sort(keys, rev and function(a, b) a > b end or nil)
+
+    local i = 1
+
+    return function()
+      if keys[i] then
+        i = i + 1
+        return table[keys[i - 1]]
+      end
+    end
+  end
+
+  function util.iter.ipairsRev(table)
+    local i = #table
+
+    return function()
+      if table[i] then
+        i = i - 1
+        return table[i + 1]
+      end
+    end
+  end
+
+  function util.iter.chain(...)
+    local chain = {...}
+    local i = 1
+
+    local function continue()
+      local o = {chain[i].iter(chain[i].state, chain[i].var)}
+      chain[i].var = o[1]
+
+      if o[1] == nil then
+        i = i + 1
+
+        if not chain[i] then
+          return
+        else
+          return continue()
+        end
+      end
+      
+      return table.unpack(o)
+    end
+
+    return continue
+  end
+end
+
 util.palette = {}
 do
   local function extract(color)

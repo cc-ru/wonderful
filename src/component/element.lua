@@ -83,11 +83,13 @@ end
 
 function Element:appendChild(index, child)
   self:superCall(node.ParentNode, "appendChild", index, child)
+  self.stackingContext:insertStatic(self.stackingIndex + index, child)
   self.layout:recompose(self)
 end
 
 function Element:removeChild(index)
   local ret = self:superCall(node.ParentNode, "removeChild", index)
+  self.stackingContext:removeStatic(self.stackingIndex + index)
   self.layout:recompose(self)
   return ret
 end
@@ -96,6 +98,10 @@ function Element:sizeHint()
   local width, height = self.layout:sizeHint()
   local padding = self:getLayoutPadding()
   return width + padding.l + padding.r, height + padding.t + padding.b
+end
+
+function Element.__getters:stackingContext()
+  return self.parentNode.stackingContext
 end
 
 function Element.__getters:isLeaf()
