@@ -33,33 +33,43 @@ function ParentNode:__new__()
   self.childNodes = {}
 end
 
-function ParentNode:appendChild(node, at)
-  node.parentNode = self
-  node.rootMemo = self.rootNode
-
-  table.insert(self.childNodes, at or (#self.childNodes + 1), node)
+function ChildNode.__getters:level()
+  return self.hasParentNode and (self.parentNode.level + 1) or 0
 end
 
-function ParentNode:removeChild(at)
-  local node = table.remove(self.childNodes, at)
+function ParentNode:insertChild(index, node)
+  if node.hasParentNode then
+    node.parentNode:removeChild(node.index) 
+  end
+
+  node.parentNode = self
+  node.rootMemo = self.rootNode
+  node.index = index
+
+  table.insert(self.childNodes, node.index, node)
+end
+
+function ParentNode:removeChild(index)
+  local node = table.remove(self.childNodes, index)
 
   node.parentNode = nil
   node.rootMemo = nil
+  node.index = nil
 
   return node
 end
 
-function ParentNode:replaceChild(at, new)
-  local old = self.childNodes[at]
+function ParentNode:prependChild(child)
+  self:insertChild(1, child)
+end
 
-  old.parentNode = nil
-  old.rootMemo = nil
+function ParentNode:appendChild(child)
+  self:insertChild(#self.childNodes + 1, child)
+end
 
-  new.parentNode = self
-  new.rootMemo = self.rootNode
-
-  self.childNodes[at] = new
-
+function ParentNode:replaceChild(index, child)
+  local old = self:removeChild(index)
+  self:insertChild(index, child)
   return old
 end
 

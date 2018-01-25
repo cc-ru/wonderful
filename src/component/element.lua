@@ -81,19 +81,13 @@ function Element:getLayoutBox()
   return self.calculatedBox 
 end
 
-function Element:appendChild(child, at)
-  self:superCall(node.ParentNode, "appendChild", child, at)
+function Element:appendChild(index, child)
+  self:superCall(node.ParentNode, "appendChild", index, child)
   self.layout:recompose(self)
 end
 
-function Element:removeChild(at)
-  local ret = self:superCall(node.ParentNode, "removeChild", at)
-  self.layout:recompose(self)
-  return ret
-end
-
-function Element:replaceChild(at, new)
-  local ret = self:superCall(node.ParentNode, "replaceChild", at, new)
+function Element:removeChild(index)
+  local ret = self:superCall(node.ParentNode, "removeChild", index)
   self.layout:recompose(self)
   return ret
 end
