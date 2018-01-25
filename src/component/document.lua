@@ -32,6 +32,7 @@ function Document:__new__(args)
   end
 
   self.rootStackingContext = StackingContext()
+  self.rootStackingContext:insertStatic(1, self)
 
   self.calculatedBox = self.globalRenderTarget.box
 end
