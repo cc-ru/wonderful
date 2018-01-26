@@ -36,10 +36,12 @@ function StackingContext:insertIndexed(index, order, element)
   end
 
   self.indexed[index][order] = element
+  self.indexedCache = nil
 end
 
 function StackingContext:removeIndexed(index, order)
   self.indexed[index][order] = nil
+  self.indexedCache = nil
 end
 
 function StackingContext.__getters:iter()
