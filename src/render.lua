@@ -1,9 +1,10 @@
-local computer = require("computer")
 local component = require("component")
+local computer = require("computer")
 
 local class = require("lua-objects")
 
 local wbuffer = require("wonderful.buffer")
+
 local Box = require("wonderful.geometry").Box
 
 local function depthResolution(depth)
@@ -106,8 +107,8 @@ function Renderer:getScreenResolution(screen)
   local depth = self:getScreenDepth(screen)
 
   local dw, dh = depthResolution(depth)
-  local w, h = table.unpack(screen.preferredResolution
-      or {math.huge, math.huge})
+  local w, h = table.unpack(screen.preferredResolution or
+                            {math.huge, math.huge})
 
   return math.min(w, dw), math.min(h, dh)
 end
@@ -134,10 +135,10 @@ function Renderer:newTarget(spec)
     for address, screen in pairs(self.screens) do
       local w, h = self:getScreenResolution(address)
 
-      if spec.box
-         and not spec.box:intersectsOneOf(screen.regions)
-         and spec.box.w + spec.box.x <= w
-         and spec.box.h + spec.box.y <= h then
+      if spec.box and
+          not spec.box:intersectsOneOf(screen.regions) and
+          spec.box.w + spec.box.x <= w and
+          spec.box.h + spec.box.y <= h then
         screen.box = spec.box
         table.insert(candidates, 1, screen)
       elseif #screen.regions == 0 then

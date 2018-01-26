@@ -1,13 +1,13 @@
 local class = require("lua-objects")
 
+local textBuf = require("wonderful.style.buffer")
 local lexer = require("wonderful.style.lexer")
 local node = require("wonderful.style.node")
 local parser = require("wonderful.style.parser")
 local property = require("wonderful.style.property")
 local sels = require("wonderful.style.selector")
-local textBuf = require("wonderful.style.buffer")
-local util = require("wonderful.util")
 local wtype = require("wonderful.style.type")
+local util = require("wonderful.util")
 
 local isin = util.isin
 

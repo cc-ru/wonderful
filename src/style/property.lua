@@ -13,3 +13,4 @@ end
 function Property:get()
   return self.value:get()
 end
+

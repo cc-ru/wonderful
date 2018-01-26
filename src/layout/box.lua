@@ -12,8 +12,8 @@ local Direction = {
 }
 
 local function isVertical(direction)
-  return direction == Direction.TopToBottom
-      or direction == Direction.BottomToTop
+  return direction == Direction.TopToBottom or
+         direction == Direction.BottomToTop
 end
 
 local BoxLayout = class(Layout, {name = "wonderful.layout.box.BoxLayout"})
@@ -22,7 +22,8 @@ function BoxLayout:__new__(direction)
   self.direction = direction
 end
 
-function BoxLayout:recompose(el)  -- do not touch
+function BoxLayout:recompose(el)
+  -- Do not touch. For the sake of your own sanity.
   -- TODO: handle BTT and RTL directions
 
   local chunks = {}
@@ -42,18 +43,18 @@ function BoxLayout:recompose(el)  -- do not touch
       end
 
       table.insert(chunks[i], child)
-      filled = filled + (isVertical(self.direction)
-                         and h + margin.t + margin.b
-                          or w + margin.l + margin.r)
+      filled = filled + (isVertical(self.direction) and
+                         h + margin.t + margin.b or
+                         w + margin.l + margin.r)
     else
       local margin = child:getMargin()
 
       i = i + 1
       count = count + child:getStretch()
 
-      filled = filled + (isVertical(self.direction)
-                         and margin.t + margin.b
-                          or margin.l + margin.r)
+      filled = filled + (isVertical(self.direction) and
+                         margin.t + margin.b or
+                         margin.l + margin.r)
 
       chunks[i] = {const = false, stretch = child:getStretch(), el = child}
       lastMut = i
@@ -63,9 +64,9 @@ function BoxLayout:recompose(el)  -- do not touch
   local box = el:getLayoutBox()
   local pad = el:getLayoutPadding()
 
-  local full = isVertical(self.direction)
-           and (box.h - pad.t - pad.b)
-            or (box.w - pad.l - pad.r)
+  local full = isVertical(self.direction) and
+               (box.h - pad.t - pad.b) or
+               (box.w - pad.l - pad.r)
 
   local basis = (full - filled) / count
   local x, y = box.x + pad.l, box.y + pad.t
@@ -97,7 +98,7 @@ function BoxLayout:recompose(el)  -- do not touch
       end
 
       if j == lastMut and isVertical(self.direction) then
-        h = full - filled 
+        h = full - filled
       elseif j == #chunks then
         w = full - filled
       end
@@ -138,14 +139,14 @@ local VBoxLayout = class(BoxLayout, {name = "wonderful.layout.box.VBoxLayout"})
 
 function VBoxLayout:__new__(reversed)
   self:superCall(BoxLayout, "__new__",
-      reversed and Direction.BottomToTop or Direction.TopToBottom)
+                 reversed and Direction.BottomToTop or Direction.TopToBottom)
 end
 
 local HBoxLayout = class(BoxLayout, {name = "wonderful.layout.box.HBoxLayout"})
 
 function HBoxLayout:__new__(reversed)
   self:superCall(BoxLayout, "__new__",
-      reversed and Direction.RightToLeft or Direction.LeftToRight)
+                 reversed and Direction.RightToLeft or Direction.LeftToRight)
 end
 
 return {

@@ -60,7 +60,9 @@ do
       table.insert(keys, k)
     end
 
-    table.sort(keys, rev and function(a, b) a > b end or nil)
+    table.sort(keys, rev and function(a, b)
+      return a > b
+    end or nil)
 
     local i = 1
 
@@ -100,7 +102,7 @@ do
           return continue()
         end
       end
-      
+
       return table.unpack(o)
     end
 

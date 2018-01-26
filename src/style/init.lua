@@ -2,10 +2,10 @@ local buffer = require("buffer")
 
 local class = require("lua-objects")
 
+local textBuf = require("wonderful.style.buffer")
 local interpreter = require("wonderful.style.interpreter")
 local lexer = require("wonderful.style.lexer")
 local parser = require("wonderful.style.parser")
-local textBuf = require("wonderful.style.buffer")
 
 local Style = class(nil, {name = "wonderful.style.Style"})
 

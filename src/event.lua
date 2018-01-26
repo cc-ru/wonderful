@@ -50,7 +50,9 @@ function EventTarget:addEventListener(cls, handler, options)
 end
 
 function EventTarget:removeEventListener(cls, handler, options)
-  if not self.listeners[cls] then return end
+  if not self.listeners[cls] then
+    return
+  end
 
   local query = util.shallowcopy(options or {})
   query.handler = query
@@ -61,8 +63,6 @@ function EventTarget:removeEventListener(cls, handler, options)
       return true
     end
   end
-
-  return
 end
 
 function EventTarget:setDefaultEventListener(cls, handler, options)
@@ -92,7 +92,9 @@ function EventTarget:dispatchEvent(event)
       table.remove(self.listeners[event.class], i)
     end
 
-    if event.cancelled then break end
+    if event.cancelled then
+      break
+    end
   end
 
   if not event.defaultPrevented and self.defaultListeners[event.class] then
@@ -121,7 +123,9 @@ function EventTarget:_handleEvent(listener, event)
   event.phase = EventPhase.Bubbling
 
   for _, child in ipairs(self:etBubblingChildren()) do
-    if event.propagationStopped then break end
+    if event.propagationStopped then
+      break
+    end
 
     event.currentTarget = child
     child:dispatchEvent(event)

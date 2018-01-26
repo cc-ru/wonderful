@@ -10,10 +10,8 @@ function Box:__new__(x, y, w, h)
 end
 
 function Box:__tostring__()
-  return ("Box { x = %d, y = %d, w = %d, h = %d }"):format(
-    self.x, self.y,
-    self.w, self.h
-  )
+  return ("Box { x = %d, y = %d, w = %d, h = %d }"):format(self.x, self.y,
+                                                           self.w, self.h)
 end
 
 function Box:intersects(other)

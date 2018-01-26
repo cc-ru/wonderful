@@ -9,3 +9,4 @@ end
 function Selector:matches(component)
   return true
 end
+

@@ -1,11 +1,12 @@
 local class = require("lua-objects")
 
+local attribute = require("wonderful.component.attribute")
+local event = require("wonderful.event")
 local geometry = require("wonderful.geometry")
 local layout = require("wonderful.layout")
+local node = require("wonderful.component.node")
+
 local VBoxLayout = require("wonderful.layout.box").VBoxLayout
-local event = require("wonderful.event")
-local node = require("wonderful.element.node")
-local attribute = require("wonderful.element.attribute")
 
 local LeafElement = class(
   {node.ChildNode, event.EventTarget, layout.LayoutItem},
@@ -134,7 +135,8 @@ end
 function Element:sizeHint()
   local width, height = self.layout:sizeHint()
   local padding = self:getLayoutPadding()
-  return width + padding.l + padding.r, height + padding.t + padding.b
+  return width + padding.l + padding.r,
+         height + padding.t + padding.b
 end
 
 function Element.__getters:stackingContext()

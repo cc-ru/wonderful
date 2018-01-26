@@ -1,7 +1,7 @@
 local class = require("lua-objects")
 
-local node = require("wonderful.style.node")
 local lexer = require("wonderful.style.lexer")
+local node = require("wonderful.style.node")
 
 local Parser = class(nil, {name = "wonderful.style.parser.Parser"})
 
