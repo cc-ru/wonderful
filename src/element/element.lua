@@ -1,10 +1,10 @@
 local class = require("lua-objects")
 
-local attribute = require("wonderful.component.attribute")
+local attribute = require("wonderful.element.attribute")
 local event = require("wonderful.event")
 local geometry = require("wonderful.geometry")
 local layout = require("wonderful.layout")
-local node = require("wonderful.component.node")
+local node = require("wonderful.element.node")
 
 local VBoxLayout = require("wonderful.layout.box").VBoxLayout
 

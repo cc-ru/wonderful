@@ -1,4 +1,4 @@
-local document = require("wonderful.component.document")
+local document = require("wonderful.element.document")
 local render = require("wonderful.render")
 
 -- Re-export

@@ -9,7 +9,7 @@ different from other libraries:
 - **Layouts.** Why calculate the position yourself if the computer can do it
   just as well, and even better?
 - **Customization and extendability.** To modify a component, just extend from
-  another one. Inherit from the base class `wonderful.component.Element` if
+  another one. Inherit from the base class `wonderful.element.Element` if
   you want to implement it from scratch.
 - **Buffered rendering.** The library only issues GPU calls for the parts that
   changed since the previous update, and packs them together beforehand.

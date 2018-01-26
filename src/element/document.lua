@@ -1,10 +1,10 @@
 local class = require("lua-objects")
 
-local element = require("wonderful.component.element")
+local element = require("wonderful.element.element")
 local render = require("wonderful.render")
 local style = require("wonderful.style")
 
-local StackingContext = require("wonderful.component.stack").StackingContext
+local StackingContext = require("wonderful.element.stack").StackingContext
 
 local Document = class(
   element.Element,
