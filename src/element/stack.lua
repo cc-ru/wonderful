@@ -4,7 +4,7 @@ local util = require("wonderful.util")
 
 local StackingContext = class(
   nil,
-  {name = "wonderful.component.stack.StackingContext"}
+  {name = "wonderful.element.stack.StackingContext"}
 )
 
 function StackingContext:__new__()
@@ -24,7 +24,7 @@ end
 function StackingContext:removeStatic(index)
   local el = table.remove(self.static, index)
   el.stackingIndex = nil
-  
+
   for i = index, #self.static do
     self.static[i].stackingIndex = i
   end

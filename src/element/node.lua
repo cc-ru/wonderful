@@ -1,6 +1,6 @@
 local class = require("lua-objects")
 
-local ChildNode = class(nil, {name = "wonderful.component.node.ChildNode"})
+local ChildNode = class(nil, {name = "wonderful.element.node.ChildNode"})
 
 function ChildNode:__new_()
   self.parentNode = nil
@@ -27,7 +27,7 @@ function ChildNode.__getters:hasParentNode()
   return not not self.parentNode
 end
 
-local ParentNode = class(nil, {name = "wonderful.component.node.ParentNode"})
+local ParentNode = class(nil, {name = "wonderful.element.node.ParentNode"})
 
 function ParentNode:__new__()
   self.childNodes = {}
@@ -39,7 +39,7 @@ end
 
 function ParentNode:insertChild(index, node)
   if node.hasParentNode then
-    node.parentNode:removeChild(node.index) 
+    node.parentNode:removeChild(node.index)
   end
 
   node.parentNode = self

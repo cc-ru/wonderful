@@ -4,12 +4,12 @@ local geometry = require("wonderful.geometry")
 local layout = require("wonderful.layout")
 local VBoxLayout = require("wonderful.layout.box").VBoxLayout
 local event = require("wonderful.event")
-local node = require("wonderful.component.node")
-local attribute = require("wonderful.component.attribute")
+local node = require("wonderful.element.node")
+local attribute = require("wonderful.element.attribute")
 
 local LeafElement = class(
   {node.ChildNode, event.EventTarget, layout.LayoutItem},
-  {name = "wonderful.component.element.LeafElement"}
+  {name = "wonderful.element.LeafElement"}
 )
 
 function LeafElement:__new__()
@@ -70,7 +70,7 @@ function LeafElement.__getters:isStaticPositioned()
 end
 
 local Element = class({LeafElement, node.ParentNode, layout.LayoutContainer},
-                      {name = "wonderful.component.element.Element"})
+                      {name = "wonderful.element.Element"})
 
 function Element:__new__()
   self:superCall(LeafElement, "__new__")
@@ -92,7 +92,7 @@ function Element:getLayoutPadding()
 end
 
 function Element:getLayoutBox()
-  return self.calculatedBox 
+  return self.calculatedBox
 end
 
 function Element:appendChild(index, child)
