@@ -46,24 +46,24 @@ end
 local Margin = class(nil, {name = "wonderful.geometry.Margin"})
 
 function Margin:__new__(l, t, r, b)
-  self.l = l
-  self.t = t
-  self.r = r
-  self.b = b
+  self.l = type(l) == "number" and l or 0
+  self.t = type(t) == "number" and t or 0
+  self.r = type(r) == "number" and r or 0
+  self.b = type(b) == "number" and b or 0
 end
 
 local Padding = class(nil, {name = "wonderful.geometry.Padding"})
 
 function Padding:__new__(l, t, r, b)
-  self.l = l
-  self.t = t
-  self.r = r
-  self.b = b
+  self.l = type(l) == "number" and l or 0
+  self.t = type(t) == "number" and t or 0
+  self.r = type(r) == "number" and r or 0
+  self.b = type(b) == "number" and b or 0
 end
 
 return {
   Box = Box,
   Margin = Margin,
-Padding = Padding
+  Padding = Padding
 }
 

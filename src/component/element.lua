@@ -20,6 +20,14 @@ function LeafElement:__new__()
   self.attributes = {}
 end
 
+function LeafElement:set(attribute)
+  self.attributes[attribute.key] = attribute
+end
+
+function LeafElement:get(key)
+  return self.attributes[key]
+end
+
 function LeafElement:getCapturingParent()
   return self.parentNode
 end
@@ -33,7 +41,7 @@ function LeafElement:sizeHint()
 end
 
 function LeafElement:getMargin()
-  return self.attributes.margin or geometry.Margin(2, 1, 2, 1)
+  return self:get("margin") or attribute.Margin()
 end
 
 function LeafElement:boxCalculated(new)
@@ -57,8 +65,8 @@ function LeafElement.__getters:isLeaf()
 end
 
 function LeafElement.__getters:isStaticPositioned()
-  return not self.attributes.position
-          or self.attributes.position == attribute.Position.Static
+  local position = self:get("position")
+  return position and position:isStatic() or true
 end
 
 local Element = class({LeafElement, node.ParentNode, layout.LayoutContainer},
@@ -80,7 +88,7 @@ function Element:getLayoutItems()
 end
 
 function Element:getLayoutPadding()
-  return self.attributes.padding or geometry.Padding(0, 0, 0, 0)
+  return self:get("padding") or attribute.Padding()
 end
 
 function Element:getLayoutBox()
@@ -93,9 +101,12 @@ function Element:appendChild(index, child)
   if child.isStaticPositioned then
     self.stackingContext:insertStatic(self.stackingIndex + index, child)
   else
+    local zIndex = child:get("zIndex")
+
     self.stackingContext:insertIndexed(
       self.stackingIndex + index,
-      child.zIndex or self.stackingIndex + index
+      zIndex and zIndex.value or 1,
+      child
     )
   end
 
@@ -108,10 +119,11 @@ function Element:removeChild(index)
   if ret.isStaticPositioned then
     self.stackingContext:removeStatic(self.stackingIndex + index)
   else
+    local zIndex = child:get("zIndex")
+
     self.stackingContext:removeIndexed(
       self.stackingIndex + index,
-      child.zIndex or self.stackingIndex + index,
-      child
+      zIndex and zIndex.value or 1
     )
   end
 
