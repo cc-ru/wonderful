@@ -96,7 +96,7 @@ function Parser:parseStmt(skipSep)
   return stmt
 end
 
-function self:skip(tokenType, value)
+function Parser:skip(tokenType, value)
   local token = self.stream:next()
   self.current = token
   if token:isa(tokenType) then
@@ -107,7 +107,7 @@ function self:skip(tokenType, value)
   self:error(token, "Expected ", tokenType(token.line, token.col, value))
 end
 
-function self:parseImport()
+function Parser:parseImport()
   local token = self.stream:next()
   if not token:isa(lexer.KwToken) or token.value ~= "import" then
     self:error(token, "Import statement expected")
@@ -124,7 +124,7 @@ function self:parseImport()
   return node.ImportNode(token.line, token.col, name)
 end
 
-function self:parseTypeAlias(public)
+function Parser:parseTypeAlias(public)
   local token = self.stream:next()
   if not token:isa(lexer.kwToken) or token.value ~= "type" then
     self:error(token, "Type alias statement expected")
@@ -135,7 +135,7 @@ function self:parseTypeAlias(public)
   return node.TypeAliasNode(token.line, token.col, alias, name, false)
 end
 
-function self:parseIdent()
+function Parser:parseIdent()
   local token = self.stream:next()
   if not token:isa(lexer.IdentToken) then
     self:error(token, "Expected identifier")
@@ -143,7 +143,7 @@ function self:parseIdent()
   return token.value
 end
 
-function self:parseVar(public)
+function Parser:parseVar(public)
   local varToken = self.stream:peek()
   local name = self:parseIdent()
   local token = self.stream:next()
@@ -160,12 +160,12 @@ function self:parseVar(public)
   return node.VarNode(varToken.line, varToken.col, name, varType, value)
 end
 
-function self:parseRule(public)
+function Parser:parseRule(public)
   local targets = self:parseDelimited(nil, ",", "{", self.parseSpec)
   local props = self:parseDelimited("{", ";", "}", self.parseProp)
 end
 
-function self:parseDelimited(startp, delimiter, endp, parser)
+function Parser:parseDelimited(startp, delimiter, endp, parser)
   if startp then
     self:skip(lexer.PuncToken, startp)
   end
@@ -191,7 +191,7 @@ function self:parseDelimited(startp, delimiter, endp, parser)
   return result
 end
 
-function self:parseSpec()
+function Parser:parseSpec()
   local target = self:parseTarget()
 
   local processed = false
@@ -223,7 +223,7 @@ function self:parseSpec()
   return target
 end
 
-function self:parseProp()
+function Parser:parseProp()
   local token = self.stream:peek()
   local custom = false
   if token:isa(lexer.PuncToken) and token.value == "~" then
@@ -238,7 +238,7 @@ function self:parseProp()
   return node.PropertyNode(token.line, token.col, name, value, custom)
 end
 
-function self:parseName(classNameAllowed)
+function Parser:parseName(classNameAllowed)
   local token = self.stream:next()
   if token:isa(lexer.NameToken) then
     local name = token.value:match("^%s*(.-)%s*$")
@@ -265,7 +265,7 @@ function self:parseName(classNameAllowed)
   end
 end
 
-function self:parsePath()
+function Parser:parsePath()
   local token = self.stream:next()
   if not token:isa(lexer.StrToken) then
     self:error(token, "Path expected")
@@ -273,7 +273,7 @@ function self:parsePath()
   return node.PathNode(token.line, token.col, token.value)
 end
 
-function self:parseExpr(endType, endValue)
+function Parser:parseExpr(endType, endValue)
   -- Expressions are actually evaluated by the interpreter itself
   -- since we need the type and context information for this
   local tokens = {}
@@ -294,7 +294,7 @@ function self:parseExpr(endType, endValue)
   return node.ValueNode(token.line, token.col, tokens)
 end
 
-function self:parseTarget()
+function Parser:parseTarget()
   local component
   local classes = {}
   local selectors = {}

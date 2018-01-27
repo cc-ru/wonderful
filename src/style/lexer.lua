@@ -1,6 +1,6 @@
 local unicode = require("unicode")
 
-local class = require("class")
+local class = require("lua-objects")
 
 local util = require("wonderful.util")
 
@@ -41,7 +41,7 @@ TokenStream.ident = "[A-Za-z0-9_-]"
 TokenStream.operators = {"=", ">", ">>", "~>", "~>>"}
 
 table.sort(TokenStream.operators, function(lhs, rhs)
-  return not ulen(lhs) < ulen(rhs)
+  return not (ulen(lhs) < ulen(rhs))
 end)
 
 TokenStream.opMaxLen = ulen(TokenStream.operators[1])

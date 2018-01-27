@@ -10,8 +10,10 @@ function Box:__new__(x, y, w, h)
 end
 
 function Box:__tostring__()
-  return ("Box { x = %d, y = %d, w = %d, h = %d }"):format(self.x, self.y,
-                                                           self.w, self.h)
+  return ("Box { x = %d, y = %d, w = %d, h = %d }"):format(
+    self.x or -1, self.y or -1,
+    self.w or -1, self.h or -1
+  )
 end
 
 function Box:has(x, y)

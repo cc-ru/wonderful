@@ -37,6 +37,8 @@ function Wonderful:updateKeyboards()
 end
 
 function Wonderful:addDocument(args)
+  local args = args or {}
+
   if args.x and args.y and args.w and args.h then
     args.box = Box(args.x, args.y, args.w, args.h)
   end
@@ -57,12 +59,17 @@ end
 
 do
   local function rStackingContext(root)
-    local buf = root.renderTarget
-    root:render(buf:view(root.calculatedBox:unpack()))
+    local buf = root.renderTarget.newBuffer
 
     for _, el in root.stackingContext.iter do
-      if el.stackingContext == root.stackingContext then
-        el:render(buf:view(el.calculatedBox:unpack()))
+      if el.isLeaf or el.stackingContext == root.stackingContext then
+        if el.calculatedBox then
+          local view = buf:view(el.calculatedBox:unpack())
+
+          if view then
+            el:render(view)
+          end
+        end
       else
         rStackingContext(el)
       end
@@ -84,12 +91,12 @@ end
 do
   local function hStackingContext(root)
     for _, el in root.stackingContext.iterRev do
-      if el.stackingContext == root.stackingContext then
+      if el.isLeaf or el.stackingContext == root.stackingContext then
         if el.calculatedBox:has(x, y) then
           return el
         end
       else
-        local hit = rStackingContext(el)
+        local hit = hStackingContext(el)
 
         if hit then
           return hit
@@ -157,8 +164,8 @@ function Wonderful:stop()
   self.running = false
 end
 
--- Re-export
 return {
+  Wonderful = Wonderful,
   Document = document.Document,
   Renderer = render.Renderer,
   RenderTarget = render.RenderTarget

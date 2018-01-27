@@ -100,8 +100,8 @@ function Element:getLayoutBox()
   return self.calculatedBox
 end
 
-function Element:appendChild(index, child)
-  self:superCall(node.ParentNode, "appendChild", index, child)
+function Element:insertChild(index, child)
+  self:superCall(node.ParentNode, "insertChild", index, child)
 
   if child.isStaticPositioned then
     self.stackingContext:insertStatic(self.stackingIndex + index, child)

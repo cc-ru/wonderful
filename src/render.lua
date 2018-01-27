@@ -29,7 +29,7 @@ local function getFills(depth)
 end
 
 local function getArea(x0, y0, x1, y1)
-  return (x1 - x0) * (y1 - y0)
+  return (x1 - x0 + 1) * (y1 - y0 + 1)
 end
 
 local RenderTarget = class(nil, {name = "wonderful.render.RenderTarget"})
@@ -135,7 +135,7 @@ function Renderer:__new__()
     self.screens[address] = {
       proxy = component.proxy(address),
       address = address,
-      depth = ((computer.getDeviceInfo() or {})[address] or {}).width or 3,
+      depth = ((computer.getDeviceInfo() or {})[address] or {}).width or 8,
       regions = {},
       preferredResolution = nil,
       forcedGPU = nil
@@ -148,7 +148,7 @@ function Renderer:__new__()
     self.gpus[address] = {
       proxy = component.proxy(address),
       address = address,
-      depth = ((computer.getDeviceInfo() or {})[address] or {}).width or 3
+      depth = ((computer.getDeviceInfo() or {})[address] or {}).width or 8
     }
 
     local curDepth = component.invoke(address, "maxDepth")
@@ -241,12 +241,12 @@ function Renderer:newTarget(spec)
       table.insert(candidates, 1, primary)
     end
 
-    spec.screen = candidates[1]
+    spec.screen = candidates[1].address
     spec.box = candidates[1].box
   end
 
   local target = RenderTarget(
-    self, spec.screen, spec.box, getScreenDepth(spec.screen)
+    self, spec.screen, spec.box, self:getScreenDepth(spec.screen)
   )
 
   table.insert(self.targets, target)
@@ -257,7 +257,7 @@ function Renderer:getGPU(target)
   local candidates = {}
   local screen = self.screens[target.screen]
 
-  for _, gpu in ipairs(self.gpus) do
+  for _, gpu in pairs(self.gpus) do
     if gpu.depth >= screen.depth then
       table.insert(candidates, gpu.address)
     end

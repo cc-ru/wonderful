@@ -52,7 +52,7 @@ end
 
 function Buffer:rectInRange(x, y, w, h)
   return x >= 1 and x <= self.w and
-         y >= 1 and y <= self.y and
+         y >= 1 and y <= self.h and
          w >= 1 and x + w - 1 <= self.w and
          h >= 1 and y + h - 1 <= self.h
 end
@@ -211,6 +211,8 @@ function DiffBuffer:__new__(base, head)
   end
   self.base = base
   self.head = head
+  self.w = base.w
+  self.h = base.h
   self.cells = {}
 end
 
@@ -218,11 +220,11 @@ function DiffBuffer:index(x, y)
   return self.w * (y - 1) + (x - 1) + 1
 end
 
-function Buffer:inRange(x, y)
+function DiffBuffer:inRange(x, y)
   return x >= 1 and x <= self.w and y >= 1 and y <= self.h
 end
 
-function Buffer:rectInRange(x, y, w, h)
+function DiffBuffer:rectInRange(x, y, w, h)
   return x >= 1 and x <= self.w and
          y >= 1 and y <= self.y and
          w >= 1 and x + w - 1 <= self.w and

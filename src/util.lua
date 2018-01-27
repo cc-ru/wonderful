@@ -53,10 +53,10 @@ do
     }
   end
 
-  function util.iter.ipairsSorted(table, rev)
+  function util.iter.ipairsSorted(t, rev)
     local keys = {}
 
-    for k, v in pairs(keys) do
+    for k, v in pairs(t) do
       table.insert(keys, k)
     end
 
@@ -69,7 +69,7 @@ do
     return function()
       if keys[i] then
         i = i + 1
-        return i - 1, table[keys[i - 1]]
+        return i - 1, t[keys[i - 1]]
       end
     end
   end
@@ -166,7 +166,7 @@ do
     }})
   end
 
-  util.palette.generateT1Palette = generateT1Palette
+  util.palette.t1 = generateT1Palette()
 
   local t2deflate = t1deflate
   local t2inflate = t1inflate
@@ -183,7 +183,7 @@ do
     }})
   end
 
-  util.palette.generateT2Palette = generateT2Palette
+  util.palette.t2 = generateT2Palette()
 
   local t3inflate = t2inflate
 
@@ -232,7 +232,7 @@ do
     }})
   end
 
-  util.palette.generateT3Palette = generateT3Palette
+  util.palette.t3 = generateT3Palette()
 end
 
 return util

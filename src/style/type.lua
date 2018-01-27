@@ -8,3 +8,7 @@ end
 function ExprType:get()
 end
 
+return {
+  ExprType = ExprType
+}
+
