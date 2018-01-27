@@ -303,14 +303,14 @@ function DiffBuffer:getLine(x0, y0, vertical)
       x, y = x0, y0 + i
     end
     if self:get(x, y) == CellDiff.None then
-      return x1, y1, chars
+      return x1, y1, chars, fg0, bg0
     end
     local ch, fg, bg = self.head:get(x, y)
     if bg == bg0 and (fg == fg0 or ch == " ") then
       chars = chars .. ch
       x1, y1 = x, y
     else
-      return x1, y1, chars
+      return x1, y1, chars, fg0, bg0
     end
   end
 
