@@ -294,26 +294,23 @@ function DiffBuffer:cellsDiffer(x, y)
 end
 
 function DiffBuffer:getLine(x0, y0, vertical)
-  local dx, dy = 1, 0
-  if vertical then
-    dx, dy = 0, 1
-  end
-
   local chars, fg0, bg0 = self.head:get(x0, y0)
   local x1, y1 = x0, y0
 
-  for x = x0 + dx, self.w, dx do
-    for y = y0 + dy, self.h, dy do
-      if self:get(x, y) == CellDiff.None then
-        return x1, y1, chars
-      end
-      local ch, fg, bg = self.head:get(x, y)
-      if bg == bg0 and (fg == fg0 or ch == " ") then
-        chars = chars .. ch
-        x1, y1 = x, y
-      else
-        return x1, y1, chars
-      end
+  for i = 1, not vertical and self.w or self.h, 1 do
+    local x, y = x0 + i, y0
+    if vertical then
+      x, y = x0, y0 + i
+    end
+    if self:get(x, y) == CellDiff.None then
+      return x1, y1, chars
+    end
+    local ch, fg, bg = self.head:get(x, y)
+    if bg == bg0 and (fg == fg0 or ch == " ") then
+      chars = chars .. ch
+      x1, y1 = x, y
+    else
+      return x1, y1, chars
     end
   end
 
@@ -342,20 +339,23 @@ function DiffBuffer:getRect(x0, y0, vertical)
     dx, dy = 0, 1
   end
 
-  for x = x1 + dx, self.w, dx do
-    for y = y1 + dy, self.h, dy do
-      if vertical and self:areEqual(char, fg, bg,
-                                    x1 + 1, y0,
-                                    x1 + 1, y1) or
-          not vertical and self:areEqual(char, fg, bg,
-                                         x0, y1 + 1,
-                                         x1, y1 + 1) then
-        x1, y1 = x, y
-      else
-        return x1, y1, char, fg, bg
-      end
+  for i = 1, not vertical and self.w or self.h, 1 do
+    local x, y = x1 + i, y1
+    if vertical then
+      x, y = x1, y1 + i
+    end
+    if vertical and self:areEqual(char, fg, bg,
+                                  x1 + 1, y0,
+                                  x1 + 1, y1) or
+        not vertical and self:areEqual(char, fg, bg,
+                                       x0, y1 + 1,
+                                       x1, y1 + 1) then
+      x1, y1 = x, y
+    else
+      return x1, y1, char, fg, bg
     end
   end
+  return x1, y1, char, fg, bg
 end
 
 function DiffBuffer:areEqual(ch, fg, bg, x0, y0, x1, y1)
