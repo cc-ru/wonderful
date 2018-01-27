@@ -24,13 +24,8 @@ function Document:__new__(args)
     self.globalStyle = style.Style()
   end
 
-  if args.renderTarget and args.renderTarget:isa(render.RenderTarget) then
-    self.globalRenderTarget = args.renderTarget
-    self.globalRenderer = self.globalRenderTarget.renderer
-  else
-    self.globalRenderer = render.Renderer()
-    self.globalRenderTarget = self.globalRenderer:newTarget()
-  end
+  self.globalRenderTarget = args.renderTarget
+  self.globalRenderer = self.globalRenderTarget.renderer
 
   self.rootStackingContext = StackingContext()
   self.rootStackingContext:insertStatic(1, self)

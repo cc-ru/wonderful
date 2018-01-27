@@ -21,6 +21,10 @@ function LeafElement:__new__()
   self.attributes = {}
 end
 
+function LeafElement:render(bufferView)
+  -- hint
+end
+
 function LeafElement:set(attribute)
   self.attributes[attribute.key] = attribute
 end

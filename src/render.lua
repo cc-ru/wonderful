@@ -212,7 +212,8 @@ function Renderer:newTarget(spec)
       local w, h = self:getScreenResolution(address)
 
       if spec.box and
-          not spec.box:intersectsOneOf(screen.regions) and
+          -- regions can overlap now
+          -- not spec.box:intersectsOneOf(screen.regions) and
           spec.box.w + spec.box.x <= w and
           spec.box.h + spec.box.y <= h then
         screen.box = spec.box
@@ -244,7 +245,12 @@ function Renderer:newTarget(spec)
     spec.box = candidates[1].box
   end
 
-  return RenderTarget(self, spec.screen, spec.box, getScreenDepth(spec.screen))
+  local target = RenderTarget(
+    self, spec.screen, spec.box, getScreenDepth(spec.screen)
+  )
+
+  table.insert(self.targets, target)
+  return target
 end
 
 function Renderer:getGPU(target)

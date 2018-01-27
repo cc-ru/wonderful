@@ -14,6 +14,11 @@ function Box:__tostring__()
                                                            self.w, self.h)
 end
 
+function Box:has(x, y)
+  return x >= self.x and y >= self.y and
+         x < self.x + self.w and y < self.y + self.h
+end
+
 function Box:intersects(other)
   return (math.abs(self.x - other.x) * 2 < (self.w + other.w)) and
          (math.abs(self.y - other.y) * 2 < (self.h + other.h))
@@ -27,6 +32,10 @@ function Box:intersectsOneOf(others)
   end
 
   return false
+end
+
+function Box:unpack()
+  return self.x, self.y, self.w, self.h
 end
 
 function Box.__getters:isStrict()
