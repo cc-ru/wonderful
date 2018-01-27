@@ -1,6 +1,6 @@
 local class = require("lua-objects")
 
-local element = require("wonderful.element.element")
+local element = require("wonderful.element")
 local render = require("wonderful.render")
 local style = require("wonderful.style")
 
