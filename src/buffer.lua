@@ -4,6 +4,12 @@ local util = require("wonderful.util")
 
 local floor = math.floor
 
+local CellDiff = {
+  None = 0,  -- no difference
+  Char = 1,  -- different character, same color
+  Color = 2,  -- different color
+}
+
 local function channels(color)
   return floor(color / 0x10000),
          floor((color % 0x10000) / 0x100),
@@ -91,6 +97,10 @@ function Buffer:set(x, y, fg, bg, alpha, char)
     bg = nil
   end
 
+  if char == " " then
+    char = nil
+  end
+
   self.cells[i] = fg
   self.cells[i + 1] = bg
   self.cells[i + 2] = char
@@ -103,16 +113,24 @@ function Buffer:get(x, y)
   local i = self:index(x, y)
 
   -- char, fg, bg
-  return self.cells[i + 2], self.cells[i], self.cells[i + 1]
+  local char, fg, bg = self.cells[i + 2], self.cells[i], self.cells[i + 1]
+
+  if not char then
+    char = " "
+  end
+
+  if not fg then
+    fg = self.defaultFg
+  end
+
+  if not bg then
+    bg = self.defaultBg
+  end
+
+  return char, fg, bg
 end
 
 function Buffer:fill(x0, y0, w, h, fg, bg, alpha, char)
-  if fg == self.defaultFg then
-    fg = nil
-  end
-  if bg == self.defaultBg then
-    bg = nil
-  end
   for x = x0, x0 + w - 1, 1 do
     for y = y0, y0 + h - 1, 1 do
       self:set(x, y, fg, bg, alpha, char)
@@ -126,6 +144,24 @@ function Buffer:view(x, y, w, h)
   end
   return BufferView(self, x, y, w, h)
 end
+
+function Buffer:clear()
+  self.cells = {}
+end
+
+function Buffer:copyFrom(buf)
+  if buf.w ~= self.w or buf.h ~= buf.h or buf.depth ~= self.depth then
+    error("Buffers have different geometry and/or depth")
+  end
+  for x = 1, self.w, 1 do
+    for y = 1, self.h, 1 do
+      local char, fg, bg = buf:get(x, y)
+      self:set(x, y, fg, bg, 1, char)
+    end
+  end
+end
+
+--------------------------------------------------------------------------------
 
 function BufferView:__new__(buffer, x, y, w, h)
   self.buffer = buffer
@@ -165,7 +201,181 @@ function BufferView.__getters:palette()
   return self.buffer.palette
 end
 
+--------------------------------------------------------------------------------
+
+local DiffBuffer = class(nil, {name = "wonderful.buffer.DiffBuffer"})
+
+function DiffBuffer:__new__(base, head)
+  if base.w ~= head.w or base.h ~= head.h then
+    error("Base and head have different geometry")
+  end
+  self.base = base
+  self.head = head
+  self.cells = {}
+end
+
+function DiffBuffer:index(x, y)
+  return self.w * (y - 1) + (x - 1) + 1
+end
+
+function Buffer:inRange(x, y)
+  return x >= 1 and x <= self.w and y >= 1 and y <= self.h
+end
+
+function Buffer:rectInRange(x, y, w, h)
+  return x >= 1 and x <= self.w and
+         y >= 1 and y <= self.y and
+         w >= 1 and x + w - 1 <= self.w and
+         h >= 1 and y + h - 1 <= self.h
+end
+
+function DiffBuffer:coords(index)
+  local i = index - 1
+  local y = floor(i / self.w) + 1
+  local x = floor(i) % self.w + 1
+  return x, y
+end
+
+function DiffBuffer:set(x, y, diff)
+  if not self:inRange(x, y) then
+    return false
+  end
+
+  local i = self:index(x, y)
+
+  self.cells[i] = diff
+end
+
+function DiffBuffer:get(x, y)
+  if not self:inRange(x, y) then
+    return false
+  end
+
+  local i = self:index(x, y)
+
+  return self.cells[i]
+end
+
+function DiffBuffer:update()
+  self:clear()
+
+  for x = 1, self.w, 1 do
+    for y = 1, self.h, 1 do
+      self:set(x, y, self:cellsDiffer(x, y))
+    end
+  end
+end
+
+function DiffBuffer:fill(x0, y0, w, h, diff)
+  for x = x0, x0 + w - 1, 1 do
+    for y = y0, y0 + h - 1, 1 do
+      self:set(x, y, diff)
+    end
+  end
+end
+
+function DiffBuffer:clear()
+  self.cells = {}
+end
+
+function DiffBuffer:cellsDiffer(x, y)
+  local chb, fgb, bgb = self.base:get(x, y)
+  local chh, fgh, bgh = self.head:get(x, y)
+
+  if bgb == bgh and fgb == fgh and chb == chh then
+    return CellDiff.None
+  elseif bgb == bgh and chb == chh and chb == " " then
+    return CellDiff.None
+  elseif bgb == bgh and fgb == fgh and chb ~= chh then
+    return CellDiff.Char
+  elseif bgb ~= bgh or fgb ~= fgh then
+    return CellDiff.Color
+  end
+end
+
+function DiffBuffer:getLine(x0, y0, vertical)
+  local dx, dy = 1, 0
+  if vertical then
+    dx, dy = 0, 1
+  end
+
+  local chars, fg0, bg0 = self.head:get(x0, y0)
+  local x1, y1 = x0, y0
+
+  for x = x0 + dx, self.w, dx do
+    for y = y0 + dy, self.h, dy do
+      if self:get(x, y) == CellDiff.None then
+        return x1, y1, chars
+      end
+      local ch, fg, bg = self.head:get(x, y)
+      if bg == bg0 and (fg == fg0 or ch == " ") then
+        chars = chars .. ch
+        x1, y1 = x, y
+      else
+        return x1, y1, chars
+      end
+    end
+  end
+
+  return x1, y1, chars, fg0, bg0
+end
+
+function DiffBuffer:getRect(x0, y0, vertical)
+  local x1, y1 = x0, x0
+  local char, fg, bg = self.head:get(x0, y0)
+
+  for i = 1, math.min(self.w, self.h), 1 do
+    if self:areEqual(char, fg, bg,
+                     x0 + i, y0,
+                     x0 + i, y0 + i) and
+        self:areEqual(char, fg, bg,
+                      x0, y0 + i,
+                      x0 + i - 1, y0 + i) then
+      x1, y1 = x0 + i, y0 + i
+    else
+      break
+    end
+  end
+
+  local dx, dy = 1, 0
+  if vertical then
+    dx, dy = 0, 1
+  end
+
+  for x = x1 + dx, self.w, dx do
+    for y = y1 + dy, self.h, dy do
+      if vertical and self:areEqual(char, fg, bg,
+                                    x1 + 1, y0,
+                                    x1 + 1, y1) or
+          not vertical and self:areEqual(char, fg, bg,
+                                         x0, y1 + 1,
+                                         x1, y1 + 1) then
+        x1, y1 = x, y
+      else
+        return x1, y1, char, fg, bg
+      end
+    end
+  end
+end
+
+function DiffBuffer:areEqual(ch, fg, bg, x0, y0, x1, y1)
+  for x = x0, x1, 1 do
+    for y = y0, y1, 1 do
+      if self:get(x, y) == CellDiff.None then
+        return false
+      end
+      local cch, cfg, cbg = self.head:get(x, y)
+      if cbg ~= bg or cch ~= ch or cfg ~= fg and cch ~= " " then
+        return false
+      end
+    end
+  end
+  return true
+end
+
 return {
-  Buffer = Buffer
+  CellDiff = CellDiff,
+  Buffer = Buffer,
+  DiffBuffer = DiffBuffer,
 }
 

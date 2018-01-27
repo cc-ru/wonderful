@@ -6,6 +6,7 @@ local class = require("lua-objects")
 local wbuffer = require("wonderful.buffer")
 
 local Box = require("wonderful.geometry").Box
+local CellDiff = wbuffer.CellDiff
 
 local function depthResolution(depth)
   if depth == 1 then
@@ -17,12 +18,27 @@ local function depthResolution(depth)
   end
 end
 
+local function getFills(depth)
+  if depth == 1 then
+    return 16 - 6
+  elseif depth == 4 then
+    return 32 - 6
+  elseif depth == 8 then
+    return 64 - 6
+  end
+end
+
+local function getArea(x0, y0, x1, y1)
+  return (x1 - x0) * (y1 - y0)
+end
+
 local RenderTarget = class(nil, {name = "wonderful.render.RenderTarget"})
 
 function RenderTarget:__new__(renderer, screen, box, depth)
   self.renderer = renderer
   self.screen = screen
   self.box = box
+  self.fills = getFills(depth)
 
   local bufferArgs = {
     w = box.w,
@@ -32,16 +48,76 @@ function RenderTarget:__new__(renderer, screen, box, depth)
 
   self.oldBuffer = wbuffer.Buffer(bufferArgs)
   self.newBuffer = wbuffer.Buffer(bufferArgs)
+  self.diffBuffer = wbuffer.DiffBuffer(self.oldBuffer, self.newBuffer)
 end
 
 function RenderTarget:flush()
+  -- TODO: group by color
   local gpu = component.proxy(self.renderer:getGPU(self))
 
-  -- TODO: Render here
+  self.diffBuffer:update()
 
-  local tmp = self.oldBuffer
-  self.oldBuffer = self.newBuffer
-  self.newBuffer = tmp
+  local fills = self.fills
+
+  for x = 1, self.diffBuffer.w, 1 do
+    for y = 1, self.diffBuffer.h, 1 do
+      local diff = self.diffBuffer:get(x, y)
+      if diff ~= CellDiff.None then
+        local figs = {{0, self.diffBuffer:getLine(x, y, false)},
+                      {0, self.diffBuffer:getLine(x, y, true)}}
+        if fills > 0 then
+          figs[3] = {0, self.diffBuffer:getRect(x, y, false)}
+          figs[4] = {0, self.diffBuffer:getRect(x, y, true)}
+        end
+
+        for i = 1, #figs, 1 do
+          figs[i][1] = getArea(x, y, figs[i][2], figs[i][3])
+        end
+
+        local lineMaxIdx = figs[2][1] > figs[1][1] and 2 or 1
+        local lineMax = figs[lineMaxIdx][1]
+
+        local selected
+
+        if fills > 0 then
+          local rectMaxIdx = figs[4][1] > figs[3][1] and 4 or 3
+          local rectMax = figs[rectMaxIdx][1]
+
+          -- Fills are twice as expensive
+          if rectMax > lineMax * 2 then
+            selected = rectMaxIdx
+          end
+        end
+
+        if not selected then
+          selected = lineMaxIdx
+        end
+
+        local fg, bg = figs[selected][5], figs[selected][6]
+
+        if gpu.getForeground() ~= fg then
+          gpu.setForeground(fg)
+        end
+        if gpu.getBackground() ~= bg then
+          gpu.setBackground(bg)
+        end
+
+        local w, h = figs[selected][2] - x + 1, figs[selected][3] - y + 1
+        if selected == 1 then
+          gpu.set(x, y, figs[1][4])
+        elseif selected == 2 then
+          gpu.set(x, y, figs[2][4], true)
+        elseif selected == 3 or selected == 4 then
+          gpu.fill(x, y, w, h, figs[selected][4])
+          fills = fills - 1
+        end
+
+        self.diffBuffer:fill(x, y, w, h, CellDiff.None)
+      end
+    end
+  end
+
+  self.oldBuffer:copyFrom(self.newBuffer)
 end
 
 local Renderer = class(nil, {name = "wonderful.render.Renderer"})
