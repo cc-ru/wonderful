@@ -59,8 +59,8 @@ function RenderTarget:flush()
 
   local fills = self.fills
 
-  for x = 1, self.diffBuffer.w, 1 do
-    for y = 1, self.diffBuffer.h, 1 do
+  for y = 1, self.diffBuffer.h, 1 do
+    for x = 1, self.diffBuffer.w, 1 do
       local diff = self.diffBuffer:get(x, y)
       if diff ~= CellDiff.None then
         local figs = {{0, self.diffBuffer:getLine(x, y, false)},
@@ -83,6 +83,8 @@ function RenderTarget:flush()
           local rectMaxIdx = figs[4][1] > figs[3][1] and 4 or 3
           local rectMax = figs[rectMaxIdx][1]
 
+          -- print("rect:", rectMaxIdx, rectMax, table.unpack(figs[rectMaxIdx]))
+
           -- Fills are twice as expensive
           if rectMax > lineMax * 2 then
             selected = rectMaxIdx
@@ -94,6 +96,18 @@ function RenderTarget:flush()
         end
 
         local fg, bg = figs[selected][5], figs[selected][6]
+
+        -- print(diff, x, y, selected, lineMaxIdx, lineMax, fills, fg, bg, table.unpack(figs[selected]))
+        checkArg(1, diff, "number")
+        checkArg(2, x, "number")
+        checkArg(3, y, "number")
+        checkArg(4, selected, "number")
+        checkArg(5, lineMaxIdx, "number")
+        checkArg(6, lineMax, "number")
+        checkArg(7, fills, "number")
+        checkArg(8, fg, "number")
+        checkArg(9, bg, "number")
+        checkArg(13, figs[selected][4], "string")
 
         if gpu.getForeground() ~= fg then
           gpu.setForeground(fg)

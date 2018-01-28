@@ -36,7 +36,7 @@ function Buffer:__new__(args)
 end
 
 function Buffer:index(x, y)
-  return self.w * (y - 1) + 3 * (x - 1) + 1
+  return 3 * (self.w * (y - 1) + (x - 1) + 1)
 end
 
 function Buffer:coords(index)
@@ -80,18 +80,23 @@ function Buffer:alphaBlend(color1, color2, alpha)
 end
 
 function Buffer:set(x, y, fg, bg, alpha, char)
+  checkArg(1, x, "number")
+  checkArg(2, y, "number")
+  checkArg(3, fg, "number")
+  checkArg(4, bg, "number")
+  checkArg(5, alpha, "number")
+  checkArg(6, char, "string")
   if not self:inRange(x, y) then
     return false
   end
   local i = self:index(x, y)
 
-  local cfg = self.cells[i]
+  local _, cfg, cbg = self:get(x, y)
   fg = self:approximate(self:alphaBlend(cfg, fg, alpha))
   if fg == self.defaultFg then
     fg = nil
   end
 
-  local cbg = self.cells[i + 1]
   bg = self:approximate(self:alphaBlend(cbg, bg, alpha))
   if bg == self.defaultBg then
     bg = nil
@@ -234,7 +239,7 @@ end
 function DiffBuffer:coords(index)
   local i = index - 1
   local y = floor(i / self.w) + 1
-  local x = floor(i) % self.w + 1
+  local x = i % self.w + 1
   return x, y
 end
 
@@ -244,6 +249,10 @@ function DiffBuffer:set(x, y, diff)
   end
 
   local i = self:index(x, y)
+
+  if diff == CellDiff.None then
+    diff = nil
+  end
 
   self.cells[i] = diff
 end
@@ -255,7 +264,7 @@ function DiffBuffer:get(x, y)
 
   local i = self:index(x, y)
 
-  return self.cells[i]
+  return self.cells[i] or CellDiff.None
 end
 
 function DiffBuffer:update()
@@ -323,7 +332,7 @@ function DiffBuffer:getRect(x0, y0, vertical)
   local x1, y1 = x0, x0
   local char, fg, bg = self.head:get(x0, y0)
 
-  for i = 1, math.min(self.w, self.h), 1 do
+  for i = 1, math.min(self.w - x0, self.h - y0), 1 do
     if self:areEqual(char, fg, bg,
                      x0 + i, y0,
                      x0 + i, y0 + i) and
@@ -336,22 +345,19 @@ function DiffBuffer:getRect(x0, y0, vertical)
     end
   end
 
-  local dx, dy = 1, 0
-  if vertical then
-    dx, dy = 0, 1
-  end
-
-  for i = 1, not vertical and self.w or self.h, 1 do
-    local x, y = x1 + i, y1
-    if vertical then
-      x, y = x1, y1 + i
+  for i = not vertical and x1 or y1, not vertical and self.w or self.h, 1 do
+    local x, y
+    if not vertical then
+      x, y = x1 + 1, y1
+    else
+      x, y = x1, y1 + 1
     end
-    if vertical and self:areEqual(char, fg, bg,
-                                  x1 + 1, y0,
-                                  x1 + 1, y1) or
-        not vertical and self:areEqual(char, fg, bg,
-                                       x0, y1 + 1,
-                                       x1, y1 + 1) then
+    if not vertical and self:areEqual(char, fg, bg,
+                                      x, y0,
+                                      x, y1) or
+        vertical and self:areEqual(char, fg, bg,
+                                   x0, y,
+                                   x1, y) then
       x1, y1 = x, y
     else
       return x1, y1, char, fg, bg

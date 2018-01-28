@@ -1,3 +1,5 @@
+local bit32 = require("bit32")
+
 local util = {}
 
 function util.shallowcopy(orig)
@@ -201,7 +203,7 @@ do
     local idxB = math.floor(b * (5 - 1) / 0xFF + 0.5)
     local deflated = 16 + idxR * 8 * 5 + idxG * 5 + idxB
     if (delta(t3inflate(palette, deflated % 0x100), color) <
-        delta(t3inflate(palette, paletteIndex & 0x100), color)) then
+        delta(t3inflate(palette, bit32.band(paletteIndex, 0x100)), color)) then
       return deflated
     else
       return paletteIndex
