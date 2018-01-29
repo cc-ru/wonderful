@@ -11,11 +11,6 @@ local Direction = {
   RightToLeft = 3
 }
 
-local function isVertical(direction)
-  return direction == Direction.TopToBottom or
-         direction == Direction.BottomToTop
-end
-
 local BoxLayout = class(Layout, {name = "wonderful.layout.box.BoxLayout"})
 
 function BoxLayout:__new__(direction)
@@ -32,6 +27,11 @@ function BoxLayout:recompose(el)
   local count = 0
   local lastMut = 0
 
+  local vertical = self.direction == Direction.TopToBottom
+                or self.direction == Direction.BottomToTop
+  local reversed = self.direction == Direction.RightToLeft
+                or self.direction == Direction.BottomToTop
+
   for _, child in ipairs(el:getLayoutItems()) do
     if child:getStretch() == 0 then
       local w, h = child:sizeHint()
@@ -43,18 +43,23 @@ function BoxLayout:recompose(el)
       end
 
       table.insert(chunks[i], child)
-      filled = filled + (isVertical(self.direction) and
-                         h + margin.t + margin.b or
-                         w + margin.l + margin.r)
+
+      if vertical then
+        filled = filled + h + margin.t + margin.b
+      else
+        filled = filled + w + margin.l + margin.r
+      end
     else
       local margin = child:getMargin()
 
       i = i + 1
       count = count + child:getStretch()
 
-      filled = filled + (isVertical(self.direction) and
-                         margin.t + margin.b or
-                         margin.l + margin.r)
+      if vertical then
+        filled = filled + margin.t + margin.b
+      else
+        filled = filled + margin.l + margin.r
+      end
 
       chunks[i] = {const = false, stretch = child:getStretch(), el = child}
       lastMut = i
@@ -64,7 +69,7 @@ function BoxLayout:recompose(el)
   local box = el:getLayoutBox()
   local pad = el:getLayoutPadding()
 
-  local full = isVertical(self.direction) and
+  local full = vertical and
                (box.h - pad.t - pad.b) or
                (box.w - pad.l - pad.r)
 
@@ -77,9 +82,17 @@ function BoxLayout:recompose(el)
         local w, h = el:sizeHint()
         local margin = el:getMargin()
 
-        el:boxCalculated(Box(x + margin.l, y + margin.t, el:sizeHint()))
+        if reversed and vertical then
+          el:boxCalculated(
+            Box(x + margin.l, full - y + margin.b - h, w, h))
+        elseif reversed then
+          el:boxCalculated(
+            Box(full - x - margin.r - w + margin.l, y + margin.t, w, h))
+        else
+          el:boxCalculated(Box(x + margin.l, y + margin.t, w, h))
+        end
 
-        if isVertical(self.direction) then
+        if vertical then
           y = y + h + margin.t + margin.b
         else
           x = x + w + margin.l + margin.r
@@ -91,21 +104,29 @@ function BoxLayout:recompose(el)
       local w, h = el:sizeHint()
       local margin = el:getMargin()
 
-      if isVertical(self.direction) then
+      if vertical then
         h = math.floor(basis * chunk.stretch + 0.5)
       else
         w = math.floor(basis * chunk.stretch + 0.5)
       end
 
-      if j == lastMut and isVertical(self.direction) then
+      if j == lastMut and vertical then
         h = full - filled
       elseif j == #chunks then
         w = full - filled
       end
 
-      el:boxCalculated(Box(x + margin.l, y + margin.t, w, h))
+      if reversed and vertical then
+        el:boxCalculated(
+          Box(x + margin.l, full - y + margin.b - h, w, h))
+      elseif reversed then
+        el:boxCalculated(
+          Box(full - x - margin.r - w + margin.l, y + margin.t, w, h))
+      else
+        el:boxCalculated(Box(x + margin.l, y + margin.t, w, h))
+      end
 
-      if isVertical(self.direction) then
+      if vertical then
         filled = filled + h
         y = y + h + margin.t + margin.b
       else
@@ -119,11 +140,14 @@ end
 function BoxLayout:sizeHint(el)
   local width, height = 0, 0
 
+  local vertical = self.direction == Direction.TopToBottom
+                or self.direction == Direction.BottomToTop
+
   for _, child in ipairs(el:getLayoutItems()) do
     local hw, hh = child:sizeHint()
     local margin = child:getMargin()
 
-    if isVertical(self.direction) then
+    if vertical then
       width = math.max(width, hw)
       height = height + hh + margin.t + margin.b
     else
