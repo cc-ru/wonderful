@@ -120,6 +120,7 @@ local Renderer = class(nil, {name = "wonderful.render.Renderer"})
 function Renderer:__new__()
   self.screens = {}
   self.gpus = {}
+  self.inital = {}
   self.targets = {}
 
   self.maxDepth = 1
@@ -128,7 +129,6 @@ function Renderer:__new__()
 
   for address in component.list("screen", true) do
     self.screens[address] = {
-      proxy = component.proxy(address),
       address = address,
       depth = ((computer.getDeviceInfo() or {})[address] or {}).width or 8,
       regions = {},
@@ -141,9 +141,16 @@ function Renderer:__new__()
 
   for address in component.list("gpu", true) do
     self.gpus[address] = {
-      proxy = component.proxy(address),
       address = address,
       depth = ((computer.getDeviceInfo() or {})[address] or {}).width or 8
+    }
+
+    self.inital[address] = {
+      screen = component.invoke(address, "getScreen"),
+      depth = component.invoke(address, "getDepth"),
+      background = component.invoke(address, "getBackground"),
+      foreground = component.invoke(address, "getForeground"),
+      resolution = {component.invoke(address, "getResolution")}
     }
 
     local curDepth = component.invoke(address, "maxDepth")
@@ -164,6 +171,21 @@ function Renderer:__new__()
 
   self.primaryScreen = component.getPrimary("screen")
   self.primaryGPU = component.getPrimary("gpu")
+end
+
+function Renderer:restore()
+  for gpu, inital in pairs(self.inital) do
+    local w, h = table.unpack(inital.resolution)
+
+    component.invoke(gpu, "bind", inital.screen)
+    component.invoke(gpu, "setDepth", inital.depth)
+    component.invoke(gpu, "setBackground", inital.background)
+    component.invoke(gpu, "setForeground", inital.foreground)
+    component.invoke(gpu, "setResolution", w, h)
+    component.invoke(gpu, "fill", 1, 1, w, h, " ")
+  end
+
+  require("term").clear()
 end
 
 function Renderer:setPreferredScreenResolution(address, w, h)
@@ -250,7 +272,9 @@ function Renderer:newTarget(spec)
   gpu.setResolution(w, h)
   gpu.setBackground(target.oldBuffer.defaultBg)
   gpu.setForeground(target.oldBuffer.defaultFg)
-  gpu.fill(1, 1, w, h, " ")
+
+  local x, y, w, h = target.box:unpack()
+  gpu.fill(x, y, w, h, " ")
 
   table.insert(self.targets, target)
   return target

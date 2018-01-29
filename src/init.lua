@@ -164,6 +164,13 @@ function Wonderful:stop()
   self.running = false
 end
 
+function Wonderful:__destroy__()
+  self.running = false
+  self.renderer:restore()
+  self.renderer.targets = {}
+  self.documents = {}
+end
+
 return {
   Wonderful = Wonderful,
   Document = document.Document,
