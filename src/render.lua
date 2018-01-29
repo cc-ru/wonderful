@@ -245,7 +245,12 @@ function Renderer:newTarget(spec)
   )
 
   local w, h = self:getScreenResolution(spec.screen)
-  component.proxy(self:getGPU(target)).setResolution(w, h)
+  local gpu = component.proxy(self:getGPU(target))
+
+  gpu.setResolution(w, h)
+  gpu.setBackground(target.oldBuffer.defaultBg)
+  gpu.setForeground(target.oldBuffer.defaultFg)
+  gpu.fill(1, 1, w, h, " ")
 
   table.insert(self.targets, target)
   return target
