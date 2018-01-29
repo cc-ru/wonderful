@@ -178,7 +178,7 @@ function Renderer:getScreenResolution(screen)
   local depth = self:getScreenDepth(screen)
 
   local dw, dh = depthResolution(depth)
-  local w, h = table.unpack(screen.preferredResolution or
+  local w, h = table.unpack(self.screens[screen].preferredResolution or
                             {math.huge, math.huge})
 
   return math.min(w, dw), math.min(h, dh)
@@ -243,6 +243,9 @@ function Renderer:newTarget(spec)
   local target = RenderTarget(
     self, spec.screen, spec.box, self:getScreenDepth(spec.screen)
   )
+
+  local w, h = self:getScreenResolution(spec.screen)
+  component.proxy(self:getGPU(target)).setResolution(w, h)
 
   table.insert(self.targets, target)
   return target
