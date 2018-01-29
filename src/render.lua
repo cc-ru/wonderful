@@ -49,89 +49,70 @@ function RenderTarget:__new__(renderer, screen, box, depth)
   self.oldBuffer = wbuffer.Buffer(bufferArgs)
   self.newBuffer = wbuffer.Buffer(bufferArgs)
   self.diffBuffer = wbuffer.DiffBuffer(self.oldBuffer, self.newBuffer)
+  self.palette = self.oldBuffer.palette
 end
 
 function RenderTarget:flush()
-  -- TODO: group by color
   local gpu = component.proxy(self.renderer:getGPU(self))
 
   self.diffBuffer:update()
 
-  local fills = self.fills
+  local colors = {}
+  local x, y, chars, fg, bg, pos, index = 1, 1
 
-  for y = 1, self.diffBuffer.h, 1 do
-    for x = 1, self.diffBuffer.w, 1 do
-      local diff = self.diffBuffer:get(x, y)
-      if diff ~= CellDiff.None then
-        local figs = {{0, self.diffBuffer:getLine(x, y, false)},
-                      {0, self.diffBuffer:getLine(x, y, true)}}
-        if fills > 0 then
-          figs[3] = {0, self.diffBuffer:getRect(x, y, false)}
-          figs[4] = {0, self.diffBuffer:getRect(x, y, true)}
-        end
+  while true do
+    if self.diffBuffer:get(x, y) ~= CellDiff.None then
+      pos = x * 0x100 + y
 
-        for i = 1, #figs, 1 do
-          figs[i][1] = getArea(x, y, figs[i][2], figs[i][3])
-        end
+      x, y, chars, fg, bg = self.diffBuffer:getLine(x, y)
+      x = x + 1
 
-        local lineMaxIdx = figs[2][1] > figs[1][1] and 2 or 1
-        local lineMax = figs[lineMaxIdx][1]
+      index = self.palette:deflate(fg) * 0x100 + self.palette:deflate(bg)
 
-        local selected
-
-        if fills > 0 then
-          local rectMaxIdx = figs[4][1] > figs[3][1] and 4 or 3
-          local rectMax = figs[rectMaxIdx][1]
-
-          -- print("rect:", rectMaxIdx, rectMax, table.unpack(figs[rectMaxIdx]))
-
-          -- Fills are twice as expensive
-          if rectMax > lineMax * 2 then
-            selected = rectMaxIdx
-          end
-        end
-
-        if not selected then
-          selected = lineMaxIdx
-        end
-
-        local fg, bg = figs[selected][5], figs[selected][6]
-
-        -- print(diff, x, y, selected, lineMaxIdx, lineMax, fills, fg, bg, table.unpack(figs[selected]))
-        checkArg(1, diff, "number")
-        checkArg(2, x, "number")
-        checkArg(3, y, "number")
-        checkArg(4, selected, "number")
-        checkArg(5, lineMaxIdx, "number")
-        checkArg(6, lineMax, "number")
-        checkArg(7, fills, "number")
-        checkArg(8, fg, "number")
-        checkArg(9, bg, "number")
-        checkArg(13, figs[selected][4], "string")
-
-        if gpu.getForeground() ~= fg then
-          gpu.setForeground(fg)
-        end
-        if gpu.getBackground() ~= bg then
-          gpu.setBackground(bg)
-        end
-
-        local w, h = figs[selected][2] - x + 1, figs[selected][3] - y + 1
-        if selected == 1 then
-          gpu.set(x, y, figs[1][4])
-        elseif selected == 2 then
-          gpu.set(x, y, figs[2][4], true)
-        elseif selected == 3 or selected == 4 then
-          gpu.fill(x, y, w, h, figs[selected][4])
-          fills = fills - 1
-        end
-
-        self.diffBuffer:fill(x, y, w, h, CellDiff.None)
+      if not colors[index] then
+        colors[index] = {}
       end
+
+      table.insert(colors[index], pos)
+      table.insert(colors[index], chars)
+    else
+      x = x + 1
+    end
+
+    if x > self.diffBuffer.w then
+      x = 1
+      y = y + 1
+    end
+
+    if y > self.diffBuffer.h then
+      break
     end
   end
 
-  self.oldBuffer:copyFrom(self.newBuffer)
+  local calls = 0
+  for index, lines in pairs(colors) do
+    local fg = self.palette:inflate(bit32.rshift(index, 8))
+    local bg = self.palette:inflate(bit32.band(index, 0xff))
+
+    gpu.setForeground(fg)
+    gpu.setBackground(bg)
+
+    for i = 1, #lines, 2 do
+      local pos = lines[i]
+      local line = lines[i + 1]
+
+      local x = bit32.rshift(pos, 8)
+      local y = bit32.band(pos, 0xff)
+
+      gpu.set(x, y, line)
+    end
+
+    calls = calls + 2 + math.floor(#lines / 2)
+  end
+
+  local tmp = self.oldBuffer
+  self.oldBuffer = self.newBuffer
+  self.newBuffer = tmp
 end
 
 local Renderer = class(nil, {name = "wonderful.render.Renderer"})
@@ -185,7 +166,7 @@ function Renderer:__new__()
   self.primaryGPU = component.getPrimary("gpu")
 end
 
-function Renderer:setPreferredScreenResolution(screen, w, h)
+function Renderer:setPreferredScreenResolution(address, w, h)
   self.screens[address].preferredResolution = {w, h}
 end
 
