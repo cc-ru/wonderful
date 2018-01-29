@@ -136,7 +136,7 @@ do
   local function t1deflate(palette, color)
     for idx, v in pairs(palette) do
       if v == color then
-        return idx
+        return idx - 1
       end
     end
 
@@ -220,8 +220,8 @@ do
     for idx = 16, 255, 1 do
       local i = idx - 16
       local iB = i % 5
-      local iG = (i / 5) % 8
-      local iR = (i / 5 / 8) % 6
+      local iG = math.floor(i / 5) % 8
+      local iR = math.floor(i / 5 / 8) % 6
       local r = math.floor(iR * 0xFF / (6 - 1) + 0.5)
       local g = math.floor(iG * 0xFF / (8 - 1) + 0.5)
       local b = math.floor(iB * 0xFF / (5 - 1) + 0.5)
