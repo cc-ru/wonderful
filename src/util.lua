@@ -140,14 +140,13 @@ do
       end
     end
 
-    local deltas = {}
-    for idx, v in pairs(palette) do
-      table.insert(deltas, {idx, delta(v, color)})
+    local idx, minDelta
+    for k, v in pairs(palette) do
+      local d = delta(v, color)
+      if d < minDelta then
+        idx, minDelta = k, d
+      end
     end
-
-    table.sort(deltas, function(a, b)
-      return a[2] < b[2]
-    end)
 
     return deltas[1][1] - 1
   end
