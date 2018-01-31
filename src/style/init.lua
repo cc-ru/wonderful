@@ -15,12 +15,12 @@ end
 
 function Style:fromStream(istream, vars, selectors, properties, types)
   local buf = textBuf.Buffer(istream)
-  return self:fromBuffer(buf)
+  return self:fromBuffer(buf, vars, selectors, properties, types)
 end
 
 function Style:fromString(str, vars, selectors, properties, types)
   local buf = textBuf.Buffer(str)
-  return self:fromBuffer(buf)
+  return self:fromBuffer(buf, vars, selector, properties, types)
 end
 
 function Style:fromBuffer(buf, vars, selectors, properties, types)
@@ -56,7 +56,13 @@ function Style:getProperty(component, name)
       end
     end
   end
-  return result
+  if result then
+    return result
+  end
+  if component.parent then
+    -- TODO: don't default-inherit properties unless explicitly set.
+    return self:getProperty(component.parent, name)
+  end
 end
 
 function Style:_chooseRule(r1, r2)
