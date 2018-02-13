@@ -1,3 +1,4 @@
+local bit32 = require("bit32")
 local component = require("component")
 local computer = require("computer")
 
@@ -130,7 +131,8 @@ function Renderer:__new__()
   for address in component.list("screen", true) do
     self.screens[address] = {
       address = address,
-      depth = ((computer.getDeviceInfo() or {})[address] or {}).width or 8,
+      depth = tonumber(((computer.getDeviceInfo() or {})[address] or
+                        {}).width) or 8,
       regions = {},
       preferredResolution = nil,
       forcedGPU = nil
@@ -142,7 +144,8 @@ function Renderer:__new__()
   for address in component.list("gpu", true) do
     self.gpus[address] = {
       address = address,
-      depth = ((computer.getDeviceInfo() or {})[address] or {}).width or 8
+      depth = tonumber(((computer.getDeviceInfo() or {})[address] or
+                        {}).width) or 8
     }
 
     self.inital[address] = {

@@ -121,6 +121,7 @@ do
     local b = color - r * 0x10000 - g * 0x100
     return r, g, b
   end
+  util.palette.extract = extract
 
   local function delta(color1, color2)
     local r1, g1, b1 = extract(color1)
@@ -132,6 +133,7 @@ do
             0.7152 * dg^2 +
             0.0722 * db^2)
   end
+  util.palette.delta = delta
 
   local function t1deflate(palette, color)
     for idx, v in pairs(palette) do
@@ -143,12 +145,12 @@ do
     local idx, minDelta
     for k, v in pairs(palette) do
       local d = delta(v, color)
-      if d < minDelta then
+      if not minDelta or d < minDelta then
         idx, minDelta = k, d
       end
     end
 
-    return deltas[1][1] - 1
+    return idx - 1
   end
 
   local function t1inflate(palette, index)
