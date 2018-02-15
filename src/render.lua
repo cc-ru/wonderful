@@ -77,7 +77,7 @@ function RenderTarget:_getLine(x0, y0, vertical)
   local chars, fg0, bg0 = self.newBuffer:get(x0, y0)
   local x1, y1 = x0, y0
 
-  for i = 1, not vertical and self.w or self.h, 1 do
+  for i = 1, not vertical and self.box.w or self.box.h, 1 do
     local x, y = x0 + i, y0
     if vertical then
       x, y = x0, y0 + i
@@ -120,12 +120,12 @@ function RenderTarget:flush()
     end
     x = x + 1
 
-    if x > self.newBuffer.w then
+    if x > self.box.w then
       x = 1
       y = y + 1
     end
 
-    if y > self.newBuffer.h then
+    if y > self.box.h then
       break
     end
   end

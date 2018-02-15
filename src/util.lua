@@ -150,7 +150,7 @@ end
 
 util.palette = {}
 do
-  local extract = cached(function(color)
+  local extract = util.cached(function(color)
     color = color % 0x1000000
     local r = math.floor(color / 0x10000)
     local g = math.floor((color - r * 0x10000) / 0x100)
@@ -171,7 +171,7 @@ do
   end
   util.palette.delta = delta
 
-  local t1deflate = cached(function(palette, color)
+  local t1deflate = util.cached(function(palette, color)
     for idx, v in pairs(palette) do
       if v == color then
         return idx - 1
@@ -227,7 +227,7 @@ do
   local t3inflate = t2inflate
 
   -- not sure whether we need a `cached` here
-  local t3deflate = cached(function(palette, color)
+  local t3deflate = util.cached(function(palette, color)
     local paletteIndex = t2deflate(palette, color)
     for k, v in pairs(palette) do
       if v == color then
