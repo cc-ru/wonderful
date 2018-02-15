@@ -7,7 +7,13 @@ local class = require("lua-objects")
 local wbuffer = require("wonderful.buffer")
 
 local Box = require("wonderful.geometry").Box
-local CellDiff = wbuffer.CellDiff
+
+local CellDiff = {
+  None = 0,  -- no difference
+  Char = 1,  -- different character, same color
+  Color = 2,  -- different color
+}
+
 
 local function depthResolution(depth)
   if depth == 1 then
@@ -49,24 +55,59 @@ function RenderTarget:__new__(renderer, screen, box, depth)
 
   self.oldBuffer = wbuffer.Buffer(bufferArgs)
   self.newBuffer = wbuffer.Buffer(bufferArgs)
-  self.diffBuffer = wbuffer.DiffBuffer(self.oldBuffer, self.newBuffer)
   self.palette = self.oldBuffer.palette
+end
+
+function RenderTarget:_cellsDiffer(x, y)
+  local chb, fgb, bgb = self.oldBuffer:get(x, y)
+  local chh, fgh, bgh = self.newBuffer:get(x, y)
+
+  if bgb == bgh and fgb == fgh and chb == chh then
+    return CellDiff.None
+  elseif bgb == bgh and chb == chh and chb == " " then
+    return CellDiff.None
+  elseif bgb == bgh and fgb == fgh and chb ~= chh then
+    return CellDiff.Char
+  elseif bgb ~= bgh or fgb ~= fgh then
+    return CellDiff.Color
+  end
+end
+
+function RenderTarget:_getLine(x0, y0, vertical)
+  local chars, fg0, bg0 = self.newBuffer:get(x0, y0)
+  local x1, y1 = x0, y0
+
+  for i = 1, not vertical and self.w or self.h, 1 do
+    local x, y = x0 + i, y0
+    if vertical then
+      x, y = x0, y0 + i
+    end
+    if self:_cellsDiffer(x, y) == CellDiff.None then
+      return x1, y1, chars, fg0, bg0
+    end
+    local ch, fg, bg = self.newBuffer:get(x, y)
+    if bg == bg0 and (fg == fg0 or ch == " ") then
+      chars = chars .. ch
+      x1, y1 = x, y
+    else
+      return x1, y1, chars, fg0, bg0
+    end
+  end
+
+  return x1, y1, chars, fg0, bg0
 end
 
 function RenderTarget:flush()
   local gpu = component.proxy(self.renderer:getGPU(self))
 
-  self.diffBuffer:update()
-
   local colors = {}
   local x, y, chars, fg, bg, pos, index = 1, 1
 
   while true do
-    if self.diffBuffer:get(x, y) ~= CellDiff.None then
+    if self:_cellsDiffer(x, y) ~= CellDiff.None then
       pos = x * 0x100 + y
 
-      x, y, chars, fg, bg = self.diffBuffer:getLine(x, y)
-      x = x + 1
+      x, y, chars, fg, bg = self:_getLine(x, y)
 
       index = self.palette:deflate(fg) * 0x100 + self.palette:deflate(bg)
 
@@ -76,16 +117,15 @@ function RenderTarget:flush()
 
       table.insert(colors[index], pos)
       table.insert(colors[index], chars)
-    else
-      x = x + 1
     end
+    x = x + 1
 
-    if x > self.diffBuffer.w then
+    if x > self.newBuffer.w then
       x = 1
       y = y + 1
     end
 
-    if y > self.diffBuffer.h then
+    if y > self.newBuffer.h then
       break
     end
   end
