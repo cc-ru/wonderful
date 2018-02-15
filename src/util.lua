@@ -45,6 +45,42 @@ function util.isin(value, tbl)
   return false
 end
 
+function util.cached(func, entries)
+  entries = entries or math.huge
+  local cache = {}
+  local count = 0
+  return function(...)
+    local args = table.pack(...)
+
+    for k, v in pairs(cache) do
+      local matches = true
+      if args.n == k.n then
+        for j = 1, k.n, 1 do
+          if args[j] ~= k[j] then
+            matches = false
+            break
+          end
+        end
+      else
+        matches = false
+      end
+      if matches then
+        return table.unpack(v)
+      end
+    end
+
+    local out = table.pack(func(...))
+    if count == entries then
+      cache[next(cache)] = nil
+    else
+      count = count + 1
+    end
+
+    cache[args] = out
+    return table.unpack(out)
+  end
+end
+
 util.iter = {}
 do
   function util.iter.wrap(iter, state, var)
@@ -114,13 +150,13 @@ end
 
 util.palette = {}
 do
-  local function extract(color)
+  local extract = cached(function(color)
     color = color % 0x1000000
     local r = math.floor(color / 0x10000)
     local g = math.floor((color - r * 0x10000) / 0x100)
     local b = color - r * 0x10000 - g * 0x100
     return r, g, b
-  end
+  end, 32)
   util.palette.extract = extract
 
   local function delta(color1, color2)
@@ -135,7 +171,7 @@ do
   end
   util.palette.delta = delta
 
-  local function t1deflate(palette, color)
+  local t1deflate = cached(function(palette, color)
     for idx, v in pairs(palette) do
       if v == color then
         return idx - 1
@@ -151,7 +187,7 @@ do
     end
 
     return idx - 1
-  end
+  end, 128)
 
   local function t1inflate(palette, index)
     return palette[index + 1]
@@ -190,7 +226,8 @@ do
 
   local t3inflate = t2inflate
 
-  local function t3deflate(palette, color)
+  -- not sure whether we need a `cached` here
+  local t3deflate = cached(function(palette, color)
     local paletteIndex = t2deflate(palette, color)
     for k, v in pairs(palette) do
       if v == color then
@@ -209,7 +246,7 @@ do
     else
       return paletteIndex
     end
-  end
+  end, 64)
 
   local function generateT3Palette()
     local palette = {}
