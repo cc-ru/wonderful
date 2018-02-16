@@ -14,7 +14,6 @@ local CellDiff = {
   Color = 2,  -- different color
 }
 
-
 local function depthResolution(depth)
   if depth == 1 then
     return 50, 16
@@ -141,8 +140,14 @@ function RenderTarget:flush()
     local fg = self.palette:inflate(bit32.rshift(index, 8))
     local bg = self.palette:inflate(bit32.band(index, 0xff))
 
-    gpu.setForeground(fg)
-    gpu.setBackground(bg)
+    if fg ~= gpu.getForeground() then
+      gpu.setForeground(fg)
+      calls = calls + 1
+    end
+    if bg ~= gpu.getBackground() then
+      gpu.setBackground(bg)
+      calls = calls + 1
+    end
 
     for i = 1, #lines, 2 do
       local pos = lines[i]
@@ -152,9 +157,8 @@ function RenderTarget:flush()
       local y = bit32.band(pos, 0xff)
 
       gpu.set(x, y, line)
+      calls = calls + 1
     end
-
-    calls = calls + 2 + math.floor(#lines / 2)
   end
 
   local tmp = base

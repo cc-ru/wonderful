@@ -76,14 +76,15 @@ end
 function Buffer:_set(x, y, fg, bg, alpha, char)
   local i = self:index(x, y)
 
-  local _, cfg, cbg = self:_get(x, y)
+  local cbg = self.cells[i + 1] or self.defaultBg
 
+  fg = self:approximate(self:alphaBlend(cbg, fg, alpha))
   bg = self:approximate(self:alphaBlend(cbg, bg, alpha))
+
   if bg == self.defaultBg then
     bg = nil
   end
 
-  fg = self:approximate(self:alphaBlend(bg, fg, alpha))
   if fg == self.defaultFg then
     fg = nil
   end

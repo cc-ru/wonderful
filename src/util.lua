@@ -172,21 +172,21 @@ do
   util.palette.delta = delta
 
   local t1deflate = util.cached(function(palette, color)
-    for idx, v in pairs(palette) do
-      if v == color then
-        return idx - 1
+    for idx = 1, #palette, 1 do
+      if palette[idx] == color then
+        return idx - 1, true
       end
     end
 
     local idx, minDelta
-    for k, v in pairs(palette) do
-      local d = delta(v, color)
+    for i = 1, #palette, 1 do
+      local d = delta(palette[i], color)
       if not minDelta or d < minDelta then
-        idx, minDelta = k, d
+        idx, minDelta = i, d
       end
     end
 
-    return idx - 1
+    return idx - 1, false
   end, 128)
 
   local function t1inflate(palette, index)
@@ -215,7 +215,7 @@ do
                      0xFFFF33, 0x33CC33, 0xFF6699, 0x333333,
                      0xCCCCCC, 0x336699, 0x9933CC, 0x333399,
                      0x663300, 0x336600, 0xFF3333, 0x000000}
-    
+
     palette.deflate = t2deflate
     palette.inflate = t2inflate
 
@@ -226,22 +226,24 @@ do
 
   local t3inflate = t2inflate
 
+  local RCOEF = (6 - 1) / 0xFF
+  local GCOEF = (8 - 1) / 0xFF
+  local BCOEF = (5 - 1) / 0xFF
+
   -- not sure whether we need a `cached` here
   local t3deflate = util.cached(function(palette, color)
-    local paletteIndex = t2deflate(palette, color)
-    for k, v in pairs(palette) do
-      if v == color then
-        return paletteIndex
-      end
+    local paletteIndex, fromPalette = t2deflate(palette, color)
+    if fromPalette then
+      return paletteIndex
     end
 
     local r, g, b = extract(color)
-    local idxR = math.floor(r * (6 - 1) / 0xFF + 0.5)
-    local idxG = math.floor(g * (8 - 1) / 0xFF + 0.5)
-    local idxB = math.floor(b * (5 - 1) / 0xFF + 0.5)
-    local deflated = 16 + idxR * 8 * 5 + idxG * 5 + idxB
+    local idxR = math.floor(r * RCOEF + 0.5)
+    local idxG = math.floor(g * RCOEF + 0.5)
+    local idxB = math.floor(b * RCOEF + 0.5)
+    local deflated = 16 + idxR * 40 + idxG * 5 + idxB
     if (delta(t3inflate(palette, deflated % 0x100), color) <
-        delta(t3inflate(palette, bit32.band(paletteIndex, 0x100)), color)) then
+        delta(t3inflate(palette, paletteIndex % 0x100), color)) then
       return deflated
     else
       return paletteIndex
