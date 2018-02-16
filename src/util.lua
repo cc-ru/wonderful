@@ -150,13 +150,13 @@ end
 
 util.palette = {}
 do
-  local extract = util.cached(function(color)
+  local extract = function(color)
     color = color % 0x1000000
     local r = math.floor(color / 0x10000)
     local g = math.floor((color - r * 0x10000) / 0x100)
     local b = color - r * 0x10000 - g * 0x100
     return r, g, b
-  end, 32)
+  end
   util.palette.extract = extract
 
   local function delta(color1, color2)
@@ -199,10 +199,10 @@ do
       secondColor
     }
 
-    return setmetatable(palette, {__index={
-      deflate = t1deflate,
-      inflate = t1inflate
-    }})
+    palette.deflate = t1deflate
+    palette.inflate = t1inflate
+
+    return palette
   end
 
   util.palette.t1 = generateT1Palette()
@@ -215,11 +215,11 @@ do
                      0xFFFF33, 0x33CC33, 0xFF6699, 0x333333,
                      0xCCCCCC, 0x336699, 0x9933CC, 0x333399,
                      0x663300, 0x336600, 0xFF3333, 0x000000}
+    
+    palette.deflate = t2deflate
+    palette.inflate = t2inflate
 
-    return setmetatable(palette, {__index={
-      deflate = t2deflate,
-      inflate = t2inflate
-    }})
+    return palette
   end
 
   util.palette.t2 = generateT2Palette()
@@ -266,10 +266,10 @@ do
       palette[idx + 1] = r * 0x10000 + g * 0x100 + b
     end
 
-    return setmetatable(palette, {__index={
-      deflate = t3deflate,
-      inflate = t3inflate
-    }})
+    palette.deflate = t3deflate
+    palette.inflate = t3inflate
+
+    return palette
   end
 
   util.palette.t3 = generateT3Palette()

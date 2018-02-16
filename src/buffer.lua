@@ -30,7 +30,7 @@ function Buffer:__new__(args)
 end
 
 function Buffer:index(x, y)
-  return 3 * (self.w * (y - 1) + (x - 1) + 1)
+  return 3 * self.w * (y - 1) + 3 * (x - 1) + 3
 end
 
 function Buffer:coords(index)
@@ -73,27 +73,19 @@ function Buffer:alphaBlend(color1, color2, alpha)
          floor(b1 * ialpha + b2 * alpha + 0.5)
 end
 
-function Buffer:set(x, y, fg, bg, alpha, char)
-  checkArg(1, x, "number")
-  checkArg(2, y, "number")
-  checkArg(3, fg, "number")
-  checkArg(4, bg, "number")
-  checkArg(5, alpha, "number")
-  checkArg(6, char, "string")
-  if not self:inRange(x, y) then
-    return false
-  end
+function Buffer:_set(x, y, fg, bg, alpha, char)
   local i = self:index(x, y)
 
-  local _, cfg, cbg = self:get(x, y)
-  fg = self:approximate(self:alphaBlend(cfg, fg, alpha))
-  if fg == self.defaultFg then
-    fg = nil
-  end
+  local _, cfg, cbg = self:_get(x, y)
 
   bg = self:approximate(self:alphaBlend(cbg, bg, alpha))
   if bg == self.defaultBg then
     bg = nil
+  end
+
+  fg = self:approximate(self:alphaBlend(bg, fg, alpha))
+  if fg == self.defaultFg then
+    fg = nil
   end
 
   if char == " " then
@@ -105,10 +97,22 @@ function Buffer:set(x, y, fg, bg, alpha, char)
   self.cells[i + 2] = char
 end
 
-function Buffer:get(x, y)
+function Buffer:set(x, y, fg, bg, alpha, char)
+  checkArg(1, x, "number")
+  checkArg(2, y, "number")
+  checkArg(3, fg, "number")
+  checkArg(4, bg, "number")
+  checkArg(5, alpha, "number")
+  checkArg(6, char, "string")
+
   if not self:inRange(x, y) then
     return false
   end
+
+  return self:_set(x, y, fg, bg, alpha, char)
+end
+
+function Buffer:_get(x, y)
   local i = self:index(x, y)
 
   -- char, fg, bg
@@ -129,10 +133,37 @@ function Buffer:get(x, y)
   return char, fg, bg
 end
 
+function Buffer:get(x, y)
+  checkArg(1, x, "number")
+  checkArg(2, y, "number")
+
+  if not self:inRange(x, y) then
+    return false
+  end
+
+  return self:_get(x, y)
+end
+
 function Buffer:fill(x0, y0, w, h, fg, bg, alpha, char)
-  for x = x0, x0 + w - 1, 1 do
-    for y = y0, y0 + h - 1, 1 do
-      self:set(x, y, fg, bg, alpha, char)
+  if w <= 0 or h <= 0 then
+    return
+  end
+
+  local x1 = x0 + w - 1
+  local y1 = x0 + h - 1
+
+  if x1 <= 0 or y1 <= 0 then
+    return
+  end
+
+  x0 = math.max(x0, 1)
+  y0 = math.max(y0, 1)
+  x1 = math.min(x1, self.w)
+  y1 = math.min(y1, self.h)
+
+  for x = x0, x1, 1 do
+    for y = y0, y1, 1 do
+      self:_set(x, y, fg, bg, alpha, char)
     end
   end
 end
@@ -176,18 +207,12 @@ function BufferView:absCoords(x, y)
          y + self.y - 1
 end
 
-function BufferView:set(x, y, fg, bg, alpha, char)
-  if not self:inRange(x, y) then
-    return false
-  end
+function BufferView:_set(x, y, fg, bg, alpha, char)
   x, y = self:absCoords(x, y)
   self.buffer:set(x, y, fg, bg, alpha, char)
 end
 
-function BufferView:get(x, y)
-  if not self:inRange(x, y) then
-    return false
-  end
+function BufferView:_get(x, y)
   x, y = self:absCoords(x, y)
   return self.buffer:get(x, y)
 end

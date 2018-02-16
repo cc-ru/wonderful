@@ -55,46 +55,9 @@ function RenderTarget:__new__(renderer, screen, box, depth)
 
   self.oldBuffer = wbuffer.Buffer(bufferArgs)
   self.newBuffer = wbuffer.Buffer(bufferArgs)
+  self.oldBuffer:optimize()
+  self.newBuffer:optimize()
   self.palette = self.oldBuffer.palette
-end
-
-function RenderTarget:_cellsDiffer(x, y)
-  local chb, fgb, bgb = self.oldBuffer:get(x, y)
-  local chh, fgh, bgh = self.newBuffer:get(x, y)
-
-  if bgb == bgh and fgb == fgh and chb == chh then
-    return CellDiff.None
-  elseif bgb == bgh and chb == chh and chb == " " then
-    return CellDiff.None
-  elseif bgb == bgh and fgb == fgh and chb ~= chh then
-    return CellDiff.Char
-  elseif bgb ~= bgh or fgb ~= fgh then
-    return CellDiff.Color
-  end
-end
-
-function RenderTarget:_getLine(x0, y0, vertical)
-  local chars, fg0, bg0 = self.newBuffer:get(x0, y0)
-  local x1, y1 = x0, y0
-
-  for i = 1, not vertical and self.box.w or self.box.h, 1 do
-    local x, y = x0 + i, y0
-    if vertical then
-      x, y = x0, y0 + i
-    end
-    if self:_cellsDiffer(x, y) == CellDiff.None then
-      return x1, y1, chars, fg0, bg0
-    end
-    local ch, fg, bg = self.newBuffer:get(x, y)
-    if bg == bg0 and (fg == fg0 or ch == " ") then
-      chars = chars .. ch
-      x1, y1 = x, y
-    else
-      return x1, y1, chars, fg0, bg0
-    end
-  end
-
-  return x1, y1, chars, fg0, bg0
 end
 
 function RenderTarget:flush()
@@ -103,11 +66,54 @@ function RenderTarget:flush()
   local colors = {}
   local x, y, chars, fg, bg, pos, index = 1, 1
 
+  local base = self.oldBuffer
+  local head = self.newBuffer
+
+  local function cellsDiffer(x, y)
+    local chb, fgb, bgb = base:_get(x, y)
+    local chh, fgh, bgh = head:_get(x, y)
+
+    if bgb == bgh and fgb == fgh and chb == chh then
+      return CellDiff.None
+    elseif bgb == bgh and chb == chh and chb == " " then
+      return CellDiff.None
+    elseif bgb == bgh and fgb == fgh and chb ~= chh then
+      return CellDiff.Char
+    elseif bgb ~= bgh or fgb ~= fgh then
+      return CellDiff.Color
+    end
+  end
+
+  local function getLine(x0, y0, vertical)
+    local chars, fg0, bg0 = head:_get(x0, y0)
+    local x1, y1 = x0, y0
+
+    for i = 1, not vertical and self.box.w or self.box.h, 1 do
+      local x, y = x0 + i, y0
+      if vertical then
+        x, y = x0, y0 + i
+      end
+      if cellsDiffer(x, y) == CellDiff.None then
+        return x1, y1, chars, fg0, bg0
+      end
+      local ch, fg, bg = head:_get(x, y)
+      if bg == bg0 and (fg == fg0 or ch == " ") then
+        chars = chars .. ch
+        x1, y1 = x, y
+      else
+        return x1, y1, chars, fg0, bg0
+      end
+    end
+
+    return x1, y1, chars, fg0, bg0
+  end
+
+
   while true do
-    if self:_cellsDiffer(x, y) ~= CellDiff.None then
+    if cellsDiffer(x, y) ~= CellDiff.None then
       pos = x * 0x100 + y
 
-      x, y, chars, fg, bg = self:_getLine(x, y)
+      x, y, chars, fg, bg = getLine(x, y)
 
       index = self.palette:deflate(fg) * 0x100 + self.palette:deflate(bg)
 
@@ -151,9 +157,9 @@ function RenderTarget:flush()
     calls = calls + 2 + math.floor(#lines / 2)
   end
 
-  local tmp = self.oldBuffer
-  self.oldBuffer = self.newBuffer
-  self.newBuffer = tmp
+  local tmp = base
+  base = head
+  head = tmp
 end
 
 local Renderer = class(nil, {name = "wonderful.render.Renderer"})
