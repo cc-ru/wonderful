@@ -81,6 +81,26 @@ function util.cached(func, entries)
   end
 end
 
+function util.cached1arg(func, entries, pos)
+  local cache = {}
+  local count = 0
+  return function(...)
+    local arg = select(pos, ...)
+    if cache[arg] then
+      return cache[arg]
+    else
+      if count == entries then
+        cache[next(cache)] = nil
+      else
+        count = count + 1
+      end
+      local out = func(...)
+      cache[arg] = out
+      return out
+    end
+  end
+end
+
 util.iter = {}
 do
   function util.iter.wrap(iter, state, var)
@@ -171,10 +191,10 @@ do
   end
   util.palette.delta = delta
 
-  local t1deflate = util.cached(function(palette, color)
+  local function t1deflate(palette, color)
     for idx = 1, #palette, 1 do
       if palette[idx] == color then
-        return idx - 1, true
+        return idx - 1
       end
     end
 
@@ -186,8 +206,8 @@ do
       end
     end
 
-    return idx - 1, false
-  end, 128)
+    return idx - 1
+  end
 
   local function t1inflate(palette, index)
     return palette[index + 1]
@@ -199,7 +219,7 @@ do
       secondColor
     }
 
-    palette.deflate = t1deflate
+    palette.deflate = util.cached1arg(t1deflate, 128, 2)
     palette.inflate = t1inflate
 
     return palette
@@ -216,7 +236,7 @@ do
                      0xCCCCCC, 0x336699, 0x9933CC, 0x333399,
                      0x663300, 0x336600, 0xFF3333, 0x000000}
 
-    palette.deflate = t2deflate
+    palette.deflate = util.cached1arg(t2deflate, 128, 2)
     palette.inflate = t2inflate
 
     return palette
@@ -230,11 +250,12 @@ do
   local GCOEF = (8 - 1) / 0xFF
   local BCOEF = (5 - 1) / 0xFF
 
-  -- not sure whether we need a `cached` here
-  local t3deflate = util.cached(function(palette, color)
-    local paletteIndex, fromPalette = t2deflate(palette, color)
-    if fromPalette then
-      return paletteIndex
+  local t3deflate = function(palette, color)
+    local paletteIndex = palette.t2deflate(palette, color)
+    for i = 1, #palette, 1 do
+      if palette[i] == color then
+        return paletteIndex
+      end
     end
 
     local r, g, b = extract(color)
@@ -248,7 +269,7 @@ do
     else
       return paletteIndex
     end
-  end, 64)
+  end
 
   local function generateT3Palette()
     local palette = {}
@@ -268,7 +289,8 @@ do
       palette[idx + 1] = r * 0x10000 + g * 0x100 + b
     end
 
-    palette.deflate = t3deflate
+    palette.deflate = util.cached1arg(t3deflate, 128, 2)
+    palette.t2deflate = util.cached1arg(t2deflate, 128, 2)
     palette.inflate = t3inflate
 
     return palette

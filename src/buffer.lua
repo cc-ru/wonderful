@@ -173,7 +173,9 @@ function Buffer:view(x, y, w, h)
   if not self:rectInRange(x, y, w, h) then
     return false
   end
-  return BufferView(self, x, y, w, h)
+  local view = BufferView(self, x, y, w, h)
+  view:optimize()
+  return view
 end
 
 function Buffer:clear()
@@ -228,5 +230,6 @@ end
 
 return {
   Buffer = Buffer,
+  BufferView = BufferView,
 }
 
