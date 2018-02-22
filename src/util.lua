@@ -192,14 +192,14 @@ do
   util.palette.delta = delta
 
   local function t1deflate(palette, color)
-    for idx = 1, #palette, 1 do
+    for idx = 1, palette.len, 1 do
       if palette[idx] == color then
         return idx - 1
       end
     end
 
     local idx, minDelta
-    for i = 1, #palette, 1 do
+    for i = 1, palette.len, 1 do
       local d = delta(palette[i], color)
       if not minDelta or d < minDelta then
         idx, minDelta = i, d
@@ -219,6 +219,8 @@ do
       secondColor
     }
 
+    palette.len = 2
+
     palette.deflate = util.cached1arg(t1deflate, 128, 2)
     palette.inflate = t1inflate
 
@@ -235,6 +237,7 @@ do
                      0xFFFF33, 0x33CC33, 0xFF6699, 0x333333,
                      0xCCCCCC, 0x336699, 0x9933CC, 0x333399,
                      0x663300, 0x336600, 0xFF3333, 0x000000}
+    palette.len = 16
 
     palette.deflate = util.cached1arg(t2deflate, 128, 2)
     palette.inflate = t2inflate
@@ -252,6 +255,8 @@ do
 
   local t3deflate = function(palette, color)
     local paletteIndex = palette.t2deflate(palette, color)
+
+    -- don't use `palette.len` here
     for i = 1, #palette, 1 do
       if palette[i] == color then
         return paletteIndex
@@ -272,7 +277,9 @@ do
   end
 
   local function generateT3Palette()
-    local palette = {}
+    local palette = {
+      len = 16
+    }
 
     for i = 1, 16, 1 do
       palette[i] = 0xFF * i / (16 + 1) * 0x10101
