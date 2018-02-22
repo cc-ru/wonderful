@@ -83,17 +83,18 @@ local t3deflate = function(palette, color)
   -- don't use `palette.len` here
   for i = 1, #palette, 1 do
     if palette[i] == color then
-      return paletteIndex
+      return i - 1
     end
   end
 
   local r, g, b = extract(color)
   local idxR = math.floor(r * RCOEF + 0.5)
-  local idxG = math.floor(g * RCOEF + 0.5)
-  local idxB = math.floor(b * RCOEF + 0.5)
+  local idxG = math.floor(g * GCOEF + 0.5)
+  local idxB = math.floor(b * BCOEF + 0.5)
   local deflated = 16 + idxR * 40 + idxG * 5 + idxB
-  if (delta(t3inflate(palette, deflated % 0x100), color) <
-      delta(t3inflate(palette, paletteIndex % 0x100), color)) then
+  local calcDelta = delta(t3inflate(palette, deflated % 0x100), color)
+  local palDelta = delta(t3inflate(palette, paletteIndex % 0x100), color)
+  if calcDelta < palDelta then
     return deflated
   else
     return paletteIndex
