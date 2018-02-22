@@ -1,6 +1,6 @@
 local class = require("lua-objects")
 
-local util = require("wonderful.util")
+local iterUtil = require("wonderful.util.iter")
 
 local StackingContext = class(
   nil,
@@ -50,16 +50,16 @@ function StackingContext.__getters:iter()
   if self.indexedCache then
     indexed = self.indexedCache
   else
-    for _, index in util.iter.ipairsSorted(self.indexed) do
-      for _, element in util.iter.ipairsSorted(index) do
+    for _, index in iterUtil.ipairsSorted(self.indexed) do
+      for _, element in iterUtil.ipairsSorted(index) do
         table.insert(indexed, element)
       end
     end
   end
 
-  return util.iter.chain(
-    util.iter.wrap(ipairs(self.static)),
-    util.iter.wrap(ipairs(indexed))
+  return iterUtil.chain(
+    iterUtil.wrap(ipairs(self.static)),
+    iterUtil.wrap(ipairs(indexed))
   )
 end
 
@@ -69,16 +69,16 @@ function StackingContext.__getters:iterRev()
   if self.indexedCache then
     indexed = self.indexedCache
   else
-    for _, index in util.iter.ipairsSorted(self.indexed) do
-      for _, element in util.iter.ipairsSorted(index) do
+    for _, index in iterUtil.ipairsSorted(self.indexed) do
+      for _, element in iterUtil.ipairsSorted(index) do
         table.insert(indexed, element)
       end
     end
   end
 
-  return util.iter.chain(
-    util.iter.wrap(util.iter.ipairsRev(indexed)),
-    util.iter.wrap(util.iter.ipairsRev(self.static))
+  return iterUtil.chain(
+    iterUtil.wrap(iterUtil.ipairsRev(indexed)),
+    iterUtil.wrap(iterUtil.ipairsRev(self.static))
   )
 end
 

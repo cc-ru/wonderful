@@ -7,9 +7,9 @@ local parser = require("wonderful.style.parser")
 local property = require("wonderful.style.property")
 local sels = require("wonderful.style.selector")
 local wtype = require("wonderful.style.type")
-local util = require("wonderful.util")
+local tblUtil = require("wonderful.util.table")
 
-local isin = util.isin
+local isin = tblUtil.isin
 
 local function traverseSpec(spec, func)
   local function _traverse(target)

@@ -1,6 +1,6 @@
 local class = require("lua-objects")
 
-local util = require("wonderful.util")
+local iterUtil = require("wonderful.util.iter")
 
 local EventPhase = {
   None = 0,
@@ -43,7 +43,7 @@ function EventTarget:addEventListener(cls, handler, options)
     self.listeners[cls] = {}
   end
 
-  local listener = util.shallowcopy(options or {})
+  local listener = iterUtil.shallowcopy(options or {})
   listener.handler = handler
 
   table.insert(self.listeners[cls], listener)
@@ -54,11 +54,11 @@ function EventTarget:removeEventListener(cls, handler, options)
     return
   end
 
-  local query = util.shallowcopy(options or {})
+  local query = iterUtil.shallowcopy(options or {})
   query.handler = query
 
   for i, listener in ipairs(self.listeners[cls]) do
-    if util.shalloweq(listener, query) then
+    if iterUtil.shalloweq(listener, query) then
       table.remove(self.listeners, i)
       return true
     end
@@ -66,7 +66,7 @@ function EventTarget:removeEventListener(cls, handler, options)
 end
 
 function EventTarget:setDefaultEventListener(cls, handler, options)
-  local listener = util.shallowcopy(options or {})
+  local listener = iterUtil.shallowcopy(options or {})
   listener.handler = handler
 
   self.defaultListeners[cls] = listener

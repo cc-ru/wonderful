@@ -26,5 +26,8 @@
   {url = "src/style/property.lua", path = "/usr/lib/wonderful/style/property.lua"},
   {url = "src/style/selector.lua", path = "/usr/lib/wonderful/style/selector.lua"},
   {url = "src/style/type.lua", path = "/usr/lib/wonderful/style/type.lua"},
-  {url = "src/util.lua", path = "/usr/lib/wonderful/util.lua"},
+  {url = "src/util/func-cache.lua", path = "/usr/lib/wonderful/util/func-cache.lua"},
+  {url = "src/util/iter.lua", path = "/usr/lib/wonderful/util/iter.lua"},
+  {url = "src/util/palette.lua", path = "/usr/lib/wonderful/util/palette.lua"},
+  {url = "src/util/table.lua", path = "/usr/lib/wonderful/util/table.lua"},
  }}

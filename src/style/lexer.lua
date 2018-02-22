@@ -2,9 +2,9 @@ local unicode = require("unicode")
 
 local class = require("lua-objects")
 
-local util = require("wonderful.util")
+local tblUtil = require("wonderful.util.table")
 
-local isin = util.isin
+local isin = tblUtil.isin
 local ulen = unicode.len
 local usub = unicode.sub
 

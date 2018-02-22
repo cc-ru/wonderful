@@ -1,6 +1,6 @@
 local class = require("lua-objects")
 
-local util = require("wonderful.util")
+local palette = require("wonderful.util.palette")
 
 local floor = math.floor
 
@@ -19,11 +19,11 @@ function Buffer:__new__(args)
   self.depth = args.depth
   self.cells = {}
   if self.depth == 1 then
-    self.palette = util.palette.t1
+    self.palette = palette.t1
   elseif self.depth == 4 then
-    self.palette = util.palette.t2
+    self.palette = palette.t2
   elseif self.depth == 8 then
-    self.palette = util.palette.t3
+    self.palette = palette.t3
   end
   self.defaultFg = self:approximate(0xffffff)
   self.defaultBg = self:approximate(0x000000)
