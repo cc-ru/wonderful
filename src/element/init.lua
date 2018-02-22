@@ -21,7 +21,7 @@ function LeafElement:__new__()
   self.attributes = {}
 end
 
-function LeafElement:render(bufferView)
+function LeafElement:render(fbView)
   -- hint
 end
 
@@ -57,12 +57,8 @@ function LeafElement.__getters:style()
   return self.rootNode.globalStyle
 end
 
-function LeafElement.__getters:renderer()
-  return self.rootNode.globalRenderer
-end
-
-function LeafElement.__getters:renderTarget()
-  return self.rootNode.globalRenderTarget
+function LeafElement.__getters:display()
+  return self.rootNode.globalDisplay
 end
 
 function LeafElement.__getters:isLeaf()

@@ -1,7 +1,7 @@
 local class = require("lua-objects")
 
 local element = require("wonderful.element")
-local render = require("wonderful.render")
+local display = require("wonderful.display")
 local style = require("wonderful.style")
 
 local StackingContext = require("wonderful.element.stack").StackingContext
@@ -24,13 +24,12 @@ function Document:__new__(args)
     self.globalStyle = style.Style()
   end
 
-  self.globalRenderTarget = args.renderTarget
-  self.globalRenderer = self.globalRenderTarget.renderer
+  self.globalDisplay = args.display
 
   self.rootStackingContext = StackingContext()
   self.rootStackingContext:insertStatic(1, self)
 
-  self.calculatedBox = self.globalRenderTarget.box
+  self.calculatedBox = self.globalDisplay.box
 end
 
 function Document.__getters:stackingContext()
@@ -38,6 +37,6 @@ function Document.__getters:stackingContext()
 end
 
 return {
-  Document = Document,
+  Document = Document
 }
 

@@ -4,13 +4,13 @@ local event = require("event")
 local class = require("lua-objects")
 
 local document = require("wonderful.element.document")
-local render = require("wonderful.render")
+local display = require("wonderful.display")
 local signal = require("wonderful.signal")
 
 local Wonderful = class(nil, {name = "wonderful.Wonderful"})
 
 function Wonderful:__new__()
-  self.renderer = render.Renderer()
+  self.displayManager = display.DisplayManager()
   self.documents = {}
   self.signals = {}
   self.running = false
@@ -43,14 +43,14 @@ function Wonderful:addDocument(args)
     args.box = Box(args.x, args.y, args.w, args.h)
   end
 
-  local target = self.renderer:newTarget {
+  local display = self.displayManager:newDisplay {
     box = args.box,
     screen = args.screen
   }
 
   local document = document.Document {
     style = args.style,
-    renderTarget = target
+    display = display
   }
 
   table.insert(self.documents, document)
@@ -59,7 +59,7 @@ end
 
 do
   local function rStackingContext(root)
-    local buf = root.renderTarget.newBuffer
+    local buf = root.display.fb
 
     for _, el in root.stackingContext.iter do
       if el.isLeaf or el.stackingContext == root.stackingContext then
@@ -82,8 +82,8 @@ do
       rStackingContext(document)
     end
 
-    for _, target in ipairs(self.renderer.targets) do
-      target:flush()
+    for _, display in ipairs(self.displayManager.displays) do
+      display:flush()
     end
   end
 end
@@ -107,8 +107,8 @@ do
 
   function Wonderful:hit(screen, x, y)
     for _, document in ipairs(self.documents) do
-      if document.renderTarget.screen == screen and
-         document.renderTarget.box:has(x, y) then
+      if document.display.screen == screen and
+         document.display.box:has(x, y) then
 
         local hit = hStackingContext(document, x, y)
 
@@ -144,7 +144,7 @@ function Wonderful:run()
 
         if screen then
           for _, document in ipairs(self.documents) do
-            if document.renderTarget.screen == screen then
+            if document.display.screen == screen then
               document:dispatchEvent(inst)
             end
           end
@@ -166,15 +166,15 @@ end
 
 function Wonderful:__destroy__()
   self.running = false
-  self.renderer:restore()
-  self.renderer.targets = {}
+  self.displayManager:restore()
+  self.displayManager.displays = {}
   self.documents = {}
 end
 
 return {
   Wonderful = Wonderful,
   Document = document.Document,
-  Renderer = render.Renderer,
-  RenderTarget = render.RenderTarget,
+  DisplayManager = display.DisplayManager,
+  Display = display.Display,
 }
 
