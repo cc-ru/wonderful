@@ -6,12 +6,6 @@ local palette = require("wonderful.util.palette")
 
 local floor = math.floor
 
-local function channels(color)
-  return floor(color / 0x10000),
-         floor((color % 0x10000) / 0x100),
-         color % 0x100
-end
-
 local Framebuffer = class(nil, {name = "wonderful.framebuffer.Framebuffer"})
 local FramebufferView = class(
   Framebuffer,
@@ -43,8 +37,8 @@ function Framebuffer:__new__(args)
     self.palette = palette.t3
   end
 
-  self.defaultColor = self.palette:deflate(0xffffff) * 0x100
-                    + self.palette:deflate(0x000000)
+  self.defaultColor = self.palette:deflate(0xffffff) * 0x100 +
+                      self.palette:deflate(0x000000)
 end
 
 local function writeFillInstruction(instructions, textData, fills, x, y,
@@ -153,8 +147,9 @@ function Framebuffer:flush(sx, sy, gpu)
       end
 
       for y = blockY + 1, blockY + self.blockSize do
-        local lineX, line, lineColor = blockY + 1, {},
-          select(2, self:_get(blockX, y))
+        local lineX = blockY + 1
+        local line = {}
+        local _, lineColor = self:_get(blockX, y)
         local lineBg = lineColor % 0x100
 
         for x = blockX + 1, blockX + self.blockSize do
@@ -203,11 +198,10 @@ function Framebuffer:flush(sx, sy, gpu)
         local x = floor(pos / 0x100)
         local y = pos % 0x100
 
-        if fills[background] and fills[background][foreground]
-          and fills[background][foreground][i] then
-
-          local width, height = math.min(self.blockSize, self.w - x),
-            math.min(self.blockSize, self.h - y)
+        if fills[background] and fills[background][foreground] and
+            fills[background][foreground][i] then
+          local width = math.min(self.blockSize, self.w - x)
+          local height = math.min(self.blockSize, self.h - y)
           gpu.fill(sx + x + 1, sy + y + 1, width, height, text)
         else
           gpu.set(sx + x + 1, sy + y + 1, text)
@@ -252,8 +246,8 @@ function Framebuffer:alphaBlend(color1, color2, alpha)
     return color2
   end
 
-  local r1, g1, b1 = channels(color1)
-  local r2, g2, b2 = channels(color2)
+  local r1, g1, b1 = palette.extract(color1)
+  local r2, g2, b2 = palette.extract(color2)
 
   local ialpha = 1 - alpha
 
@@ -285,19 +279,31 @@ function Framebuffer:_set(x, y, fg, bg, alpha, char)
   self.textData[i] = char
 end
 
-function Framebuffer:set(x, y, fg, bg, alpha, char)
-  checkArg(1, x, "number")
-  checkArg(2, y, "number")
+function Framebuffer:set(x0, y0, fg, bg, alpha, line, vertical)
+  checkArg(1, x0, "number")
+  checkArg(2, y0, "number")
   checkArg(3, fg, "number")
   checkArg(4, bg, "number")
   checkArg(5, alpha, "number")
-  checkArg(6, char, "string")
+  checkArg(6, line, "string")
 
-  if not self:inRange(x, y) then
-    return
+  for i = 1, unicode.len(line), 1 do
+    local x, y
+
+    if not vertical then
+      x = x0 + i - 1
+      y = y0
+    else
+      x = x0
+      y = y0 + i - 1
+    end
+
+    if not self:inRange(x, y) then
+      return
+    end
+
+    self:_set(x, y, fg, bg, alpha, unicode.sub(line, i, i))
   end
-
-  self:_set(x, y, fg, bg, alpha, char)
 end
 
 function Framebuffer:_get(x, y)
@@ -318,8 +324,10 @@ function Framebuffer:get(x, y)
   end
 
   local char, color = self:_get(x, y)
-  return char, self.palette:inflate(floor(color / 0x100)),
-    self.palette:inflate(color % 0x100)
+
+  return char,
+         self.palette:inflate(floor(color / 0x100)),
+         self.palette:inflate(color % 0x100)
 end
 
 function Framebuffer:fill(x0, y0, w, h, fg, bg, alpha, char)
@@ -406,6 +414,6 @@ end
 
 return {
   Framebuffer = Framebuffer,
-  FramebufferView = FramebufferView
+  FramebufferView = FramebufferView,
 }
 
