@@ -354,6 +354,6 @@ end
 
 
 return {
-  Parser = Parser
+  Parser = Parser,
 }
 

@@ -10,3 +10,7 @@ function Selector:matches(component)
   return true
 end
 
+return {
+  Selector = Selector,
+}
+

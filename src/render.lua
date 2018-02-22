@@ -366,6 +366,6 @@ end
 
 return {
   Renderer = Renderer,
-  RenderTarget = RenderTarget
+  RenderTarget = RenderTarget,
 }
 

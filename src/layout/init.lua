@@ -43,6 +43,6 @@ end
 return {
   Layout = Layout,
   LayoutItem = LayoutItem,
-  LayoutContainer = LayoutContainer
+  LayoutContainer = LayoutContainer,
 }
 

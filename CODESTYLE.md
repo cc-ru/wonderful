@@ -137,7 +137,17 @@ Put:
 * a space **after**: `;`, `,`
 * no spaces around: `:`, `.`, `[`, `]`, `(`, `)`, `{`, `}`, `::`
 
-Do not put two or more spaces between tokens.
+When commenting an element of a table on the same time, put **two spaces**
+before the comment. In other cases, do not put two or more spaces between
+tokens.
+
+```
+local greatness = {
+  1,  -- good
+  2,  -- great
+  3,  -- wonderful
+}
+```
 
 Don't leave out parenthesis in function calls. The only exception is table
 literals when used as an argument table; add a space between the literal and
@@ -149,7 +159,7 @@ func({1, 2, 3})
 func {x = 1, y = 2}
 ```
 
-Write comments for complicated things only, or to separate blocks of code in a
+Write comments for complicated code only, or to separate blocks of code in a
 long function. Keep in mind that documentation is written in the wiki.
 
 Limit the code width to 80 columns.
@@ -166,6 +176,16 @@ local tbl = {1, 2, 3;
 Do not shadow-name variables, including the standard libraries. Do not name
 function parameters the same as the standard libraries, though you may
 shadow-name variables in the scopes above.
+
+If the module return statements is specified as a table literal, a comma must
+be appended to the last element.
+
+```
+return {
+  A = A,
+  B = B,
+}
+```
 
 # Git
 When writing commit messages, write verbs in the infinitive form.

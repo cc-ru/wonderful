@@ -507,3 +507,7 @@ function Context:guessType(value)
   -- TODO: add guessers
 end
 
+return {
+  Context = Context,
+}
+

@@ -153,6 +153,6 @@ end
 
 return {
   LeafElement = LeafElement,
-  Element = Element
+  Element = Element,
 }
 

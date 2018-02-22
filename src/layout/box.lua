@@ -20,6 +20,7 @@ end
 function BoxLayout:recompose(el)
   -- Do not touch. For the sake of your own sanity.
   -- TODO: handle BTT and RTL directions
+  -- TODO: refactor into smaller functions
 
   local chunks = {}
   local i = 0
@@ -177,6 +178,6 @@ return {
   Direction = Direction,
   BoxLayout = BoxLayout,
   VBoxLayout = VBoxLayout,
-  HBoxLayout = HBoxLayout
+  HBoxLayout = HBoxLayout,
 }
 

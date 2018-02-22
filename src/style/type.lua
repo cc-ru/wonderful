@@ -9,6 +9,6 @@ function ExprType:get()
 end
 
 return {
-  ExprType = ExprType
+  ExprType = ExprType,
 }
 

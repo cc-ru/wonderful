@@ -76,6 +76,6 @@ return {
   Position = Position,
   Margin = Margin,
   Padding = Padding,
-  ZIndex = ZIndex
+  ZIndex = ZIndex,
 }
 

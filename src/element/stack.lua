@@ -83,6 +83,6 @@ function StackingContext.__getters:iterRev()
 end
 
 return {
-  StackingContext = StackingContext
+  StackingContext = StackingContext,
 }
 

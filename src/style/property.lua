@@ -14,3 +14,7 @@ function Property:get()
   return self.value:get()
 end
 
+return {
+  Property = Property,
+}
+

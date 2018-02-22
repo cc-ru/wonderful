@@ -38,6 +38,6 @@ function Document.__getters:stackingContext()
 end
 
 return {
-  Document = Document
+  Document = Document,
 }
 

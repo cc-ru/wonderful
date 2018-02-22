@@ -135,6 +135,6 @@ end
 return {
   EventPhase = EventPhase,
   Event = Event,
-  EventTarget = EventTarget
+  EventTarget = EventTarget,
 }
 

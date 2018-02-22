@@ -139,3 +139,4 @@ return {
   generateT2Palette = generateT2Palette,
   generateT3Palette = generateT3Palette,
 }
+

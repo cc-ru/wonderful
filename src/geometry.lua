@@ -73,6 +73,6 @@ end
 return {
   Box = Box,
   Margin = Margin,
-  Padding = Padding
+  Padding = Padding,
 }
 

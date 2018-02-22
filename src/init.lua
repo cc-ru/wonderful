@@ -175,6 +175,6 @@ return {
   Wonderful = Wonderful,
   Document = document.Document,
   Renderer = render.Renderer,
-  RenderTarget = render.RenderTarget
+  RenderTarget = render.RenderTarget,
 }
 

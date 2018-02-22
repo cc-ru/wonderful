@@ -79,6 +79,6 @@ end
 
 return {
   ChildNode = ChildNode,
-  ParentNode = ParentNode
+  ParentNode = ParentNode,
 }
 

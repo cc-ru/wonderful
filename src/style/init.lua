@@ -98,6 +98,6 @@ function Style:_chooseRule(r1, r2)
 end
 
 return {
-  Style = Style
+  Style = Style,
 }
 

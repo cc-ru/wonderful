@@ -192,7 +192,8 @@ return {
   Motion = Motion,
   ModemMessage = ModemMessage,
   InventoryChanged = InventoryChanged,
+
   SCREEN_SIGNALS = SCREEN_SIGNALS,
-  KEYBOARD_SIGNALS = KEYBOARD_SIGNALS
+  KEYBOARD_SIGNALS = KEYBOARD_SIGNALS,
 }
 
