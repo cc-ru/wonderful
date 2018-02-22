@@ -67,11 +67,11 @@ function DisplayManager:__new__()
   end
 
   if noScreens then
-    error("who stole the screen?")
+    error("no screens available")
   end
 
   if noGPUs then
-    error("who stole the GPU?")
+    error("no GPUs available")
   end
 
   self.primaryScreen = component.getPrimary("screen")
@@ -226,6 +226,8 @@ function Display:__new__(manager, screen, box, depth)
     h = box.h,
     depth = depth
   }
+
+  self.fb:optimize()
 end
 
 function Display:flush()
@@ -235,6 +237,6 @@ end
 
 return {
   DisplayManager = DisplayManager,
-  Display = Display
+  Display = Display,
 }
 
