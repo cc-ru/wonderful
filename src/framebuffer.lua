@@ -6,28 +6,20 @@ local palette = require("wonderful.util.palette")
 
 local floor = math.floor
 
+local Buffer = class(nil, {name = "wonderful.framebuffer.Buffer"})
 local Framebuffer = class(nil, {name = "wonderful.framebuffer.Framebuffer"})
-local FramebufferView = class(
-  Framebuffer,
-  {name = "wonderful.framebuffer.FramebufferView"}
+local BufferView = class(
+  Buffer,
+  {name = "wonderful.framebuffer.BufferView"}
 )
 
-function Framebuffer:__new__(args)
+function Buffer:__new__(args)
   self.w = args.w
   self.h = args.h
   self.depth = args.depth
 
   self.colorData = {}
   self.textData = {}
-  self.dirty = {}
-
-  self.blockSize = 10
-  self.blocksW = math.ceil(self.w / self.blockSize)
-  self.blocksH = math.ceil(self.h / self.blockSize)
-
-  for i = 1, self.blocksW * self.blocksH do
-    self.dirty[i] = true
-  end
 
   if self.depth == 1 then
     self.palette = palette.t1
@@ -39,6 +31,191 @@ function Framebuffer:__new__(args)
 
   self.defaultColor = self.palette:deflate(0xffffff) * 0x100 +
                       self.palette:deflate(0x000000)
+end
+
+function Bufferuffer:index(x, y)
+  return self.w * (y - 1) + (x - 1) + 1
+end
+
+function Buffer:coords(index)
+  index = index - 1
+  return index % self.w, floor(index / self.w)
+end
+
+function Buffer:inRange(x, y)
+  return x >= 1 and x <= self.w and y >= 1 and y <= self.h
+end
+
+function Buffer:rectInRange(x, y, w, h)
+  return x >= 1 and x <= self.w and
+         y >= 1 and y <= self.h and
+         w >= 1 and x + w - 1 <= self.w and
+         h >= 1 and y + h - 1 <= self.h
+end
+
+function Buffer:alphaBlend(color1, color2, alpha)
+  if color1 == color2 then
+    return color1
+  end
+
+  if alpha == 0 then
+    return color1
+  end
+
+  if alpha == 1 then
+    return color2
+  end
+
+  local r1, g1, b1 = palette.extract(color1)
+  local r2, g2, b2 = palette.extract(color2)
+
+  local ialpha = 1 - alpha
+
+  return floor(r1 * ialpha + r2 * alpha + 0.5) * 0x10000 +
+         floor(g1 * ialpha + g2 * alpha + 0.5) * 0x100 +
+         floor(b1 * ialpha + b2 * alpha + 0.5)
+end
+
+function Buffer:_set(x, y, fg, bg, alpha, char)
+  local i = self:index(x, y)
+
+  local old = self.colorData[i] or self.defaultColor
+  local oldBg = self.palette:inflate(old % 0x100)
+
+  fg = self.palette:deflate(self:alphaBlend(oldBg, fg, alpha))
+  bg = self.palette:deflate(self:alphaBlend(oldBg, bg, alpha))
+
+  local new = fg * 0x100 + bg
+
+  if new == self.defaultColor then
+    new = nil
+  end
+
+  if char == " " then
+    char = nil
+  end
+
+  self.colorData[i] = new
+  self.textData[i] = char
+end
+
+function Buffer:set(x0, y0, fg, bg, alpha, line, vertical)
+  checkArg(1, x0, "number")
+  checkArg(2, y0, "number")
+  checkArg(3, fg, "number")
+  checkArg(4, bg, "number")
+  checkArg(5, alpha, "number")
+  checkArg(6, line, "string")
+
+  for i = 1, unicode.len(line), 1 do
+    local x, y
+
+    if not vertical then
+      x = x0 + i - 1
+      y = y0
+    else
+      x = x0
+      y = y0 + i - 1
+    end
+
+    if not self:inRange(x, y) then
+      return
+    end
+
+    self:_set(x, y, fg, bg, alpha, unicode.sub(line, i, i))
+  end
+end
+
+function Buffer:_get(x, y)
+  local i = self:index(x, y)
+
+  local color = self.colorData[i] or self.defaultColor
+  local char = self.textData[i] or " "
+
+  return char, color
+end
+
+function Buffer:get(x, y)
+  checkArg(1, x, "number")
+  checkArg(2, y, "number")
+
+  if not self:inRange(x, y) then
+    return false
+  end
+
+  local char, color = self:_get(x, y)
+
+  return char,
+         self.palette:inflate(floor(color / 0x100)),
+         self.palette:inflate(color % 0x100)
+end
+
+function Buffer:fill(x0, y0, w, h, fg, bg, alpha, char)
+  checkArg(1, x0, "number")
+  checkArg(2, y0, "number")
+  checkArg(3, w, "number")
+  checkArg(4, h, "number")
+  checkArg(5, fg, "number")
+  checkArg(6, bg, "number")
+  checkArg(7, alpha, "number")
+  checkArg(8, char, "string")
+
+  if w <= 0 or h <= 0 then
+    return
+  end
+
+  local x1 = x0 + w - 1
+  local y1 = x0 + h - 1
+
+  if x1 <= 0 or y1 <= 0 then
+    return
+  end
+
+  x0 = math.max(x0, 1)
+  y0 = math.max(y0, 1)
+  x1 = math.min(x1, self.w)
+  y1 = math.min(y1, self.h)
+
+  for x = x0, x1, 1 do
+    for y = y0, y1, 1 do
+      self:_set(x, y, fg, bg, alpha, char)
+    end
+  end
+end
+
+function Buffer:clear()
+  self.colorData = {}
+  self.textData = {}
+end
+
+function Buffer:view(x, y, w, h)
+  if not self:rectInRange(x, y, w, h) then
+    return false
+  end
+
+  local view = BufferView(self, x, y, w, h)
+  view:optimize()
+
+  return view
+end
+
+--------------------------------------------------------------------------------
+
+function Framebuffer:__new__(args)
+  self:superCall("__new__", args)
+  self.w = args.w
+  self.h = args.h
+  self.depth = args.depth
+
+  self.dirty = {}
+
+  self.blockSize = 10
+  self.blocksW = math.ceil(self.w / self.blockSize)
+  self.blocksH = math.ceil(self.h / self.blockSize)
+
+  for i = 1, self.blocksW * self.blocksH do
+    self.dirty[i] = true
+  end
 end
 
 local function writeFillInstruction(instructions, textData, fills, x, y,
@@ -213,207 +390,42 @@ function Framebuffer:flush(sx, sy, gpu)
   self.dirty = {}
 end
 
-function Framebuffer:index(x, y)
-  return self.w * (y - 1) + (x - 1) + 1
-end
-
-function Framebuffer:coords(index)
-  index = index - 1
-  return index % self.w, floor(index / self.w)
-end
-
-function Framebuffer:inRange(x, y)
-  return x >= 1 and x <= self.w and y >= 1 and y <= self.h
-end
-
-function Framebuffer:rectInRange(x, y, w, h)
-  return x >= 1 and x <= self.w and
-         y >= 1 and y <= self.h and
-         w >= 1 and x + w - 1 <= self.w and
-         h >= 1 and y + h - 1 <= self.h
-end
-
-function Framebuffer:alphaBlend(color1, color2, alpha)
-  if color1 == color2 then
-    return color1
-  end
-
-  if alpha == 0 then
-    return color1
-  end
-
-  if alpha == 1 then
-    return color2
-  end
-
-  local r1, g1, b1 = palette.extract(color1)
-  local r2, g2, b2 = palette.extract(color2)
-
-  local ialpha = 1 - alpha
-
-  return floor(r1 * ialpha + r2 * alpha + 0.5) * 0x10000 +
-         floor(g1 * ialpha + g2 * alpha + 0.5) * 0x100 +
-         floor(b1 * ialpha + b2 * alpha + 0.5)
-end
-
-function Framebuffer:_set(x, y, fg, bg, alpha, char)
-  local i = self:index(x, y)
-
-  local old = self.colorData[i] or self.defaultColor
-  local oldBg = self.palette:inflate(old % 0x100)
-
-  fg = self.palette:deflate(self:alphaBlend(oldBg, fg, alpha))
-  bg = self.palette:deflate(self:alphaBlend(oldBg, bg, alpha))
-
-  local new = fg * 0x100 + bg
-
-  if new == self.defaultColor then
-    new = nil
-  end
-
-  if char == " " then
-    char = nil
-  end
-
-  self.colorData[i] = new
-  self.textData[i] = char
-end
-
-function Framebuffer:set(x0, y0, fg, bg, alpha, line, vertical)
-  checkArg(1, x0, "number")
-  checkArg(2, y0, "number")
-  checkArg(3, fg, "number")
-  checkArg(4, bg, "number")
-  checkArg(5, alpha, "number")
-  checkArg(6, line, "string")
-
-  for i = 1, unicode.len(line), 1 do
-    local x, y
-
-    if not vertical then
-      x = x0 + i - 1
-      y = y0
-    else
-      x = x0
-      y = y0 + i - 1
-    end
-
-    if not self:inRange(x, y) then
-      return
-    end
-
-    self:_set(x, y, fg, bg, alpha, unicode.sub(line, i, i))
-  end
-end
-
-function Framebuffer:_get(x, y)
-  local i = self:index(x, y)
-
-  local color = self.colorData[i] or self.defaultColor
-  local char = self.textData[i] or " "
-
-  return char, color
-end
-
-function Framebuffer:get(x, y)
-  checkArg(1, x, "number")
-  checkArg(2, y, "number")
-
-  if not self:inRange(x, y) then
-    return false
-  end
-
-  local char, color = self:_get(x, y)
-
-  return char,
-         self.palette:inflate(floor(color / 0x100)),
-         self.palette:inflate(color % 0x100)
-end
-
-function Framebuffer:fill(x0, y0, w, h, fg, bg, alpha, char)
-  checkArg(1, x0, "number")
-  checkArg(2, y0, "number")
-  checkArg(3, w, "number")
-  checkArg(4, h, "number")
-  checkArg(5, fg, "number")
-  checkArg(6, bg, "number")
-  checkArg(7, alpha, "number")
-  checkArg(8, char, "string")
-
-  if w <= 0 or h <= 0 then
-    return
-  end
-
-  local x1 = x0 + w - 1
-  local y1 = x0 + h - 1
-
-  if x1 <= 0 or y1 <= 0 then
-    return
-  end
-
-  x0 = math.max(x0, 1)
-  y0 = math.max(y0, 1)
-  x1 = math.min(x1, self.w)
-  y1 = math.min(y1, self.h)
-
-  for x = x0, x1, 1 do
-    for y = y0, y1, 1 do
-      self:_set(x, y, fg, bg, alpha, char)
-    end
-  end
-end
-
-function Framebuffer:clear()
-  self.colorData = {}
-  self.textData = {}
-end
-
-function Framebuffer:view(x, y, w, h)
-  if not self:rectInRange(x, y, w, h) then
-    return false
-  end
-
-  local view = FramebufferView(self, x, y, w, h)
-  view:optimize()
-
-  return view
-end
-
 --------------------------------------------------------------------------------
 
-function FramebufferView:__new__(head, x, y, w, h)
-  self.head = head
+function BufferView:__new__(buf, x, y, w, h)
+  self.buf = buf
   self.x = x
   self.y = y
   self.w = w
   self.h = h
 end
 
-function FramebufferView:absCoords(x, y)
+function BufferView:absCoords(x, y)
   return x + self.x - 1,
          y + self.y - 1
 end
 
-function FramebufferView:_set(x, y, fg, bg, alpha, char)
+function BufferView:_set(x, y, fg, bg, alpha, char)
   x, y = self:absCoords(x, y)
-  self.head:_set(x, y, fg, bg, alpha, char)
+  self.buf:_set(x, y, fg, bg, alpha, char)
 end
 
-function FramebufferView:_get(x, y)
+function BufferView:_get(x, y)
   x, y = self:absCoords(x, y)
-  return self.head:_get(x, y)
+  return self.buf:_get(x, y)
 end
 
-function FramebufferView.__getters:depth()
-  return self.head.depth
+function BufferView.__getters:depth()
+  return self.buf.depth
 end
 
-function FramebufferView.__getters:palette()
-  return self.head.palette
+function BufferView.__getters:palette()
+  return self.buf.palette
 end
 
 return {
+  Buffer = Buffer,
   Framebuffer = Framebuffer,
-  FramebufferView = FramebufferView,
+  BufferView = BufferView,
 }
 
