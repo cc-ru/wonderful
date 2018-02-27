@@ -1,7 +1,11 @@
+local unicode = require("unicode")
+
 local class = require("lua-objects")
 
 local lexer = require("wonderful.style.lexer")
 local node = require("wonderful.style.node")
+
+local ulen = unicode.len
 
 local Parser = class(nil, {name = "wonderful.style.parser.Parser"})
 
@@ -12,7 +16,16 @@ function Parser:__new__(stream)
 
   local stmts = {}
   while not self.stream:eof() do
-    table.insert(stmts, self:parseStmt())
+    local token, reason = self:parseStmt()
+
+    if not token and reason == "eof" then
+      break
+    elseif not token then
+      self:error("cur", "Could not parse statement: " ..
+                        (reason or "unknown reason"))
+    end
+
+    table.insert(stmts, token)
   end
   self.ast = node.RootNode(1, 1, stmts)
 end
@@ -48,15 +61,25 @@ function Parser:error(token, ...)
     end
     local lineMsg = prefix .. self.stream.buf:getLine(line)
     io.stderr:write(lineMsg)
-    io.stderr:write((" "):rep(ulen(lineMsg) - 1) .. "^")
+    io.stderr:write((" "):rep(ulen(lineMsg) - 1) .. "^\n")
   end
-  error(msg)
+  error(msg, 2)
 end
 
 function Parser:parseStmt(skipSep)
   skipSep = skipSep == nil and true
 
-  local token = self.stream:peek()
+  local token, reason = self.stream:peek()
+
+  print(token, reason)
+
+  if self.stream:eof() then
+    print("eof!")
+    return nil, "eof"
+  elseif not token then
+    print("no token!?")
+    return nil, reason
+  end
 
   local public = false
   if token:isa(lexer.KwToken) and token.value == "pub" then
@@ -80,6 +103,8 @@ function Parser:parseStmt(skipSep)
     stmt = self:parseRule(public)
   elseif token:isa(lexer.ClassNameToken) then
     stmt = self:parseRule(public)
+  elseif token:isa(lexer.TypeRefToken) then
+    stmt = self:parseRule(public)
   elseif token:isa(lexer.PuncToken) then
     if self.rulePuncs:find(token.value, 1, true) then
       stmt = self:parseRule(public)
@@ -90,6 +115,7 @@ function Parser:parseStmt(skipSep)
     self:error(token, "Unknown token")
   end
 
+  print(self.stream:peek())
   if skipSep then
     self:skip(lexer.PuncToken, ";")
   end
@@ -104,7 +130,7 @@ function Parser:skip(tokenType, value)
       return true
     end
   end
-  self:error(token, "Expected ", tokenType(token.line, token.col, value))
+  self:error(token, "Expected token ", tokenType(token.line, token.col, value))
 end
 
 function Parser:parseImport()
@@ -126,7 +152,7 @@ end
 
 function Parser:parseTypeAlias(public)
   local token = self.stream:next()
-  if not token:isa(lexer.kwToken) or token.value ~= "type" then
+  if not token:isa(lexer.KwToken) or token.value ~= "type" then
     self:error(token, "Type alias statement expected")
   end
   local alias = self:parseIdent()
@@ -161,8 +187,12 @@ function Parser:parseVar(public)
 end
 
 function Parser:parseRule(public)
+  local token = self.stream:peek()
   local targets = self:parseDelimited(nil, ",", "{", self.parseSpec)
   local props = self:parseDelimited("{", ";", "}", self.parseProp)
+  -- skip the PuncToken("}")
+  self.stream:next()
+  return node.RuleNode(token.line, token.col, targets, props, public)
 end
 
 function Parser:parseDelimited(startp, delimiter, endp, parser)
@@ -170,14 +200,12 @@ function Parser:parseDelimited(startp, delimiter, endp, parser)
     self:skip(lexer.PuncToken, startp)
   end
 
-  local result = {}
-  while true do
-    table.insert(result, parser(self))
+  local function checkEnd()
     local token = self.stream:peek()
 
     if token and token:isa(lexer.PuncToken) then
       if token.value == endp then
-        break
+        return true
       end
     end
 
@@ -185,7 +213,21 @@ function Parser:parseDelimited(startp, delimiter, endp, parser)
       self:error("cur", "Delimited section not closed")
     end
 
-    self:skip(lexer.PuncToken, delimiter)
+    return false
+  end
+
+  local result = {}
+
+  if not checkEnd() then
+    while true do
+      table.insert(result, parser(self))
+
+      if checkEnd() then
+        break
+      end
+
+      self:skip(lexer.PuncToken, delimiter)
+    end
   end
 
   return result
@@ -300,7 +342,7 @@ function Parser:parseTarget()
   local selectors = {}
 
   -- Component name
-  local token = self.stream:seek()
+  local token = self.stream:peek()
   if token:isa(lexer.NameToken) or token:isa(lexer.ClassNameToken) or
       token:isa(lexer.TypeRefToken) then
     component = self:parseName(true)
@@ -310,11 +352,11 @@ function Parser:parseTarget()
 
   -- Classes
   while true do
-    local token = self.stream:seek()
+    local token = self.stream:peek()
     if token:isa(lexer.PuncToken) and token.value == "." then
       self.stream:next()
       table.insert(classes, node.ClassNode(token.line, token.col,
-                                           self:readIdent()))
+                                           self:parseIdent()))
     else
       break
     end
@@ -322,7 +364,7 @@ function Parser:parseTarget()
 
   -- Selectors
   while true do
-    local token = self.stream:seek()
+    local token = self.stream:peek()
     if token:isa(lexer.PuncToken) and token.value == ":" then
       self.stream:next()
       local custom = false

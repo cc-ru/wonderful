@@ -211,10 +211,22 @@ function Context:__new__(args)
   self.types = {}
   self.selectors = {}
   self.properties = {}
-  self:addVars(args.vars, true)
-  self:addSelectors(args.selectors, true)
-  self:addProperties(args.properties, true)
-  self:addTypes(args.types, true)
+
+  if args.vars then
+    self:addVars(args.vars, true)
+  end
+
+  if args.selectors then
+    self:addSelectors(args.selectors, true)
+  end
+
+  if args.properties then
+    self:addProperties(args.properties, true)
+  end
+
+  if args.types then
+    self:addTypes(args.types, true)
+  end
 end
 
 function Context:addVars(vars, custom)

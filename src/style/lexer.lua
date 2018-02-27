@@ -16,6 +16,22 @@ function Token:__new__(line, col, value)
   self.value = value
 end
 
+function Token:__tostring__()
+  local result = ""
+  if self.line then
+    result = result .. "L" .. tostring(self.line)
+    if self.col then
+      result = result .. ":" .. tostring(self.col) .. ":"
+    end
+    result = result .. " "
+  end
+  result = result .. (self.NAME or "Unnamed token")
+  if self.value then
+    result = result .. " = " .. ("%q"):format(tostring(self.value))
+  end
+  return result
+end
+
 local PuncToken = class(Token, {name = "wonderful.style.lexer.PuncToken"})
 local NumToken = class(Token, {name = "wonderful.style.lexer.NumToken"})
 local ColorToken = class(Token, {name = "wonderful.style.lexer.ColorToken"})
@@ -35,7 +51,7 @@ local TypeRefToken = class(Token, {name = "wonderful.style.lexer.TypeRefToken"})
 local TokenStream = class(nil, {name = "wonderful.style.lexer.TokenStream"})
 
 TokenStream.keywords = {"import", "pub", "type"}
-TokenStream.punc = ",.{}();@~:*"
+TokenStream.punc = ",.{}();~:*"
 TokenStream.identFirst = "[A-Za-z_]"
 TokenStream.ident = "[A-Za-z0-9_-]"
 TokenStream.operators = {"=", ">", ">>", "~>", "~>>"}
@@ -55,17 +71,19 @@ function TokenStream:__new__(buf)
 end
 
 function TokenStream:next()
-  if not self:eof() then
-    local token = self.currentToken or self:readNext()
-    self.currentToken = nil
-    return token
-  else
-    return nil, "eof"
-  end
+  local token, reason = self:peek()
+  self.currentToken = nil
+  return token, reason
 end
 
 function TokenStream:peek()
-  self.currentToken = self.currentToken or self:readNext()
+  if not self.currentToken then
+    local reason
+    self.currentToken, reason = self:readNext()
+    if not self.currentToken then
+      return nil, reason
+    end
+  end
   return self.currentToken
 end
 
@@ -74,9 +92,12 @@ function TokenStream:eof()
 end
 
 function TokenStream:error(msg)
-  io.stderr:write(self.buf:getLine(self.line))
-  io.stderr:write((" "):rep(self.col - 1) .. "^")
-  error(self.line .. ":" .. self.col .. ": " .. msg)
+  local line = self.buf:getLine(self.line)
+  if line then
+    io.stderr:write(self.buf:getLine(self.line))
+    io.stderr:write((" "):rep(self.col - 1) .. "^\n")
+  end
+  error("L" .. self.line .. ":" .. self.col .. ": " .. msg, 2)
 end
 
 function TokenStream:readNext()
@@ -85,30 +106,32 @@ function TokenStream:readNext()
   local char2 = self.buf:read(2, true)
 
   if char2 == "" then
+    print("lexer: eof!")
     self._eof = true
-    return "eof"
+    return nil, "eof"
   end
 
   if char2 == "//" then
     self:skipComment(false)
-    self:readNext()
+    return self:readNext()
   elseif char2 == "/*" then
     self:skipComment(true)
-    self:readNext()
+    return self:readNext()
   end
 
-  char = usub(char2, 1, 1)
+  local char = usub(char2, 1, 1)
+  print(char)
 
   if char2 == "$(" then
-    self:readCode()
+    return self:readCode()
   elseif char == '"' or char == "'" then
-    self:readString()
+    return self:readString()
   elseif char == "[" then
-    self:readClassName()
+    return self:readClassName()
   elseif char == "<" then
-    self:readName()
+    return self:readName()
   elseif tonumber(char, 10) then
-    self:readNumber()
+    return self:readNumber()
   else
     local opChunk
     if self.opMaxLen == 1 then
@@ -126,17 +149,21 @@ function TokenStream:readNext()
       end
     end
     if operator then
-      self:readOperator(operator)
+      return self:readOperator(operator)
     elseif char2:match("#%x") then
-      self:readColor()
+      return self:readColor()
     elseif char == "$" then
-      self:readVarRef()
+      return self:readVarRef()
+    elseif char == "@" then
+      return self:readTypeRef()
     elseif char:match(self.identFirst) then
-      self:readIdent()
+      return self:readIdent()
     elseif self.punc:find(char, 1, true) then
-      self:readPunc()
+      return self:readPunc()
     end
   end
+
+  self:error("Unknown token")
 end
 
 function TokenStream:skipSpaces()
@@ -158,7 +185,7 @@ function TokenStream:readString()
     -- unclosed string
     self:error("String not closed")
   end
-  table.insert(self.tokens, StrToken(result))
+  return StrToken(self.col, self.line, result)
 end
 
 function TokenStream:readNumber()
@@ -174,11 +201,11 @@ function TokenStream:readNumber()
     return char:match("%d")
   end)
   result = tonumber(result, 10)
-  table.insert(self.tokens, NumToken(result))
+  return NumToken(self.col, self.line, result)
 end
 
 function TokenStream:readPunc()
-  table.insert(self.tokens, PuncToken(self.buf:read(1)))
+  return PuncToken(self.col, self.line, self.buf:read(1))
 end
 
 function TokenStream:readColor()
@@ -188,7 +215,7 @@ function TokenStream:readColor()
     result = result .. result
   end
   if #result == 6 then
-    table.insert(self.tokens, ColorToken(tonumber(result, 16)))
+    return ColorToken(self.col, self.line, tonumber(result, 16))
   end
   self:error("Bad color")
 end
@@ -199,7 +226,7 @@ function TokenStream:readCode()
   if endChar ~= ")" then
     self:error("Lua code expression not closed")
   end
-  table.insert(self.tokens, CodeToken(result))
+  return CodeToken(self.col, self.line, result)
 end
 
 function TokenStream:readName()
@@ -208,7 +235,7 @@ function TokenStream:readName()
   if endChar ~= ">" then
     self:error("Name not closed")
   end
-  table.insert(self.tokens, NameToken(result))
+  return NameToken(self.col, self.line, result)
 end
 
 function TokenStream:readClassName()
@@ -217,33 +244,33 @@ function TokenStream:readClassName()
   if endChar ~= "]" then
     self:error("Class name not closed")
   end
-  table.insert(self.tokens, ClassNameToken(result))
+  return ClassNameToken(self.col, self.line, result)
 end
 
 function TokenStream:readOperator(op)
   self.buf:seek(ulen(op))
-  table.insert(self.tokens, OpToken(op))
+  return OpToken(self.col, self.line, op)
 end
 
 function TokenStream:readIdent()
   local result = self:getIdent()
   if isin(result, self.keywords) then
-    table.insert(self.tokens, KwToken(result))
+    return KwToken(self.col, self.line, result)
   else
-    table.insert(self.tokens, IdentToken(result))
+    return IdentToken(self.col, self.line, result)
   end
 end
 
 function TokenStream:readVarRef()
   self.buf:seek(1)
   local name = self:getIdent()
-  table.insert(self.tokens, VarRefToken(name))
+  return VarRefToken(self.col, self.line, name)
 end
 
 function TokenStream:readTypeRef()
   self.buf:seek(1)
   local name = self:getIdent()
-  table.insert(self.tokens, TypeRefToken(name))
+  return TypeRefToken(self.col, self.line, name)
 end
 
 function TokenStream:getIdent()

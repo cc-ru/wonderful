@@ -4,7 +4,7 @@ local unicode = require("unicode")
 local class = require("lua-objects")
 
 local ulen = unicode.len
-local uset = unicode.sub
+local usub = unicode.sub
 
 local Buffer = class(nil, {name = "wonderful.style.buffer.Buffer"})
 
@@ -14,8 +14,29 @@ function Buffer:__new__(buf)
   self.line = 1
 
   if type(buf) == "string" then
-    for line in buf:gmatch("[^\n]") do
-      table.insert(self.lines, line:gsub("\r$", ""))
+    local pos = 1
+    local eof = false
+    while not eof do
+      local line
+      local nlPos = buf:find("[\r\n]", pos)
+      if nlPos then
+        if buf:sub(nlPos, nlPos + 1) == "\r\n" then
+          line = buf:sub(pos, nlPos - 1)
+          pos = nlPos + 2
+        elseif buf:sub(nlPos, nlPos) == "\n" then
+          line = buf:sub(pos, nlPos - 1)
+          pos = nlPos + 1
+        end
+      else
+        line = buf:sub(pos)
+        eof = true
+      end
+      if line then
+        if not eof then
+          line = line .. "\n"
+        end
+        table.insert(self.lines, line)
+      end
     end
   else
     while true do
@@ -26,12 +47,15 @@ function Buffer:__new__(buf)
         break
       end
     end
+    buf:close()
   end
-
-  buf:close()
 end
 
 function Buffer:getCur()
+  if not self.lines[self.line] or ulen(self.lines[self.line]) < self.col then
+    return nil
+  end
+
   return usub(self.lines[self.line], self.col, self.col)
 end
 
@@ -52,10 +76,10 @@ function Buffer:read(n, noSeek)
     result = result .. char
     self:seek(1)
   end
-  if not noSeek then
+  if noSeek then
     self:seek(-ulen(result))
   end
-  return result
+  return result, eof
 end
 
 function Buffer:seek(n)
@@ -142,7 +166,7 @@ end
 function Buffer:readWhileIn(allowed, plain)
   plain = plain == nil and true
   return self:readWhile(function(char)
-    return allowed:find(char, 1, plain)
+    return char:find(allowed, 1, plain)
   end)
 end
 
