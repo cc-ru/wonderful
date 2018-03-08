@@ -122,16 +122,15 @@ end
 function Spec:targetMatches(target, component)
   -- Check type
   if target.type then
-    print(target, target.type)
-    if not target:matches(component) then
+    if not target.type:matches(component) then
       return false
     end
   end
 
   -- Check classes
   for k, v in pairs(target.classes) do
-    -- TODO: index the actual classes property
-    if not isin(v, component.classes) then
+    local classes = component:get("classes")
+    if not classes or not classes:isSet(v) then
       return false
     end
   end
