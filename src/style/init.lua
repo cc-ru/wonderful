@@ -10,7 +10,11 @@ local parser = require("wonderful.style.parser")
 local Style = class(nil, {name = "wonderful.style.Style"})
 
 function Style:__new__(context)
-  self.rules = (context or {}).rules or {}  -- FIXME: костыль
+  if context then
+    self.rules = context.rules
+  else
+    self.rules = {}
+  end
 end
 
 function Style:fromStream(istream, vars, selectors, properties, types)

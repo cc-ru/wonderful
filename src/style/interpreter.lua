@@ -27,7 +27,7 @@ local function traverseSpec(spec, func)
       _traverse(target.dirAbove)
     end
   end
-  for k, v in pairs(spec) do
+  for k, v in pairs(spec.targets) do
     _traverse(v)
   end
 end
@@ -122,6 +122,7 @@ end
 function Spec:targetMatches(target, component)
   -- Check type
   if target.type then
+    print(target, target.type)
     if not target:matches(component) then
       return false
     end
@@ -409,10 +410,20 @@ end
 
 function Context:addRule(stmt)
   local props = {}
+
   for k, v in ipairs(stmt.properties) do
     props[v.name] = Property(v.name, v.value, v.custom)
   end
-  table.insert(self.rules, Rule(math.huge, Spec(stmt.targets), props,
+
+  local spec = Spec(stmt.targets)
+
+  traverseSpec(spec, function(target)
+    if target.type then
+      target.type = TypeRef(target.type)
+    end
+  end)
+
+  table.insert(self.rules, Rule(math.huge, spec, props,
                                 stmt.line, stmt.col, stmt.public))
 end
 
@@ -444,7 +455,9 @@ function Context:resolveType(typeRef)
   end
 
   local name = typeRef.name
+  print(typeRef, name)
   if name:isa(node.TypeRefNode) then
+    print(name.value)
     local referenced = self.types[name.value]
     self.types[name.value] = self:resolveType(referenced)
     return self.types[name.value]
@@ -465,12 +478,14 @@ function Context:processRules()
   for _, rule in pairs(self.rules) do
     -- Selectors
     traverseSpec(rule.spec, function(target)
-      local selector = self.selectors[target.selector.name]
-      if not selector or selector.custom ~= target.selector.custom then
-        error("Unknown selector: " .. (target.selector.custom and "~" or "") ..
-              target.selector.name)
+      for k, selNode in pairs(target.selectors) do
+        local selector = self.selectors[selNode.name]
+        if not selector or selector.custom ~= selNode.custom then
+          error("Unknown selector: " .. (selNode.custom and "~" or "") ..
+                selNode.name)
+        end
+        target.selectors[k] = selector.selector(selNode.value)
       end
-      target.selector = selector.selector(target.selector.value)
     end)
 
     -- Properties

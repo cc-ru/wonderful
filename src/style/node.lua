@@ -8,6 +8,27 @@ function Node:__new__(line, col, value)
   self.value = value
 end
 
+function Node:__tostring__()
+  local result = "[Node " .. self.NAME
+
+  if self.line then
+    result = result .. ": L" .. self.line
+    if self.col then
+      result = result .. ":" .. self.col
+    end
+  end
+
+  result = result .. " = "
+
+  if self.value ~= nil then
+    result = result .. tostring(self.value)
+  else
+    result = result .. "nil"
+  end
+  result = result .. "]"
+  return result
+end
+
 local RootNode = class(Node, {name = "wonderful.style.node.RootNode"})
 
 local ImportNode = class(Node, {name = "wonderful.style.node.ImportNode"})

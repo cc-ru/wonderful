@@ -300,7 +300,7 @@ function Parser:parseName(classNameAllowed)
   elseif classNameAllowed and token:isa(lexer.ClassNameToken) then
     return node.ClassNameNode(token.line, token.col, token.value)
   elseif token:isa(lexer.TypeRefToken) then
-    return node.TypeRefNode(token.line, token.col, token.name)
+    return node.TypeRefNode(token.line, token.col, token.value)
   else
     self:error(token, "Name " .. (classNameAllowed and "or class name" or "") ..
                "expected")
