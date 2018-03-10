@@ -4,15 +4,21 @@ local wtype = require("wonderful.style.type").ExprType
 
 local Property = class(nil, {name = "wonderful.style.property.Property"})
 
+Property.name = "property"
 Property.exprType = wtype.ExprType
 
 function Property:__new__(value)
-  self.value = wtype.ExprType()
+  self.value = self.exprType:parse(value)
 end
 
 function Property:get()
   return self.value:get()
 end
+
+local Color = class(Property, {name = "wonderful.style.property.Color"})
+
+Color.name = "color"
+Color.exprType = wtype.ColorType
 
 return {
   Property = Property,

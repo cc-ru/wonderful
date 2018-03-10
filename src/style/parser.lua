@@ -203,6 +203,8 @@ function Parser:parseDelimited(startp, delimiter, endp, parser)
   local function checkEnd()
     local token = self.stream:peek()
 
+    print("checkEnd", token)
+
     if token and token:isa(lexer.PuncToken) then
       if token.value == endp then
         return true
@@ -220,6 +222,10 @@ function Parser:parseDelimited(startp, delimiter, endp, parser)
 
   if not checkEnd() then
     while true do
+      if checkEnd() then
+        break
+      end
+
       table.insert(result, parser(self))
 
       if checkEnd() then
@@ -319,16 +325,22 @@ function Parser:parseExpr(endType, endValue)
   -- Expressions are actually evaluated by the interpreter itself
   -- since we need the type and context information for this
   local tokens = {}
+
+  local token = self.stream:peek()
+
   while true do
     local token = self.stream:peek()
-    if token:isa(endType) and (not endValue or token.value == endValue) then
+    print("expr", token)
+    if not token or token:isa(endType) and
+        (not endValue or token.value == endValue) then
       break
     end
     if token:isa(lexer.PuncToken) or token:isa(lexer.NumToken) or
         token:isa(lexer.ColorToken) or token:isa(StrToken) or
         token:isa(lexer.IdentToken) or token:isa(lexer.CodeToken) or
         token:isa(lexer.VarRefToken) then
-      table.insert(token)
+      table.insert(tokens, token)
+      self.stream:next()
     else
       self:error(token, "Unexpected token in expression")
     end

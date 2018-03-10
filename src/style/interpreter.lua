@@ -9,6 +9,11 @@ local sels = require("wonderful.style.selector")
 local wtype = require("wonderful.style.type")
 local tblUtil = require("wonderful.util.table")
 
+-- Prevent import loop
+local style = function()
+  return require("wonderful.style")
+end
+
 local isin = tblUtil.isin
 
 local function traverseSpec(spec, func)
@@ -32,7 +37,7 @@ local function traverseSpec(spec, func)
   end
 end
 
-local Variable = class(nil, {name = "wonderful.style.interpreter.Context"})
+local Variable = class(nil, {name = "wonderful.style.interpreter.Variable"})
 
 function Variable:__new__(name, value, type, public, custom)
   self.name = name
@@ -204,7 +209,6 @@ end
 local Context = class(nil, {name = "wonderful.style.interpreter.Context"})
 
 function Context:__new__(args)
-  self.ast = args.parser.ast
   self.importPriority = 1
   self.vars = {}
   self.rules = {}
@@ -212,20 +216,24 @@ function Context:__new__(args)
   self.selectors = {}
   self.properties = {}
 
-  if args.vars then
-    self:addVars(args.vars, true)
-  end
+  if args then
+    self.ast = args.parser.ast
 
-  if args.selectors then
-    self:addSelectors(args.selectors, true)
-  end
+    if args.vars then
+      self:addVars(args.vars, true)
+    end
 
-  if args.properties then
-    self:addProperties(args.properties, true)
-  end
+    if args.selectors then
+      self:addSelectors(args.selectors, true)
+    end
 
-  if args.types then
-    self:addTypes(args.types, true)
+    if args.properties then
+      self:addProperties(args.properties, true)
+    end
+
+    if args.types then
+      self:addTypes(args.types, true)
+    end
   end
 end
 
@@ -299,6 +307,10 @@ function Context:getCustomTypes()
 end
 
 function Context:interpret()
+  if not self.ast then
+    error("The AST has not been set")
+  end
+
   for _, stmt in ipairs(self.ast.value) do
     if stmt:isa(node.ImportNode) then
       self:import(stmt)
@@ -338,7 +350,13 @@ function Context:import(stmt)
     local ref = TypeRef(stmt.value)
     local ctx = self:resolveType(ref)
 
-    -- TODO: support wonderful.style.Style, too
+    if ctx:isa(style().Style) then
+      if ctx:isContextStripped() then
+        error("Imported style has its context stripped and can't be imported.")
+      end
+      ctx = ctx.context
+    end
+
     if not ctx:isa(Context) then
       error("Imported name must be a wonderful.style.interpreter:Context")
     end
@@ -411,7 +429,7 @@ function Context:addRule(stmt)
   local props = {}
 
   for k, v in ipairs(stmt.properties) do
-    props[v.name] = Property(v.name, v.value, v.custom)
+    props[v.name] = v
   end
 
   local spec = Spec(stmt.targets)
@@ -526,7 +544,7 @@ end
 
 function Context:loadName(path, name)
   -- TODO: error handling!
-  return load(path, "t", _G)[name]
+  return load(path, "t", _G)()[name]
 end
 
 function Context:guessType(value)

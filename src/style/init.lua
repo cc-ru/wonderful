@@ -6,53 +6,106 @@ local textBuf = require("wonderful.style.buffer")
 local interpreter = require("wonderful.style.interpreter")
 local lexer = require("wonderful.style.lexer")
 local parser = require("wonderful.style.parser")
+local property = require("wonderful.style.property")
 
 local Style = class(nil, {name = "wonderful.style.Style"})
 
-function Style:__new__(context)
-  if context then
-    self.rules = context.rules
-  else
-    self.rules = {}
+function Style:__new__(args)
+  if args then
+    if args.vars then
+      self:addVars(args.vars)
+    end
+
+    if args.selectors then
+      self:addSelectors(args.selectors)
+    end
+
+    if args.properties then
+      self:addProperties(args.properties)
+    end
+
+    if args.types then
+      self:addTypes(args.types)
+    end
+
+    if args.buffer then
+      self:parseFromBuffer(args.buffer)
+    elseif args.stream then
+      self:parseFromStream(args.stream)
+    elseif args.string then
+      self:parseFromString(args.string)
+    end
   end
 end
 
-function Style:fromStream(istream, vars, selectors, properties, types)
-  local buf = textBuf.Buffer(istream)
-  return self:fromBuffer(buf, vars, selectors, properties, types)
+function Style:addVars(vars)
+  self.context:addVars(vars, true)
+  return self
 end
 
-function Style:fromString(str, vars, selectors, properties, types)
+function Style:addSelectors(selectors)
+  self.context:addSelectors(selectors, true)
+  return self
+end
+
+function Style:addProperties(props)
+  self.context:addProperties(props, true)
+  return self
+end
+
+function Style:addTypes(types)
+  self.context:addTypes(types, true)
+  return self
+end
+
+function Style:parseFromString(str)
   local buf = textBuf.Buffer(str)
-  return self:fromBuffer(buf, vars, selector, properties, types)
+  return self:parseFromTextBuffer(buf)
 end
 
-function Style:fromBuffer(buf, vars, selectors, properties, types)
+function Style:parseFromStream(stream)
+  local buf = textBuf.Buffer(stream)
+  return self:parseFromTextBuffer(buf)
+end
+
+function Style:parseFromTextBuffer(buf)
   local tokStream = lexer.TokenStream(buf)
   local parser = parser.Parser(tokStream)
-  local ctx = interpreter.Context({
-    parser = parser,
-    vars = vars,
-    selectors = selectors,
-    properties = properties,
-    types = types
-  })
-  ctx:interpret()
-  return self(ctx), ctx
+  self.context.ast = parser.ast
+
+  self.context:interpret()
+
+  self.rules = self.context.rules
+
+  return self
+end
+
+-- Removes the context.
+-- A stripped style instance consumes less RAM, but cannot be imported.
+function Style:stripContext()
+  self.context = nil
+end
+
+function Style:isContextStripped()
+  return not self._context
 end
 
 function Style:getProperty(component, name)
   local result, resultRule
+
   for k, rule in pairs(self.rules) do
     if rule:matches(component) then
       local prop = rule.props[name]
+
       if prop then
         local replace = false
+
         if not result then
           replace = true
         elseif self:_chooseRule(rule, resultRule) == rule then
           replace = true
         end
+
         if replace then
           result = prop.value
           resultRule = rule
@@ -60,9 +113,11 @@ function Style:getProperty(component, name)
       end
     end
   end
+
   if result then
     return result
   end
+
   if component.parent then
     -- TODO: don't default-inherit properties unless explicitly set.
     return self:getProperty(component.parent, name)
@@ -73,6 +128,7 @@ function Style:_chooseRule(r1, r2)
   -- Choose more specific one
   local c1, s1 = r1:getSpecificity()
   local c2, s2 = r2:getSpecificity()
+
   if c1 > c2 or c1 == c2 and s1 > s2 then
     return r1
   elseif c1 < c2 or c1 == c2 and s1 < s2 then
@@ -92,6 +148,7 @@ function Style:_chooseRule(r1, r2)
   elseif r1.line < r2.line then
     return r2
   end
+
   if r1.col > r2.col then
     return r1
   elseif r1.col < r2.col then
@@ -99,6 +156,28 @@ function Style:_chooseRule(r1, r2)
   else
     error("Impossible situation: two rules defined at the same position")
   end
+end
+
+function Style:_createContext()
+  return interpreter.Context()
+end
+
+function Style.__getters:context()
+  if not self._context then
+    self._context = self:_createContext()
+  end
+
+  return self._context
+end
+
+local WonderfulStyle = class(Style, {name = "wonderful.style.WonderfulStyle"})
+
+function WonderfulStyle:_createContext()
+  local ctx = self:superCall("_createContext")
+
+  ctx:addProperties({
+    color = property.Color
+  }, false)
 end
 
 return {
