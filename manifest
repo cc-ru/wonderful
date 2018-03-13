@@ -4,7 +4,7 @@
   {name = "lua-objects", version = "^0.2.0", type="required"},
  },
  files = {
-  {url = "src/display.lua", path = "/usr/lib/wonderful/buffer.lua"},
+  {url = "src/display.lua", path = "/usr/lib/wonderful/display.lua"},
   {url = "src/element/attribute.lua", path = "/usr/lib/wonderful/element/attribute.lua"},
   {url = "src/element/document.lua", path = "/usr/lib/wonderful/element/document.lua"},
   {url = "src/element/init.lua", path = "/usr/lib/wonderful/element/init.lua"},

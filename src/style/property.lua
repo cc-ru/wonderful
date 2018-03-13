@@ -1,6 +1,6 @@
 local class = require("lua-objects")
 
-local wtype = require("wonderful.style.type").ExprType
+local wtype = require("wonderful.style.type")
 
 local Property = class(nil, {name = "wonderful.style.property.Property"})
 
@@ -22,5 +22,7 @@ Color.exprType = wtype.ColorType
 
 return {
   Property = Property,
+
+  Color = Color,
 }
 

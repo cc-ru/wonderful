@@ -1,3 +1,5 @@
+-- Styles! "I wonder how it works" edition.
+
 local buffer = require("buffer")
 
 local class = require("lua-objects")
@@ -107,7 +109,7 @@ function Style:getProperty(component, name)
         end
 
         if replace then
-          result = prop.value
+          result = prop
           resultRule = rule
         end
       end
@@ -178,9 +180,12 @@ function WonderfulStyle:_createContext()
   ctx:addProperties({
     color = property.Color
   }, false)
+
+  return ctx
 end
 
 return {
   Style = Style,
+  WonderfulStyle = WonderfulStyle,
 }
 

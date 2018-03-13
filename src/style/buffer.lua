@@ -172,14 +172,21 @@ end
 
 function Buffer:readWhile(predicate)
   local result = ""
+  local n = 0
+
   while true do
     local char = self:getCur()
+
     if not char then
       return result, "eof"
     end
-    if not predicate(char) then
+
+    n = n + 1
+
+    if not predicate(char, n) then
       return result
     end
+
     result = result .. char
     self:seek(1)
   end

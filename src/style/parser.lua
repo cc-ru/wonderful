@@ -59,7 +59,7 @@ function Parser:error(token, ...)
       msg = (prefix .. "[" .. token.NAME .. " '" .. tostring(token.value) ..
              "'] " .. msg)
     end
-    local lineMsg = prefix .. self.stream.buf:getLine(line)
+    local lineMsg = prefix .. (self.stream.buf:getLine(line) or "\n")
     io.stderr:write(lineMsg)
     io.stderr:write((" "):rep(ulen(lineMsg) - 1) .. "^\n")
   end
@@ -123,8 +123,15 @@ function Parser:parseStmt(skipSep)
 end
 
 function Parser:skip(tokenType, value)
-  local token = self.stream:next()
+  local token, reason = self.stream:next()
+
+  if self.stream:eof() then
+    self:error("cur", "EOF eached, expected token ",
+               tokenType(nil, nil, value))
+  end
+
   self.current = token
+
   if token:isa(tokenType) then
     if value ~= nil and token.value == value then
       return true

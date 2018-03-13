@@ -130,7 +130,8 @@ function TokenStream:readNext()
     return self:readClassName()
   elseif char == "<" then
     return self:readName()
-  elseif tonumber(char, 10) then
+  elseif tonumber(char, 10) or tonumber(char2, 10) then
+    -- `tonumber(char2, 10)` allows to parse negative numbers
     return self:readNumber()
   else
     local opChunk
@@ -190,7 +191,12 @@ end
 
 function TokenStream:readNumber()
   local dot = false
-  local result = self.buf:readWhile(function(char)
+
+  local result = self.buf:readWhile(function(char, n)
+    if n == 1 and char == "-" then
+      return true
+    end
+
     if char == "." and dot then
       self:error("Bad number")
     end
@@ -212,7 +218,7 @@ function TokenStream:readColor()
   self.buf:seek(1)
   local result = self.buf:readWhileIn("%x", false)
   if #result == 3 then
-    result = result .. result
+    result = result:gsub(".", "%1%1")
   end
   if #result == 6 then
     return ColorToken(self.col, self.line, tonumber(result, 16))

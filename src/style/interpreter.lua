@@ -89,6 +89,10 @@ function Type:matches(instance)
   return instance:isa(self.class)
 end
 
+function Type:clone()
+  return Type(self.class, self.custom)
+end
+
 local NamedType = class(Type, {name = "wonderful.style.interpreter.NamedType"})
 
 function NamedType:__new__(name, custom)
@@ -263,10 +267,19 @@ function Context:addProperties(properties, custom)
   end
 end
 
-function Context:addTypes(types, custom)
-  for name, type in pairs(types) do
-    type.custom = true
-    self.types[name] = type
+function Context:addTypes(types)
+  for name, type_ in pairs(types) do
+    assert(type(name) == "string", "Type name " .. tostring(name) ..
+           " must be a string")
+
+    if not type_:isa(Type) then
+      type_ = Type(type_)
+    else
+      type_ = type_:clone()
+    end
+
+    type_.custom = true
+    self.types[name] = type_
   end
 end
 
@@ -445,7 +458,7 @@ function Context:addRule(stmt)
 end
 
 function Context:resolveTypeRefs()
-  for k in pairs(self.types) do
+  for k, v in pairs(self.types) do
     self.types[k] = self:resolveType(self.types[k])
   end
 
@@ -552,6 +565,16 @@ function Context:guessType(value)
 end
 
 return {
+  Variable = Variable,
+  Rule = Rule,
+
+  TypeRef = TypeRef,
+  Type = Type,
+  NamedType = NamedType,
+  AnyType = AnyType,
+
+  Spec = Spec,
+
   Context = Context,
 }
 
