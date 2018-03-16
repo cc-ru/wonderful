@@ -147,7 +147,7 @@ function Parser:parseImport()
   end
   local nameToken = self.stream:peek()
   local name
-  if nameToken:isa(lexer.NameToken) then
+  if nameToken:isa(lexer.NameToken) or nameToken:isa(lexer.TypeRefToken) then
     name = self:parseName(false)
   elseif nameToken:isa(lexer.StrToken) then
     name = self:parsePath()
@@ -180,17 +180,14 @@ function Parser:parseVar(public)
   local varToken = self.stream:peek()
   local name = self:parseIdent()
   local token = self.stream:next()
-  local varType = nil
-  if token:isa(lexer.PuncToken) and token.value == ":" then
-    -- Type specifier
-    varType = self:parseName(false)
-    token = self.stream:next()
-  end
+
   if not (token:isa(lexer.OpToken) and token.value == "=") then
     self:error(token, "Expected ", lexer.OpToken(token.line, token.col, "="))
   end
+
   local value = self:parseExpr(lexer.PuncToken, ";")
-  return node.VarNode(varToken.line, varToken.col, name, varType, value)
+
+  return node.VarNode(varToken.line, varToken.col, name, value)
 end
 
 function Parser:parseRule(public)

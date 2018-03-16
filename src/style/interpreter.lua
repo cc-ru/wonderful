@@ -39,10 +39,9 @@ end
 
 local Variable = class(nil, {name = "wonderful.style.interpreter.Variable"})
 
-function Variable:__new__(name, value, type, public, custom)
+function Variable:__new__(name, value, public, custom)
   self.name = name
-  self.value = self.value
-  self.type = type
+  self.value = value
   self.public = public
   self.custom = custom
 end
@@ -361,14 +360,17 @@ function Context:import(stmt)
     -- import [module:name];
     -- import @Type;
     local ref = TypeRef(stmt.value)
-    local ctx = self:resolveType(ref)
+    local ctx = self:resolveType(ref).class
 
     if ctx:isa(style().Style) then
       if ctx:isContextStripped() then
         error("Imported style has its context stripped and can't be imported.")
       end
+
       ctx = ctx.context
     end
+
+    print(ctx)
 
     if not ctx:isa(Context) then
       error("Imported name must be a wonderful.style.interpreter:Context")
@@ -434,8 +436,7 @@ function Context:setType(stmt)
 end
 
 function Context:setVar(stmt)
-  self.vars[stmt.name] = Variable(stmt.name, stmt.value,
-                                  TypeRef(stmt.type), stmt.public)
+  self.vars[stmt.name] = Variable(stmt.name, stmt.value, stmt.public)
 end
 
 function Context:addRule(stmt)
@@ -509,44 +510,68 @@ function Context:processRules()
     -- Selectors
     traverseSpec(rule.spec, function(target)
       for k, selNode in pairs(target.selectors) do
-        local selector = self.selectors[selNode.name]
-        if not selector or selector.custom ~= selNode.custom then
-          error("Unknown selector: " .. (selNode.custom and "~" or "") ..
-                selNode.name)
+        -- check if the selector's been already processed
+        if selNode:isa(node.SelectorNode) then
+          local selector = self.selectors[selNode.name]
+          if not selector or selector.custom ~= selNode.custom then
+            error("Unknown selector: " .. (selNode.custom and "~" or "") ..
+                  selNode.name)
+          end
+          target.selectors[k] = selector.selector(selNode.value)
         end
-        target.selectors[k] = selector.selector(selNode.value)
       end
     end)
 
     -- Properties
     for k, v in pairs(rule.props) do
-      local prop = self.properties[v.name]
-      if not prop or prop.custom ~= v.custom then
-        error("Unknown property: " .. (v.custom and "~" or "") .. v.name)
+      -- check if the property's been already processed
+      if v:isa(node.PropertyNode) then
+        local prop = self.properties[v.name]
+
+        if not prop or prop.custom ~= v.custom then
+          error("Unknown property: " .. (v.custom and "~" or "") .. v.name)
+        end
+
+        rule.props[k] = prop.property(v.value)
       end
-      rule.props[k] = prop.property(v.value)
     end
 
     -- Classes
     traverseSpec(rule.spec, function(target)
       for k, v in pairs(target.classes) do
-        target.classes[k] = v.value
+        if type(v) == "string" then
+          target.classes[k] = v.value
+        end
       end
     end)
   end
 end
 
 function Context:evalVars()
-  for name, var in pairs(self.vars) do
-    local exprType = var.type or self:guessType(var.value)
-    if not exprType then
-      error("Variable " .. name .. " has no associated type")
+  for _, rule in pairs(self.rules) do
+    for _, prop in pairs(rule.props) do
+      if prop:isa(node.PropertyNode) then
+        local value = prop.value
+
+        for i = #value.value, 1, -1 do
+          local token = value.value[i]
+
+          if token:isa(lexer.VarRefToken) then
+            local var = self.vars[token.value]
+
+            if not var then
+              error("Variable $" .. token.value .. " is not defined")
+            end
+
+            table.remove(value.value, i)
+
+            for j = #var.value.value, 1, -1 do
+              table.insert(value.value, i, var.value.value[j])
+            end
+          end
+        end
+      end
     end
-    if not exprType:isa(wtype.ExprType) then
-      error("The specified type of variable " .. name .. " isn't derived " ..
-            "from ExprType.")
-    end
-    var.value = exprType:parse(var.value)
   end
 end
 
@@ -558,10 +583,6 @@ end
 function Context:loadName(path, name)
   -- TODO: error handling!
   return load(path, "t", _G)()[name]
-end
-
-function Context:guessType(value)
-  -- TODO: add guessers
 end
 
 return {

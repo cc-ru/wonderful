@@ -46,11 +46,10 @@ end
 
 local VarNode = class(Node, {name = "wonderful.style.node.VarNode"})
 
-function VarNode:__new__(line, col, name, type, value, public)
+function VarNode:__new__(line, col, name, value, public)
   self.line = line
   self.col = col
   self.name = name
-  self.type = type
   self.value = value
   self.public = public
 end
