@@ -18,14 +18,14 @@ end
 local ColorType = class(ExprType, {name = "wonderful.style.type.ColorType"})
 
 function ColorType:parse(expr)
-  if #expr.value ~= 1 then
-    error("Error parsing color: ColorToken expected")
+  if #expr ~= 1 then
+    error("Color expected")
   end
 
-  if expr.value[1]:isa(lexer.ColorToken) then
-    return ColorType(expr.value[1].value)
+  if type(expr[1]) == "number" then
+    return ColorType(expr[1])
   else
-    error("Error parsing color: ColorToken expected")
+    error("Color expected")
   end
 end
 

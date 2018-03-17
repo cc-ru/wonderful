@@ -245,12 +245,12 @@ function Context:addVars(vars, custom)
     if type(name) ~= "string" or #name == 0 then
       error("Variable name must be a non-empty string")
     end
-    if not value:isa(wtype.ExprType) then
-      error("The value of user-specified variable '" .. name .. "' is not " ..
-            "derived from ExprType.")
+
+    if type(value) ~= "table" then
+      value = {value}
     end
-    self.vars[name] = Variable(name, value, value.class, true,
-                               custom)
+
+    self.vars[name] = Variable(name, value, true, custom)
   end
 end
 
@@ -553,20 +553,23 @@ function Context:evalVars()
       if prop:isa(node.PropertyNode) then
         local value = prop.value
 
-        for i = #value.value, 1, -1 do
-          local token = value.value[i]
+        print(prop, prop.value)
 
-          if token:isa(lexer.VarRefToken) then
+        for i = #value, 1, -1 do
+          local token = value[i]
+
+          if type(token) == "table" and token.isa and
+              token:isa(lexer.VarRefToken) then
             local var = self.vars[token.value]
 
             if not var then
               error("Variable $" .. token.value .. " is not defined")
             end
 
-            table.remove(value.value, i)
+            table.remove(value, i)
 
-            for j = #var.value.value, 1, -1 do
-              table.insert(value.value, i, var.value.value[j])
+            for j = #var.value, 1, -1 do
+              table.insert(value, i, var.value[j])
             end
           end
         end

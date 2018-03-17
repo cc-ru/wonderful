@@ -13,6 +13,8 @@ local property = require("wonderful.style.property")
 local Style = class(nil, {name = "wonderful.style.Style"})
 
 function Style:__new__(args)
+  self._stripped = true
+
   if args then
     if args.vars then
       self:addVars(args.vars)
@@ -78,6 +80,7 @@ function Style:parseFromTextBuffer(buf)
   self.context:interpret()
 
   self.rules = self.context.rules
+  self._stripped = false
 
   return self
 end
@@ -86,10 +89,12 @@ end
 -- A stripped style instance consumes less RAM, but cannot be imported.
 function Style:stripContext()
   self.context = nil
+  self._stripped = true
+  return self
 end
 
 function Style:isContextStripped()
-  return not self._context
+  return self._stripped
 end
 
 function Style:getProperty(component, name)

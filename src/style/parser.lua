@@ -326,30 +326,33 @@ function Parser:parsePath()
 end
 
 function Parser:parseExpr(endType, endValue)
-  -- Expressions are actually evaluated by the interpreter itself
-  -- since we need the type and context information for this
-  local tokens = {}
+  local value = {}
 
   local token = self.stream:peek()
 
   while true do
     local token = self.stream:peek()
     print("expr", token)
+
     if not token or token:isa(endType) and
         (not endValue or token.value == endValue) then
       break
     end
+
     if token:isa(lexer.PuncToken) or token:isa(lexer.NumToken) or
         token:isa(lexer.ColorToken) or token:isa(StrToken) or
-        token:isa(lexer.IdentToken) or token:isa(lexer.CodeToken) or
-        token:isa(lexer.VarRefToken) then
-      table.insert(tokens, token)
-      self.stream:next()
+        token:isa(lexer.IdentToken) then
+      table.insert(value, token.value)
+    elseif token:isa(lexer.VarRefToken) or token:isa(lexer.CodeToken) then
+      table.insert(value, token)
     else
       self:error(token, "Unexpected token in expression")
     end
+
+    self.stream:next()
   end
-  return node.ValueNode(token.line, token.col, tokens)
+
+  return value
 end
 
 function Parser:parseTarget()
