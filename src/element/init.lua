@@ -6,6 +6,7 @@ local geometry = require("wonderful.geometry")
 local layout = require("wonderful.layout")
 local node = require("wonderful.element.node")
 
+local PropRef = require("wonderful.style").PropRef
 local VBoxLayout = require("wonderful.layout.box").VBoxLayout
 
 local LeafElement = class(
@@ -43,6 +44,10 @@ end
 
 function LeafElement:sizeHint()
   return 0, 0
+end
+
+function LeafElement:propRef(name)
+  return PropRef(self, name)
 end
 
 function LeafElement:getMargin()
