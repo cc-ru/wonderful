@@ -126,8 +126,10 @@ function Style:getProperty(component, name)
   end
 
   if component.parent then
-    -- TODO: don't default-inherit properties unless explicitly set.
-    return self:getProperty(component.parent, name)
+    local prop = self:getProperty(component.parent, name)
+    if prop.inherit then
+      return prop
+    end
   end
 end
 
