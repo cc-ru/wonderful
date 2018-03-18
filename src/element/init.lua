@@ -15,11 +15,12 @@ local LeafElement = class(
 )
 
 function LeafElement:__new__()
+  self.attributes = {}
+
   self:superCall(node.ChildNode, "__new__")
   self:superCall(event.EventTarget, "__new__")
 
   self.calculatedBox = geometry.Box()
-  self.attributes = {}
 end
 
 function LeafElement:render(fbView)

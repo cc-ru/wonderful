@@ -194,15 +194,14 @@ end
 local PropRef = class(nil, {name = "wonderful.style.PropRef"})
 
 function PropRef:__new__(element, name)
-  self.style = element.style
+  self.style = nil
+  self.value = nil
   self.element = element
   self.name = name
-
-  self:update()
 end
 
 function PropRef:get()
-  if self.style ~= element.style then
+  if self.style ~= self.element.style then
     self:update()
   end
 
@@ -210,11 +209,13 @@ function PropRef:get()
 end
 
 function PropRef:update()
+  self.style = self.element.style
   self.value = self.style:getProperty(self.element, self.name)
 end
 
 return {
   Style = Style,
   WonderfulStyle = WonderfulStyle,
+  PropRef = PropRef,
 }
 

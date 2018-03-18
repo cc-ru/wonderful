@@ -106,7 +106,6 @@ function TokenStream:readNext()
   local char2 = self.buf:read(2, true)
 
   if char2 == "" then
-    print("lexer: eof!")
     self._eof = true
     return nil, "eof"
   end
@@ -120,7 +119,6 @@ function TokenStream:readNext()
   end
 
   local char = usub(char2, 1, 1)
-  print(char)
 
   if char2 == "$(" then
     return self:readCode()

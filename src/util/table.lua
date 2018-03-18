@@ -4,7 +4,6 @@ local function shallowcopy(orig)
   end
 
   local copy = {}
-  print(copy)
 
   for k, v in pairs(orig) do
     copy[k] = v

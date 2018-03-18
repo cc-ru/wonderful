@@ -27,14 +27,17 @@ function ChildNode.__getters:hasParentNode()
   return not not self.parentNode
 end
 
-local ParentNode = class(nil, {name = "wonderful.element.node.ParentNode"})
+function ChildNode.__getters:level()
+  return self.hasParentNode and (self.parentNode.level + 1) or 0
+end
+
+local ParentNode = class(
+  ChildNode,
+  {name = "wonderful.element.node.ParentNode"}
+)
 
 function ParentNode:__new__()
   self.childNodes = {}
-end
-
-function ChildNode.__getters:level()
-  return self.hasParentNode and (self.parentNode.level + 1) or 0
 end
 
 function ParentNode:insertChild(index, node)
@@ -44,9 +47,10 @@ function ParentNode:insertChild(index, node)
 
   node.parentNode = self
   node.rootMemo = self.rootNode
-  node.index = index
 
-  table.insert(self.childNodes, node.index, node)
+  table.insert(self.childNodes, index, node)
+
+  self:updateIndeces()
 end
 
 function ParentNode:removeChild(index)
@@ -55,6 +59,8 @@ function ParentNode:removeChild(index)
   node.parentNode = nil
   node.rootMemo = nil
   node.index = nil
+
+  self:updateIndeces()
 
   return node
 end
@@ -71,6 +77,12 @@ function ParentNode:replaceChild(index, child)
   local old = self:removeChild(index)
   self:insertChild(index, child)
   return old
+end
+
+function ParentNode:updateIndeces()
+  for i, node in pairs(self.childNodes) do
+    node.index = i
+  end
 end
 
 function ParentNode.__getters:hasChildNodes()

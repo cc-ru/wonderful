@@ -71,13 +71,9 @@ function Parser:parseStmt(skipSep)
 
   local token, reason = self.stream:peek()
 
-  print(token, reason)
-
   if self.stream:eof() then
-    print("eof!")
     return nil, "eof"
   elseif not token then
-    print("no token!?")
     return nil, reason
   end
 
@@ -115,7 +111,6 @@ function Parser:parseStmt(skipSep)
     self:error(token, "Unknown token")
   end
 
-  print(self.stream:peek())
   if skipSep then
     self:skip(lexer.PuncToken, ";")
   end
@@ -206,8 +201,6 @@ function Parser:parseDelimited(startp, delimiter, endp, parser)
 
   local function checkEnd()
     local token = self.stream:peek()
-
-    print("checkEnd", token)
 
     if token and token:isa(lexer.PuncToken) then
       if token.value == endp then
@@ -332,7 +325,6 @@ function Parser:parseExpr(endType, endValue)
 
   while true do
     local token = self.stream:peek()
-    print("expr", token)
 
     if not token or token:isa(endType) and
         (not endValue or token.value == endValue) then

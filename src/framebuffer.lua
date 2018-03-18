@@ -7,6 +7,11 @@ local palette = require("wonderful.util.palette")
 local floor = math.floor
 
 local Buffer = class(nil, {name = "wonderful.framebuffer.Buffer"})
+local Framebuffer = class(Buffer, {name = "wonderful.framebuffer.Framebuffer"})
+local BufferView = class(
+  Buffer,
+  {name = "wonderful.framebuffer.BufferView"}
+)
 
 function Buffer:__new__(args)
   self.w = args.w
@@ -195,8 +200,6 @@ function Buffer:view(x, y, w, h)
 end
 
 --------------------------------------------------------------------------------
-
-local Framebuffer = class(Buffer, {name = "wonderful.framebuffer.Framebuffer"})
 
 function Framebuffer:__new__(args)
   self:superCall("__new__", args)
@@ -388,11 +391,6 @@ function Framebuffer:flush(sx, sy, gpu)
 end
 
 --------------------------------------------------------------------------------
-
-local BufferView = class(
-  Buffer,
-  {name = "wonderful.framebuffer.BufferView"}
-)
 
 function BufferView:__new__(buf, x, y, w, h)
   self.buf = buf

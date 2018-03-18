@@ -370,8 +370,6 @@ function Context:import(stmt)
       ctx = ctx.context
     end
 
-    print(ctx)
-
     if not ctx:isa(Context) then
       error("Imported name must be a wonderful.style.interpreter:Context")
     end
@@ -486,10 +484,13 @@ function Context:resolveType(typeRef)
   end
 
   local name = typeRef.name
-  print(typeRef, name)
   if name:isa(node.TypeRefNode) then
-    print(name.value)
     local referenced = self.types[name.value]
+
+    if not referenced then
+      error("Type @" .. name.value .. " is undefined")
+    end
+
     self.types[name.value] = self:resolveType(referenced)
     return self.types[name.value]
   elseif name:isa(node.NameNode) then
@@ -552,8 +553,6 @@ function Context:evalVars()
     for _, prop in pairs(rule.props) do
       if prop:isa(node.PropertyNode) then
         local value = prop.value
-
-        print(prop, prop.value)
 
         for i = #value, 1, -1 do
           local token = value[i]
