@@ -95,8 +95,14 @@ function Buffer:_set(x, y, fg, bg, alpha, char)
     char = nil
   end
 
+  if self.colorData[i] == new and self.textData[i] == char then
+    return false
+  end
+
   self.colorData[i] = new
   self.textData[i] = char
+
+  return true
 end
 
 function Buffer:set(x0, y0, fg, bg, alpha, line, vertical)
@@ -214,10 +220,12 @@ function Framebuffer:__new__(args)
 end
 
 function Framebuffer:_set(x, y, fg, bg, alpha, char)
-  self:superCall("_set", x, y, fg, bg, alpha, char)
+  local modified = self:superCall("_set", x, y, fg, bg, alpha, char)
 
-  self.dirty[math.floor((y - 1) / self.blockSize) * self.blocksW +
-             math.ceil(x / self.blockSize)] = true
+  if modified then
+    self.dirty[math.floor((y - 1) / self.blockSize) * self.blocksW +
+               math.ceil(x / self.blockSize)] = true
+  end
 end
 
 function Framebuffer:clear()
