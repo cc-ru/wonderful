@@ -22,6 +22,12 @@ Color.name = "color"
 Color.exprType = wtype.ColorType
 Color.inherit = true
 
+local BgColor = class(Property, {name = "wonderful.style.property.BgColor"})
+
+BgColor.name = "background-color"
+BgColor.exprType = wtype.ColorType
+BgColor.inherit = false
+
 return {
   Property = Property,
 

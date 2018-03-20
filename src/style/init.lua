@@ -193,19 +193,30 @@ end
 
 local PropRef = class(nil, {name = "wonderful.style.PropRef"})
 
-function PropRef:__new__(element, name)
+function PropRef:__new__(element, name, default)
   self.style = nil
   self.value = nil
   self.element = element
   self.name = name
+  self.default = default
 end
 
-function PropRef:get()
+function PropRef:get(default)
   if self.style ~= self.element.style then
     self:update()
   end
 
-  return self.value
+  if self.value then
+    return self.value
+  end
+
+  if default then
+    return default
+  end
+
+  if self.default then
+    return self.default
+  end
 end
 
 function PropRef:update()
