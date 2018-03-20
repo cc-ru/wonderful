@@ -203,9 +203,6 @@ end
 
 function Framebuffer:__new__(args)
   self:superCall("__new__", args)
-  self.w = args.w
-  self.h = args.h
-  self.depth = args.depth
 
   self.dirty = {}
 
@@ -286,10 +283,11 @@ function Framebuffer:flush(sx, sy, gpu)
   local lines = {}
 
   local blockX, blockY = 0, 0
-  local blockW, blockH = self.blockSize, self.blockSize
   local blockI = 1
 
   while true do
+    local blockW, blockH = self.blockSize, self.blockSize
+
     if blockX == self.blocksW - 1 then
       blockW = self.w % self.blockSize
     end
@@ -306,8 +304,8 @@ function Framebuffer:flush(sx, sy, gpu)
       local rectChar, rectColor = self:_get(blockX + 1, blockY + 1)
       local rect = true
 
-      for x = blockX + 1, blockX + self.blockSize do
-        for y = blockY + 1, blockY + self.blockSize do
+      for x = blockX + 1, blockX + blockW do
+        for y = blockY + 1, blockY + blockH do
           local char, color = self:_get(x, y)
 
           if char ~= rectChar or color ~= rectColor then
@@ -323,13 +321,13 @@ function Framebuffer:flush(sx, sy, gpu)
         goto continue
       end
 
-      for y = blockY + 1, blockY + self.blockSize do
-        local lineX = blockY + 1
+      for y = blockY + 1, blockY + blockH do
+        local lineX = blockX + 1
         local line = {}
-        local _, lineColor = self:_get(blockX, y)
+        local _, lineColor = self:_get(blockX + 1, y)
         local lineBg = lineColor % 0x100
 
-        for x = blockX + 1, blockX + self.blockSize do
+        for x = blockX + 1, blockX + blockW do
           local char, color = self:_get(x, y)
           local bg = color % 0x100
 
