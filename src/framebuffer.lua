@@ -210,7 +210,25 @@ function Framebuffer:__new__(args)
   self.blocksW = math.ceil(self.w / self.blockSize)
   self.blocksH = math.ceil(self.h / self.blockSize)
 
-  for i = 1, self.blocksW * self.blocksH do
+  self:markForRedraw()
+end
+
+function Framebuffer:_set(x, y, fg, bg, alpha, char)
+  self:superCall("_set", x, y, fg, bg, alpha, char)
+
+  self.dirty[math.floor((y - 1) / self.blockSize) * self.blocksW +
+             math.ceil(x / self.blockSize)] = true
+end
+
+function Framebuffer:clear()
+  self:superCall("clear")
+
+  self:markForRedraw()
+
+end
+
+function Framebuffer:markForRedraw()
+  for i = 1, self.blocksW * self.blocksH, 1 do
     self.dirty[i] = true
   end
 end
