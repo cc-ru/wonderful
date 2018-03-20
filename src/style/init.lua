@@ -185,7 +185,8 @@ function WonderfulStyle:_createContext()
   local ctx = self:superCall("_createContext")
 
   ctx:addProperties({
-    color = property.Color
+    property.Color,
+    property.BgColor
   }, false)
 
   return ctx

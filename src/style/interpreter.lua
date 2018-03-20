@@ -261,8 +261,8 @@ function Context:addSelectors(selectors, custom)
 end
 
 function Context:addProperties(properties, custom)
-  for name, property in pairs(properties) do
-    self.properties[name] = {property = property, custom = custom}
+  for k, property in pairs(properties) do
+    self.properties[property.name] = {property = property, custom = custom}
   end
 end
 
