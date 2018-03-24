@@ -357,7 +357,7 @@ function Context:import(stmt)
     ctx:interpret()
     self:merge(ctx)
   elseif stmt.value:isa(node.NameNode) or stmt.value:isa(node.TypeRefNode) then
-    -- import [module:name];
+    -- import <module:name>;
     -- import @Type;
     local ref = TypeRef(stmt.value)
     local ctx = self:resolveType(ref).class

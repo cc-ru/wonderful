@@ -2,6 +2,7 @@ local unicode = require("unicode")
 
 local class = require("lua-objects")
 
+local geometry = require("wonderful.geometry")
 local palette = require("wonderful.util.palette")
 
 local floor = math.floor
@@ -17,6 +18,8 @@ function Buffer:__new__(args)
   self.w = args.w
   self.h = args.h
   self.depth = args.depth
+
+  self.box = geometry.Box(1, 1, self.w, self.h)
 
   self.colorData = {}
   self.textData = {}
@@ -43,14 +46,7 @@ function Buffer:coords(index)
 end
 
 function Buffer:inRange(x, y)
-  return x >= 1 and x <= self.w and y >= 1 and y <= self.h
-end
-
-function Buffer:rectInRange(x, y, w, h)
-  return x >= 1 and x <= self.w and
-         y >= 1 and y <= self.h and
-         w >= 1 and x + w - 1 <= self.w and
-         h >= 1 and y + h - 1 <= self.h
+  return self.box:has(x, y)
 end
 
 function Buffer:alphaBlend(color1, color2, alpha)
@@ -156,6 +152,26 @@ function Buffer:get(x, y)
          self.palette:inflate(color % 0x100)
 end
 
+function Buffer:union(x0, y0, w, h)
+  if w <= 0 or h <= 0 then
+    return
+  end
+
+  local x1 = x0 + w - 1
+  local y1 = y0 + h - 1
+
+  if x1 < self.box.x or y1 < self.box.y then
+    return
+  end
+
+  x0 = math.max(x0, self.box.x)
+  y0 = math.max(y0, self.box.y)
+  x1 = math.min(x1, self.box.x1)
+  y1 = math.min(y1, self.box.y1)
+
+  return x0, y0, x1, y1
+end
+
 function Buffer:fill(x0, y0, w, h, fg, bg, alpha, char)
   checkArg(1, x0, "number")
   checkArg(2, y0, "number")
@@ -166,21 +182,11 @@ function Buffer:fill(x0, y0, w, h, fg, bg, alpha, char)
   checkArg(7, alpha, "number")
   checkArg(8, char, "string")
 
-  if w <= 0 or h <= 0 then
+  local x0, y0, x1, y1 = self:union(x0, y0, w, h)
+
+  if not x0 then
     return
   end
-
-  local x1 = x0 + w - 1
-  local y1 = x0 + h - 1
-
-  if x1 <= 0 or y1 <= 0 then
-    return
-  end
-
-  x0 = math.max(x0, 1)
-  y0 = math.max(y0, 1)
-  x1 = math.min(x1, self.w)
-  y1 = math.min(y1, self.h)
 
   for x = x0, x1, 1 do
     for y = y0, y1, 1 do
@@ -194,12 +200,20 @@ function Buffer:clear()
   self.textData = {}
 end
 
-function Buffer:view(x, y, w, h)
-  if not self:rectInRange(x, y, w, h) then
-    return false
-  end
+function Buffer:view(x, y, w, h, sx, sy, sw, sh)
+  -- defines the view (buffer-relative) coordinate system
+  local coordBox = geometry.Box(x, y, w, h)
 
-  local view = BufferView(self, x, y, w, h)
+  -- restricts the view
+  local restrictBox = coordBox:relative(sx, sy, sw, sh)
+
+  -- don't allow to write outside the buffer
+  restrictBox = restrictBox:union(self.box)
+
+  -- don't allow to write outside the coordinate box
+  restrictBox = restrictBox:union(coordBox)
+
+  local view = BufferView(self, coordBox, restrictBox)
   view:optimize()
 
   return view
@@ -416,17 +430,27 @@ end
 
 --------------------------------------------------------------------------------
 
-function BufferView:__new__(buf, x, y, w, h)
+function BufferView:__new__(buf, coordBox, restrictBox)
   self.buf = buf
-  self.x = x
-  self.y = y
-  self.w = w
-  self.h = h
+
+  self.coordBox = coordBox
+  self.box = restrictBox
 end
 
 function BufferView:absCoords(x, y)
-  return x + self.x - 1,
-         y + self.y - 1
+  return x + self.coordBox.x - 1,
+         y + self.coordBox.y - 1
+end
+
+function BufferView:relCoords(x, y)
+  return x - self.coordBox.x + 1,
+         y - self.coordBox.y + 1
+end
+
+function Buffer:inRange(x, y)
+  x, y = self:absCoords(x, y)
+
+  return self.box:has(x, y)
 end
 
 function BufferView:_set(x, y, fg, bg, alpha, char)
@@ -436,7 +460,40 @@ end
 
 function BufferView:_get(x, y)
   x, y = self:absCoords(x, y)
+
   return self.buf:_get(x, y)
+end
+
+function BufferView:union(x0, y0, w, h)
+  x0, y0 = self:absCoords(x0, y0)
+
+  local x0, y0, x1, y1 = self:superCall("union", x0, y0, w, h)
+
+  if not x0 then
+    return
+  end
+
+  x0, y0 = self:relCoords(x0, y0)
+  x1, y1 = self:relCoords(x1, y1)
+
+  return x0, y0, x1, y1
+end
+
+function BufferView:view(x, y, w, h, sx, sy, sw, sh)
+  local x, y = self:absCoords(x, y)
+
+  local coordBox = geometry.Box(x, y, w, h)
+
+  local restrictBox = coordBox:relative(sx, sy, sw, sh)
+  restrictBox = restrictBox:union(self.box)
+  restrictBox = restrictBox:union(coordBox)
+
+  -- the `self.buf` here is why the method was copy-pasted from the parent:
+  -- we don't really want to abuse recursion
+  local view = BufferView(self.buf, coordBox, restrictBox)
+  view:optimize()
+
+  return view
 end
 
 function BufferView.__getters:depth()
@@ -445,6 +502,14 @@ end
 
 function BufferView.__getters:palette()
   return self.buf.palette
+end
+
+function BufferView.__getters:w()
+  return self.coordBox.w
+end
+
+function BufferView.__getters:h()
+  return self.coordBox.h
 end
 
 return {
