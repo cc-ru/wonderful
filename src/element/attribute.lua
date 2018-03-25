@@ -28,14 +28,13 @@ Position.OPTIONS = {
   relative = true,
   fixed = true
 }
+Position.key = "position"
 
 function Position:__new__(value)
-  self.key = "position"
-
-  if Position.OPTIONS[value] then
+  if self.OPTIONS[value] then
     self.value = value
   else
-    self.value = Position.DEFAULT
+    self.value = self.DEFAULT
   end
 end
 
@@ -48,8 +47,9 @@ local Margin = class(
   {name = "wonderful.element.attribute.Margin"}
 )
 
+Margin.key = "margin"
+
 function Margin:__new__(...)
-  self.key = "margin"
   self:superCall(geometry.Margin, "__new__", ...)
 end
 
@@ -58,8 +58,9 @@ local Padding = class(
   {name = "wonderful.element.attribute.Padding"}
 )
 
+Padding.key = "padding"
+
 function Padding:__new__(...)
-  self.key = "padding"
   self:superCall(geometry.Padding, "__new__", ...)
 end
 
@@ -68,10 +69,10 @@ local ZIndex = class(
   {name = "wonderful.element.attribute.ZIndex"}
 )
 
+ZIndex.key = "zIndex"
 ZIndex.DEFAULT = 1
 
 function ZIndex:__new__(value)
-  self.key = "zIndex"
   self.value = type(value) == "number" and value or ZIndex.DEFAULT
 end
 
@@ -80,8 +81,9 @@ local Classes = class(
   {name = "wonderful.element.attribute.Classes"}
 )
 
+Classes.key = "classes"
+
 function Classes:__new__(...)
-  self.key = "classes"
   self.value = {}
   self.classes = {}
 
@@ -129,6 +131,21 @@ function Classes:toggle(value)
   end
 end
 
+local Stretch = class(Attribute, {name = "wonderful.element.attribute.Stretch"})
+
+Stretch.key = "stretch"
+Stretch.DEFAULT = 0
+
+function Stretch:__new__(stretch)
+  stretch = tonumber(stretch)
+
+  if stretch and stretch >= 0 then
+    self.value = stretch
+  else
+    self.value = self.DEFAULT
+  end
+end
+
 return {
   Attribute = Attribute,
   Position = Position,
@@ -136,5 +153,6 @@ return {
   Padding = Padding,
   ZIndex = ZIndex,
   Classes = Classes,
+  Stretch = Stretch,
 }
 

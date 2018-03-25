@@ -55,6 +55,10 @@ function LeafElement:getMargin()
   return self:get("margin") or attribute.Margin()
 end
 
+function LeafElement:getStretch()
+  return self:get("stretch") or attribute.Stretch()
+end
+
 function LeafElement:boxCalculated(new)
   self.calculatedBox = new
 end
