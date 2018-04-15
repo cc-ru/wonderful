@@ -1,5 +1,3 @@
-(RIP)
-
 We're building a new GUI library for OpenComputers. Here's how it's going to be
 different from other libraries:
 
