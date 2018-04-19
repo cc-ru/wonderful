@@ -1,0 +1,9 @@
+// The style file used in ../styles.lua.
+
+white = #fff;
+
+type Rect = @Rectangle;
+
+@Rect {
+  color: $white;
+};
