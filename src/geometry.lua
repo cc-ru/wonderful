@@ -10,7 +10,8 @@ function Box:__new__(x, y, w, h)
 end
 
 function Box:__tostring__()
-  return ("Box { x = %d, y = %d, w = %d, h = %d }"):format(
+  return ("%s { x = %d, y = %d, w = %d, h = %d }"):format(
+    self.NAME,
     self.x or -1, self.y or -1,
     self.w or -1, self.h or -1
   )
@@ -30,8 +31,13 @@ function Box:has(x, y)
 end
 
 function Box:intersects(other)
-  return (math.abs(self.x - other.x) * 2 < (self.w + other.w)) and
-         (math.abs(self.y - other.y) * 2 < (self.h + other.h))
+  -- return (math.abs(self.x - other.x) * 2 < (self.w + other.w)) and
+  --        (math.abs(self.y - other.y) * 2 < (self.h + other.h))
+
+  return not (other.x > self.x1 or
+              other.x1 < self.x or
+              other.y > self.y1 or
+              other.y1 < self.y)
 end
 
 function Box:intersectsOneOf(others)
@@ -44,7 +50,7 @@ function Box:intersectsOneOf(others)
   return false
 end
 
-function Box:union(other)
+function Box:intersection(other)
   assert(self.isStrict and other.isStrict, "both boxes must be strict")
 
   if self.w <= 0 or self.h <= 0 or other.w <= 0 or other.h <= 0 then
@@ -52,7 +58,7 @@ function Box:union(other)
   end
 
   if not self:intersects(other) then
-    return Box(self.x, self.y, 0, 0)
+    return Box(other.x, other.y, 0, 0)
   end
 
   local x = math.max(self.x, other.x)

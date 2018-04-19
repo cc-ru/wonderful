@@ -70,6 +70,8 @@ function BoxLayout:recompose(el)
   local box = el:getLayoutBox()
   local pad = el:getLayoutPadding()
 
+  print(box)
+
   local full = vertical and
                (box.h - pad.t - pad.b) or
                (box.w - pad.l - pad.r)
@@ -84,13 +86,20 @@ function BoxLayout:recompose(el)
         local margin = el:getMargin()
 
         if reversed and vertical then
-          el:boxCalculated(
-            Box(x + margin.l, full - y + margin.b - h, w, h))
+          el:boxCalculated(Box(x + margin.l,
+                               full - y + margin.b - h,
+                               w,
+                               h))
         elseif reversed then
-          el:boxCalculated(
-            Box(full - x - margin.r - w + margin.l, y + margin.t, w, h))
+          el:boxCalculated(Box(full - x - margin.r - w + margin.l,
+                               y + margin.t,
+                               w,
+                               h))
         else
-          el:boxCalculated(Box(x + margin.l, y + margin.t, w, h))
+          el:boxCalculated(Box(x + margin.l,
+                               y + margin.t,
+                               w,
+                               h))
         end
 
         if vertical then
@@ -118,13 +127,20 @@ function BoxLayout:recompose(el)
       end
 
       if reversed and vertical then
-        el:boxCalculated(
-          Box(x + margin.l, full - y + margin.b - h, w, h))
+        el:boxCalculated(Box(x + margin.l,
+                             full - y + margin.b - h,
+                             w,
+                             h))
       elseif reversed then
-        el:boxCalculated(
-          Box(full - x - margin.r - w + margin.l, y + margin.t, w, h))
+        el:boxCalculated(Box(full - x - margin.r - w + margin.l,
+                             y + margin.t,
+                             w,
+                             h))
       else
-        el:boxCalculated(Box(x + margin.l, y + margin.t, w, h))
+        el:boxCalculated(Box(x + margin.l,
+                             y + margin.t,
+                             w,
+                             h))
       end
 
       if vertical then
@@ -141,8 +157,8 @@ end
 function BoxLayout:sizeHint(el)
   local width, height = 0, 0
 
-  local vertical = self.direction == Direction.TopToBottom
-                or self.direction == Direction.BottomToTop
+  local vertical = self.direction == Direction.TopToBottom or
+                   self.direction == Direction.BottomToTop
 
   for _, child in ipairs(el:getLayoutItems()) do
     local hw, hh = child:sizeHint()

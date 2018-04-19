@@ -64,14 +64,17 @@ do
     for _, el in root.stackingContext.iter do
       if el.isLeaf or el.stackingContext == root.stackingContext then
         if el.calculatedBox then
-          local view = buf:view(el.calculatedBox.x,
-                                el.calculatedBox.y,
-                                el.calculatedBox.w,
-                                el.calculatedBox.h,
-                                1,
-                                1,
-                                el.calculatedBox.w,
-                                el.calculatedBox.h)
+          local coordBox = el.calculatedBox
+          local viewport = el.viewport
+
+          local view = buf:view(coordBox.x,
+                                coordBox.y,
+                                coordBox.w,
+                                coordBox.h,
+                                viewport.x,
+                                viewport.y,
+                                viewport.w,
+                                viewport.h)
 
           if view then
             el:render(view)

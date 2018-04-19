@@ -87,7 +87,7 @@ function Classes:__new__(...)
   self.value = {}
   self.classes = {}
 
-  local values = table.pack(...)
+  local values = {...}
 
   for k, v in pairs(values) do
     self:add(v)
@@ -146,6 +146,17 @@ function Stretch:__new__(stretch)
   end
 end
 
+local ScrollBox = class(
+  {Attribute, geometry.Box},
+  {name = "wonderful.element.attribute.ScrollBox"}
+)
+
+ScrollBox.key = "scrollBox"
+
+function ScrollBox:__new__(x, y, w, h)
+  self:superCall(geometry.Box, "__new__", x, y, w, h)
+end
+
 return {
   Attribute = Attribute,
   Position = Position,
@@ -154,5 +165,6 @@ return {
   ZIndex = ZIndex,
   Classes = Classes,
   Stretch = Stretch,
+  ScrollBox = ScrollBox,
 }
 

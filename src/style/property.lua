@@ -32,5 +32,6 @@ return {
   Property = Property,
 
   Color = Color,
+  BgColor = BgColor,
 }
 

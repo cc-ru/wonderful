@@ -15,9 +15,11 @@ local Document = class(
 function Document:__new__(args)
   self:superCall(element.Element, "__new__")
 
-  if args.style and args.style:isa(style.Style) then
+  if type(args.style) == "table" and args.style.isa and
+      args.style:isa(style.Style) then
     self.globalStyle = args.style
-  elseif args.style and args.style:isa(textBuf.Buffer) then
+  elseif type(args.style) == "table" and args.style.isa and
+      args.style:isa(textBuf.Buffer) then
     self.globalStyle = style.WonderfulStyle()
                             :parseFromBuffer(args.style)
                             :stripContext()
@@ -41,8 +43,16 @@ function Document:__new__(args)
   self.calculatedBox = self.globalDisplay.box
 end
 
+function Document:render(view)
+  view:fill(1, 1, view.w, view.h, 0xffffff, 0x000000, 1, " ")
+end
+
 function Document.__getters:stackingContext()
   return self.rootStackingContext
+end
+
+function Document.__getters:viewport()
+  return self.calculatedBox
 end
 
 return {

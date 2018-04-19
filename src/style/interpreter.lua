@@ -138,6 +138,7 @@ function Spec:targetMatches(target, component)
   -- Check classes
   for k, v in pairs(target.classes) do
     local classes = component:get("classes")
+
     if not classes or not classes:isSet(v) then
       return false
     end
@@ -540,7 +541,7 @@ function Context:processRules()
     -- Classes
     traverseSpec(rule.spec, function(target)
       for k, v in pairs(target.classes) do
-        if type(v) == "string" then
+        if type(v) ~= "string" then
           target.classes[k] = v.value
         end
       end

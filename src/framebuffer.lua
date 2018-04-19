@@ -152,7 +152,7 @@ function Buffer:get(x, y)
          self.palette:inflate(color % 0x100)
 end
 
-function Buffer:union(x0, y0, w, h)
+function Buffer:intersection(x0, y0, w, h)
   if w <= 0 or h <= 0 then
     return
   end
@@ -182,7 +182,7 @@ function Buffer:fill(x0, y0, w, h, fg, bg, alpha, char)
   checkArg(7, alpha, "number")
   checkArg(8, char, "string")
 
-  local x0, y0, x1, y1 = self:union(x0, y0, w, h)
+  local x0, y0, x1, y1 = self:intersection(x0, y0, w, h)
 
   if not x0 then
     return
@@ -208,10 +208,10 @@ function Buffer:view(x, y, w, h, sx, sy, sw, sh)
   local restrictBox = coordBox:relative(sx, sy, sw, sh)
 
   -- don't allow to write outside the buffer
-  restrictBox = restrictBox:union(self.box)
+  restrictBox = restrictBox:intersection(self.box)
 
   -- don't allow to write outside the coordinate box
-  restrictBox = restrictBox:union(coordBox)
+  restrictBox = restrictBox:intersection(coordBox)
 
   local view = BufferView(self, coordBox, restrictBox)
   view:optimize()
@@ -464,10 +464,10 @@ function BufferView:_get(x, y)
   return self.buf:_get(x, y)
 end
 
-function BufferView:union(x0, y0, w, h)
+function BufferView:intersection(x0, y0, w, h)
   x0, y0 = self:absCoords(x0, y0)
 
-  local x0, y0, x1, y1 = self:superCall("union", x0, y0, w, h)
+  local x0, y0, x1, y1 = self:superCall("intersection", x0, y0, w, h)
 
   if not x0 then
     return
@@ -485,8 +485,8 @@ function BufferView:view(x, y, w, h, sx, sy, sw, sh)
   local coordBox = geometry.Box(x, y, w, h)
 
   local restrictBox = coordBox:relative(sx, sy, sw, sh)
-  restrictBox = restrictBox:union(self.box)
-  restrictBox = restrictBox:union(coordBox)
+  restrictBox = restrictBox:intersection(self.box)
+  restrictBox = restrictBox:intersection(coordBox)
 
   -- the `self.buf` here is why the method was copy-pasted from the parent:
   -- we don't really want to abuse recursion

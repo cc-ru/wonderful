@@ -47,8 +47,8 @@ function LeafElement:sizeHint()
   return 0, 0
 end
 
-function LeafElement:propRef(name)
-  return PropRef(self, name)
+function LeafElement:propRef(name, default)
+  return PropRef(self, name, default)
 end
 
 function LeafElement:getMargin()
@@ -56,7 +56,7 @@ function LeafElement:getMargin()
 end
 
 function LeafElement:getStretch()
-  return self:get("stretch") or attribute.Stretch()
+  return (self:get("stretch") or attribute.Stretch()).value
 end
 
 function LeafElement:boxCalculated(new)
@@ -79,6 +79,11 @@ function LeafElement.__getters:isStaticPositioned()
   local position = self:get("position")
   return position and position:isStatic() or true
 end
+
+function LeafElement.__getters:viewport()
+  return self.parentNode.viewport:intersection(self.calculatedBox)
+end
+
 
 local Element = class({LeafElement, node.ParentNode, layout.LayoutContainer},
                       {name = "wonderful.element.Element"})
@@ -103,7 +108,28 @@ function Element:getLayoutPadding()
 end
 
 function Element:getLayoutBox()
-  return self.calculatedBox
+  local x, y, w, h = self.calculatedBox:unpack()
+  local scrollBox = self:get("scrollBox")
+
+  if scrollBox then
+    if scrollBox.x then
+      x = x + scrollBox.x
+    end
+
+    if scrollBox.y then
+      y = y + scrollBox.y
+    end
+
+    if scrollBox.w then
+      w = scrollBox.w
+    end
+
+    if scrollBox.h then
+      h = scrollBox.h
+    end
+  end
+
+  return geometry.Box(x, y, w, h)
 end
 
 function Element:insertChild(index, child)
@@ -147,6 +173,11 @@ function Element:sizeHint()
   local padding = self:getLayoutPadding()
   return width + padding.l + padding.r,
          height + padding.t + padding.b
+end
+
+function Element:setScrollBox(x, y, w, h)
+  self:set(attribute.ScrollBox(x, y, w, h))
+  self.layout:recompose(self)
 end
 
 function Element.__getters:stackingContext()
