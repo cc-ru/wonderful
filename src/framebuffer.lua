@@ -205,7 +205,7 @@ function Buffer:view(x, y, w, h, sx, sy, sw, sh)
   local coordBox = geometry.Box(x, y, w, h)
 
   -- restricts the view
-  local restrictBox = coordBox:relative(sx, sy, sw, sh)
+  local restrictBox = geometry.Box(sx, sy, sw, sh)
 
   -- don't allow to write outside the buffer
   restrictBox = restrictBox:intersection(self.box)

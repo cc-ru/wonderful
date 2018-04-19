@@ -147,7 +147,7 @@ function Element:insertChild(index, child)
     )
   end
 
-  self.layout:recompose(self)
+  self:recompose()
 end
 
 function Element:removeChild(index)
@@ -164,7 +164,7 @@ function Element:removeChild(index)
     )
   end
 
-  self.layout:recompose(self)
+  self:recompose()
   return ret
 end
 
@@ -177,7 +177,15 @@ end
 
 function Element:setScrollBox(x, y, w, h)
   self:set(attribute.ScrollBox(x, y, w, h))
+  self:recompose()
+end
+
+function Element:recompose()
   self.layout:recompose(self)
+
+  for _, element in pairs(self.childNodes) do
+    element:recompose()
+  end
 end
 
 function Element.__getters:stackingContext()

@@ -70,8 +70,6 @@ function BoxLayout:recompose(el)
   local box = el:getLayoutBox()
   local pad = el:getLayoutPadding()
 
-  print(box)
-
   local full = vertical and
                (box.h - pad.t - pad.b) or
                (box.w - pad.l - pad.r)
