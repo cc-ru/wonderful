@@ -1,10 +1,6 @@
--- Spawns a few rectangles, and sets the scroll box.
---
--- Uses: scrolling, styles, attributes, property references,
---       tree, layouts.
-
 local com = require("component")
 local event = require("event")
+local kbd = require("keyboard")
 
 local wonderful = require("wonderful")
 local wstyle = require("wonderful.style")
@@ -20,11 +16,15 @@ local Rectangle = class(welement.Element, {name = "Rectangle"})
 
 local doc = wmain:addDocument {style = [[
 .root {
-  background-color: #a0a0a0;
+  background-color: #808080;
 };
 
-.child {
-  background-color: #f0f0f0;
+.level-1 {
+  background-color: #c0c0c0;
+};
+
+.level-2 {
+  background-color: #fff;
 };
 ]]
 }
@@ -45,10 +45,12 @@ end
 function Rectangle:render(view)
   view:fill(1, 1, view.w, view.h, 0x000000, self.bg:get():get(), 1, " ")
   view:set(1, 1, 0x000000, self.bg:get():get(), 1, "Rect #" .. self.i)
-  --view:set(2, 2, 0x000000, self.bg:get():get(), 1, self.i)
-  view:set(1, 2, 0x000000, self.bg:get():get(), 1, tostring(self.calculatedBox))
-  view:set(1, 3, 0x000000, self.bg:get():get(), 1, tostring(self.viewport))
-  view:set(1, 4, 0x000000, self.bg:get():get(), 1, tostring(self:getLayoutBox()))
+  view:set(1, 2, 0x000000, self.bg:get():get(), 1, "calc " .. tostring(self.calculatedBox))
+  view:set(1, 3, 0x000000, self.bg:get():get(), 1, "view " .. tostring(self.viewport))
+  view:set(1, 4, 0x000000, self.bg:get():get(), 1, "lyot " .. tostring(self:getLayoutBox()))
+  view:set(1, 5, 0x000000, self.bg:get():get(), 1, "cord " .. tostring(view.coordBox))
+  view:set(1, 6, 0x000000, self.bg:get():get(), 1, "vbox " .. tostring(view.box))
+  view:set(1, 7, 0x000000, self.bg:get():get(), 1, "lybx " .. tostring(self.parentNode:getLayoutBox()))
 end
 
 function Rectangle:sizeHint()
@@ -57,28 +59,21 @@ end
 
 local rootRect = Rectangle {w = 80, h = 25}
 rootRect:set(wattr.Classes("root"))
-rootRect:set(wattr.ScrollBox(0, 3))
+rootRect:set(wattr.ScrollBox(0, 0))
 doc:appendChild(rootRect)
 
-for i = 1, 25, 1 do
-  local child = Rectangle {w = 60, h = 5}
-  child:set(wattr.Classes("child"))
-  child:set(wattr.Margin(0, 0, 0, 2))
-  rootRect:appendChild(child)
-end
+local level1 = Rectangle {w = 76, h = 15}
+level1:set(wattr.Classes("level-1"))
+level1:set(wattr.Margin(2, 4, 0, 0))
+level1:set(wattr.ScrollBox(0, 0))
+rootRect:appendChild(level1)
 
--- print(doc.viewport)
--- print(rootRect.viewport)
--- do
---   local child = rootRect.childNodes[1]
---   print(child.calculatedBox, child.viewport)
--- end
--- do
---   local child = rootRect.childNodes[4]
---   print(child.calculatedBox, child.viewport)
--- end
---
--- os.exit()
+for i = 1, 10, 1 do
+  local level2 = Rectangle {w = 72, h = 7}
+  level2:set(wattr.Classes("level-2"))
+  level2:set(wattr.Margin(2, 4, 0, 0))
+  level1:appendChild(level2)
+end
 
 wmain:render()
 
@@ -89,13 +84,19 @@ while true do
     wmain:__destroy__()
     os.exit()
   elseif e[1] == "key_down" then
-    local scrollBox = rootRect:get("scrollBox")
+    local element = rootRect
+
+    if kbd.isShiftDown() then
+      element = level1
+    end
+
+    local scrollBox = element:get("scrollBox")
 
     if e[4] == 208 then -- arrow down
-      rootRect:setScrollBox(scrollBox.x, scrollBox.y + 1, scrollBox.w, scrollBox.h)
+      element:setScrollBox(scrollBox.x, scrollBox.y + 1, scrollBox.w, scrollBox.h)
       wmain:render()
     elseif e[4] == 200 then -- arrow up
-      rootRect:setScrollBox(scrollBox.x, scrollBox.y - 1, scrollBox.w, scrollBox.h)
+      element:setScrollBox(scrollBox.x, scrollBox.y - 1, scrollBox.w, scrollBox.h)
       wmain:render()
     end
   end
