@@ -184,7 +184,9 @@ function Element:recompose()
   self.layout:recompose(self)
 
   for _, element in pairs(self.childNodes) do
-    element:recompose()
+    if element:isa(Element) then
+      element:recompose()
+    end
   end
 end
 
