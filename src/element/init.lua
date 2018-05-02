@@ -5,6 +5,7 @@ local event = require("wonderful.event")
 local geometry = require("wonderful.geometry")
 local layout = require("wonderful.layout")
 local node = require("wonderful.element.node")
+local stack = require("wonderful.element.stack")
 
 local PropRef = require("wonderful.style").PropRef
 local VBoxLayout = require("wonderful.layout.box").VBoxLayout
@@ -84,6 +85,9 @@ function LeafElement.__getters:viewport()
   return self.parentNode.viewport:intersection(self.calculatedBox)
 end
 
+function LeafElement.__getters:isFreeTree()
+  return not self.rootNode:isa(require("wonderful.element.document").Document)
+end
 
 local Element = class({LeafElement, node.ParentNode, layout.LayoutContainer},
                       {name = "wonderful.element.Element"})
@@ -147,6 +151,11 @@ function Element:insertChild(index, child)
     )
   end
 
+  if child._stackingContext then
+    child._stackingContext:mergeInto(self.stackingContext, child.stackingIndex)
+    child._stackingContext = nil
+  end
+
   self:recompose()
 end
 
@@ -169,7 +178,7 @@ function Element:removeChild(index)
 end
 
 function Element:sizeHint()
-  local width, height = self.layout:sizeHint()
+  local width, height = self.layout:sizeHint(self)
   local padding = self:getLayoutPadding()
   return width + padding.l + padding.r,
          height + padding.t + padding.b
@@ -181,6 +190,10 @@ function Element:setScrollBox(x, y, w, h)
 end
 
 function Element:recompose()
+  if self.isFreeTree then
+    return
+  end
+
   self.layout:recompose(self)
 
   for _, element in pairs(self.childNodes) do
@@ -191,7 +204,16 @@ function Element:recompose()
 end
 
 function Element.__getters:stackingContext()
-  return self.parentNode.stackingContext
+  if self.parentNode then
+    return self.parentNode.stackingContext
+  else
+    if not self._stackingContext then
+      self._stackingContext = stack.StackingContext()
+      self.stackingIndex = 0
+    end
+
+    return self._stackingContext
+  end
 end
 
 function Element.__getters:isLeaf()

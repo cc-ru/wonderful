@@ -1,4 +1,4 @@
-local cache = require("wonderful.util.func-cache")
+local funcUtil = require("wonderful.util.func")
 
 local function extract(color)
   color = color % 0x1000000
@@ -49,7 +49,7 @@ local function generateT1Palette(secondColor)
 
   palette.len = 2
 
-  palette.deflate = cache.cached1arg(t1deflate, 128, 2)
+  palette.deflate = funcUtil.cached1arg(t1deflate, 128, 2)
   palette.inflate = t1inflate
 
   return palette
@@ -65,7 +65,7 @@ local function generateT2Palette()
                    0x663300, 0x336600, 0xFF3333, 0x000000}
   palette.len = 16
 
-  palette.deflate = cache.cached1arg(t2deflate, 128, 2)
+  palette.deflate = funcUtil.cached1arg(t2deflate, 128, 2)
   palette.inflate = t2inflate
 
   return palette
@@ -121,8 +121,8 @@ local function generateT3Palette()
     palette[idx + 1] = r * 0x10000 + g * 0x100 + b
   end
 
-  palette.deflate = cache.cached1arg(t3deflate, 128, 2)
-  palette.t2deflate = cache.cached1arg(t2deflate, 128, 2)
+  palette.deflate = funcUtil.cached1arg(t3deflate, 128, 2)
+  palette.t2deflate = funcUtil.cached1arg(t2deflate, 128, 2)
   palette.inflate = t3inflate
 
   return palette

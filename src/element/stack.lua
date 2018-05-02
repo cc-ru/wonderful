@@ -2,6 +2,8 @@ local class = require("lua-objects")
 
 local iterUtil = require("wonderful.util.iter")
 
+local deferredCall = require("wonderful.util.func").deferredCall
+
 local StackingContext = class(
   nil,
   {name = "wonderful.element.stack.StackingContext"}
@@ -42,6 +44,18 @@ end
 function StackingContext:removeIndexed(index, order)
   self.indexed[index][order] = nil
   self.indexedCache = nil
+end
+
+function StackingContext:mergeInto(other, stackingIndex)
+  for i = 1, #self.static, 1 do
+    other:insertStatic(stackingIndex + i, self.static[i])
+  end
+
+  for i, index in pairs(self.indexed) do
+    for order, element in pairs(index) do
+      other:insertIndexed(stackingIndex + i, order, element)
+    end
+  end
 end
 
 function StackingContext.__getters:iter()
