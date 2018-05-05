@@ -206,11 +206,13 @@ function Buffer:_fill(x0, y0, x1, y1, fg, bg, alpha, char)
         new = nil
       end
 
-      if char == mainChar or not mainChar and char == " " then
-        char = nil
+      local cchar = char
+
+      if cchar == mainChar or not mainChar and cchar == " " then
+        cchar = nil
       end
 
-      self.storage.data[id][jd][kd] = char
+      self.storage.data[id][jd][kd] = cchar
       self.storage.data[id][jd][kd + 1] = new
     end
   end
@@ -330,20 +332,23 @@ function Framebuffer:_set(x, y, fg, bg, alpha, char)
     self.storage.data[id][jd][kd] = char
     self.storage.data[id][jd][kd + 1] = new
 
-    if (diffChar or diffColor) and not new and not char then
+    if (diffChar or diffColor) and not (new or char) then
       -- Dirty block is made clean
       diff = -1
     elseif (diffChar or diffColor) and (new or char) then
       -- Dirty block is made dirty
       diff = 0
-    else
+    elseif not (diffChar or diffColor) and not (new or char) then
+      -- Clean block is made clean
+      diff = 0
+    elseif not (diffChar or diffColor) and (new or char) then
       -- Clean block is made dirty
       diff = 1
     end
   end
 
   local blockX = (x - 1) / self.blockSize
-  blockX = blockX - block1X % 1
+  blockX = blockX - blockX % 1
 
   local blockY = (y - 1) / self.blockSize
   blockY = blockY - blockY % 1
@@ -393,11 +398,13 @@ function Framebuffer:_fill(x0, y0, x1, y1, fg, bg, alpha, char)
         new = nil
       end
 
-      if char == mainChar or not mainChar and char == " " then
-        char = nil
+      local cchar = char
+
+      if cchar == mainChar or not mainChar and cchar == " " then
+        cchar = nil
       end
 
-      self.storage.data[id][jd][kd] = char
+      self.storage.data[id][jd][kd] = cchar
       self.storage.data[id][jd][kd + 1] = new
 
       local diff
@@ -571,40 +578,45 @@ function Framebuffer:flush(sx, sy, gpu)
       ::notrect::
 
       for y = blockY + 1, blockY + blockH do
-        local lineX = blockX + 1
+        local lineX
         local line = {}
         local lineColor, lineBg
 
         for x = blockX + 1, blockX + blockW do
           local char, color = self.storage:getDiff(x, y)
 
-          if not char or not color and (char or color) then
-            local i, j, k = self.storage:indexMain(x, y)
-            char = char or self.storage.data[i][j][k] or " "
-            color = color or self.storage.data[i][j][k + 1] or self.defaultColor
-          end
-
-          if not lineColor and color then
-            lineColor = color
-            lineBg = lineColor % 0x100
-          end
-
-          local bg = color and color % 0x100
-
-          if color and (color == lineColor or
-                        (char == " " and bg == lineBg)) then
-            table.insert(line, char)
-          else
-            if lineColor then
+          if not char and not color then
+            if #line > 0 then
               writeLineInstruction(instructions, textData, lines, lineX - 1,
                                    y - 1, table.concat(line), lineColor)
+              line = {}
             end
-            lineX, lineColor, lineBg, line = x, color, bg, {char}
+          else
+            if not char or not color then
+              local i, j, k = self.storage:indexMain(x, y)
+              char = char or self.storage.data[i][j][k] or " "
+              color = color or self.storage.data[i][j][k + 1] or
+                      self.defaultColor
+            end
+
+            if #line == 0 then
+              lineColor = color
+              lineBg = lineColor % 0x100
+              lineX = x
+            end
+
+            local bg = color % 0x100
+
+            if color == lineColor or (char == " " and bg == lineBg) then
+              table.insert(line, char)
+            else
+              writeLineInstruction(instructions, textData, lines, lineX - 1,
+                                   y - 1, table.concat(line), lineColor)
+              self:mergeDiff(x, y)
+
+              lineX, lineColor, lineBg, line = x, color, bg, {char}
+            end
           end
-
-          self:mergeDiff(x, y)
-
-          ::nextx::
         end
 
         if #line > 0 then
