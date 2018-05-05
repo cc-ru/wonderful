@@ -522,21 +522,40 @@ function Framebuffer:flush(sx, sy, gpu)
     end
 
     do
-      local rectChar, rectColor = self:_get(blockX + 1, blockY + 1)
-      local rect = true
+      local rectChar, rectColor = self.storage:getDiff(blockX + 1, blockY + 1)
+
+      if not rectChar and not rectColor then
+        goto notrect
+      end
+
+      if not rectChar or not rectColor then
+        local i, j, k = self.storage:indexMain(blockX + 1, blockY + 1)
+        rectChar = rectChar or self.storage.data[i][j][k] or " "
+        rectColor = rectColor or self.storage.data[i][j][k + 1] or
+                    self.defaultColor
+      end
 
       for x = blockX + 1, blockX + blockW do
         for y = blockY + 1, blockY + blockH do
-          local char, color = self:_get(x, y)
+          local char, color = self.storage:getDiff(x, y)
+
+          if not char and not color then
+            goto notrect
+          end
+
+          if not char or not color then
+            local i, j, k = self.storage:indexMain(blockX + 1, blockY + 1)
+            char = char or self.storage.data[i][j][k] or " "
+            color = color or self.storage.data[i][j][k + 1] or self.defaultColor
+          end
 
           if char ~= rectChar or color ~= rectColor then
-            rect = false
-            break
+            goto notrect
           end
         end
       end
 
-      if rect then
+      do
         writeFillInstruction(instructions, textData, fills,
                              blockX, blockY, rectChar, rectColor)
 
@@ -549,31 +568,50 @@ function Framebuffer:flush(sx, sy, gpu)
         goto continue
       end
 
+      ::notrect::
+
       for y = blockY + 1, blockY + blockH do
         local lineX = blockX + 1
         local line = {}
-        local _, lineColor = self:_get(blockX + 1, y)
-        local lineBg = lineColor % 0x100
+        local lineColor, lineBg
 
         for x = blockX + 1, blockX + blockW do
-          local char, color = self:_get(x, y)
-          local bg = color % 0x100
+          local char, color = self.storage:getDiff(x, y)
 
-          if color == lineColor or (char == " " and bg == lineBg) then
+          if not char or not color and (char or color) then
+            local i, j, k = self.storage:indexMain(x, y)
+            char = char or self.storage.data[i][j][k] or " "
+            color = color or self.storage.data[i][j][k + 1] or self.defaultColor
+          end
+
+          if not lineColor and color then
+            lineColor = color
+            lineBg = lineColor % 0x100
+          end
+
+          local bg = color and color % 0x100
+
+          if color and (color == lineColor or
+                        (char == " " and bg == lineBg)) then
             table.insert(line, char)
           else
-            writeLineInstruction(instructions, textData, lines, lineX - 1,
-                                 y - 1, table.concat(line), lineColor)
+            if lineColor then
+              writeLineInstruction(instructions, textData, lines, lineX - 1,
+                                   y - 1, table.concat(line), lineColor)
+            end
             lineX, lineColor, lineBg, line = x, color, bg, {char}
           end
 
           self:mergeDiff(x, y)
+
+          ::nextx::
         end
 
         if #line > 0 then
           writeLineInstruction(instructions, textData, lines, lineX - 1,
                                y - 1, table.concat(line), lineColor)
         end
+
       end
     end
 
