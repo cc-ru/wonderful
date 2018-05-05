@@ -101,18 +101,16 @@ function Buffer:_set(x, y, fg, bg, alpha, char)
 
   local new = fg * 0x100 + bg
 
-  if new == mainColor then
+  if new == mainColor or not mainColor and new == self.defaultColor then
     new = nil
   end
 
-  if char == mainChar then
+  if char == mainChar or not mainChar and char == " " then
     char = nil
   end
 
   self.storage.data[id][jd][kd] = char
   self.storage.data[id][jd][kd + 1] = new
-
-  return new ~= mainColor or char ~= mainChar
 end
 
 function Buffer:set(x0, y0, fg, bg, alpha, line, vertical)
@@ -185,6 +183,39 @@ function Buffer:intersection(x0, y0, w, h)
   return x0, y0, x1, y1
 end
 
+function Buffer:_fill(x0, y0, x1, y1, fg, bg, alpha, char)
+  for x = x0, x1, 1 do
+    for y = y0, y1, 1 do
+      local im, jm, km = self.storage:indexMain(x, y)
+      local id, jd, kd = self.storage:indexDiff(x, y)
+
+      local mainChar = self.storage.data[im][jm][km]
+      local mainColor = self.storage.data[im][jm][km + 1]
+      local diffColor = self.storage.data[id][jd][kd + 1]
+
+      local old = diffColor or mainColor or self.defaultColor
+
+      local oldBg = self.palette:inflate(old % 0x100)
+
+      fg = self.palette:deflate(self:alphaBlend(oldBg, fg, alpha))
+      bg = self.palette:deflate(self:alphaBlend(oldBg, bg, alpha))
+
+      local new = fg * 0x100 + bg
+
+      if new == mainColor or not mainColor and new == self.defaultColor then
+        new = nil
+      end
+
+      if char == mainChar or not mainChar and char == " " then
+        char = nil
+      end
+
+      self.storage.data[id][jd][kd] = char
+      self.storage.data[id][jd][kd + 1] = new
+    end
+  end
+end
+
 function Buffer:fill(x0, y0, w, h, fg, bg, alpha, char)
   checkArg(1, x0, "number")
   checkArg(2, y0, "number")
@@ -201,11 +232,7 @@ function Buffer:fill(x0, y0, w, h, fg, bg, alpha, char)
     return
   end
 
-  for x = x0, x1, 1 do
-    for y = y0, y1, 1 do
-      self:_set(x, y, fg, bg, alpha, char)
-    end
-  end
+  self:_fill(x0, y0, x1, y1, fg, bg, alpha, char)
 end
 
 function Buffer:clear()
@@ -231,6 +258,31 @@ function Buffer:view(x, y, w, h, sx, sy, sw, sh)
   return view
 end
 
+function Buffer:mergeDiff(x, y)
+  local im, jm, km = self.storage:indexMain(x, y)
+  local id, jd, kd = self.storage:indexDiff(x, y)
+  local char = self.storage.data[id][jd][kd]
+  local color = self.storage.data[id][jd][kd + 1]
+
+  if char then
+    if char == " " then
+      char = nil
+    end
+
+    self.storage.data[im][jm][km] = char
+    self.storage.data[id][jd][kd] = nil
+  end
+
+  if color then
+    if color == self.defaultColor then
+      color = nil
+    end
+
+    self.storage.data[im][jm][km + 1] = color
+    self.storage.data[id][jd][kd + 1] = nil
+  end
+end
+
 --------------------------------------------------------------------------------
 
 function Framebuffer:__new__(args)
@@ -238,7 +290,7 @@ function Framebuffer:__new__(args)
 
   self.dirty = {}
 
-  self.blockSize = 10
+  self.blockSize = 12
   self.blocksW = math.ceil(self.w / self.blockSize)
   self.blocksH = math.ceil(self.h / self.blockSize)
 
@@ -246,21 +298,127 @@ function Framebuffer:__new__(args)
 end
 
 function Framebuffer:_set(x, y, fg, bg, alpha, char)
-  local diff = self:superCall("_set", x, y, fg, bg, alpha, char)
+  local diff
 
-  local blockX = (y - 1) / self.blockSize
-  -- floor
-  blockX = blockX - blockX % 1
+  do
+    -- Copypasted from parent to avoid search costs
+    local im, jm, km = self.storage:indexMain(x, y)
+    local id, jd, kd = self.storage:indexDiff(x, y)
 
-  local blockY = x / self.blockSize
-  -- ceil
-  if blockY ~= blockY % 1 then
-    blockY = blockY + (1 - blockY % 1)
+    local mainChar = self.storage.data[im][jm][km]
+    local mainColor = self.storage.data[im][jm][km + 1]
+    local diffChar = self.storage.data[id][jd][kd]
+    local diffColor = self.storage.data[id][jd][kd + 1]
+
+    local old = diffColor or mainColor or self.defaultColor
+
+    local oldBg = self.palette:inflate(old % 0x100)
+
+    fg = self.palette:deflate(self:alphaBlend(oldBg, fg, alpha))
+    bg = self.palette:deflate(self:alphaBlend(oldBg, bg, alpha))
+
+    local new = fg * 0x100 + bg
+
+    if new == mainColor or not mainColor and new == self.defaultColor then
+      new = nil
+    end
+
+    if char == mainChar or not mainChar and char == " " then
+      char = nil
+    end
+
+    self.storage.data[id][jd][kd] = char
+    self.storage.data[id][jd][kd + 1] = new
+
+    if (diffChar or diffColor) and not new and not char then
+      -- Dirty block is made clean
+      diff = -1
+    elseif (diffChar or diffColor) and (new or char) then
+      -- Dirty block is made dirty
+      diff = 0
+    else
+      -- Clean block is made dirty
+      diff = 1
+    end
   end
 
-  local block = blockX * self.blocksW + blockY
+  local blockX = (x - 1) / self.blockSize
+  blockX = blockX - block1X % 1
 
-  self.dirty[block] = (self.dirty[block] or 0) + (diff and 1 or -1)
+  local blockY = (y - 1) / self.blockSize
+  blockY = blockY - blockY % 1
+
+  local block = blockY * self.blocksW + blockX + 1
+
+  self.dirty[block] = (self.dirty[block] or 0) + diff
+end
+
+function Framebuffer:_fill(x0, y0, x1, y1, fg, bg, alpha, char)
+  local blockX = (x0 - 1) / self.blockSize
+  blockX = blockX - blockX % 1
+
+  local blockY = (y0 - 1) / self.blockSize
+  blockY = blockY - blockY % 1
+
+  for y = y0, y1, 1 do
+    if y ~= y0 and y % self.blockSize == 0 then
+      blockY = blockY + 1
+    end
+
+    block = blockY * self.blocksW + blockX + 1
+
+    for x = x0, x1, 1 do
+      if x ~= x0 and (x - 1) % self.blockSize == 0 then
+        block = block + 1
+      end
+
+      local im, jm, km = self.storage:indexMain(x, y)
+      local id, jd, kd = self.storage:indexDiff(x, y)
+
+      local mainChar = self.storage.data[im][jm][km]
+      local mainColor = self.storage.data[im][jm][km + 1]
+      local diffChar = self.storage.data[id][jd][kd]
+      local diffColor = self.storage.data[id][jd][kd + 1]
+
+      local old = diffColor or mainColor or self.defaultColor
+
+      local oldBg = self.palette:inflate(old % 0x100)
+
+      local cfg = self.palette:deflate(self:alphaBlend(oldBg, fg, alpha))
+      local cbg = self.palette:deflate(self:alphaBlend(oldBg, bg, alpha))
+
+      local new = cfg * 0x100 + cbg
+
+      if new == mainColor or not mainColor and new == self.defaultColor then
+        new = nil
+      end
+
+      if char == mainChar or not mainChar and char == " " then
+        char = nil
+      end
+
+      self.storage.data[id][jd][kd] = char
+      self.storage.data[id][jd][kd + 1] = new
+
+      local diff
+
+      if (diffChar or diffColor) and not (new or char) then
+        -- Dirty block is made clean
+        diff = -1
+      elseif (diffChar or diffColor) and (new or char) then
+        -- Dirty block is made dirty
+        diff = 0
+      elseif not (diffChar or diffColor) and not (new or char) then
+        -- Clean block is made clean
+        diff = 0
+      elseif not (diffChar or diffColor) and (new or char) then
+        -- Clean block is made dirty
+        diff = 1
+      end
+
+      self.dirty[block] = (self.dirty[block] or 0) + diff
+    end
+  end
 end
 
 function Framebuffer:clear()
@@ -345,18 +503,21 @@ function Framebuffer:flush(sx, sy, gpu)
   local blockX, blockY = 0, 0
   local blockI = 1
 
+  local lastBlockX = (self.blocksW - 1) * self.blockSize
+  local lastBlockY = (self.blocksH - 1) * self.blockSize
+
   while true do
     local blockW, blockH = self.blockSize, self.blockSize
 
-    if blockX == self.blocksW - 1 then
+    if blockX == lastBlockX then
       blockW = self.w % self.blockSize
     end
 
-    if blockY == self.blocksH - 1 then
+    if blockY == lastBlockY then
       blockH = self.h % self.blockSize
     end
 
-    if self.dirty[blockI] == 0 then
+    if not self.dirty[blockI] or self.dirty[blockI] == 0 then
       goto continue
     end
 
@@ -378,6 +539,13 @@ function Framebuffer:flush(sx, sy, gpu)
       if rect then
         writeFillInstruction(instructions, textData, fills,
                              blockX, blockY, rectChar, rectColor)
+
+        for x = blockX + 1, blockX + blockW do
+          for y = blockY + 1, blockY + blockH do
+            self:mergeDiff(x, y)
+          end
+        end
+
         goto continue
       end
 
@@ -398,6 +566,8 @@ function Framebuffer:flush(sx, sy, gpu)
                                  y - 1, table.concat(line), lineColor)
             lineX, lineColor, lineBg, line = x, color, bg, {char}
           end
+
+          self:mergeDiff(x, y)
         end
 
         if #line > 0 then
@@ -478,6 +648,10 @@ function BufferView:_set(x, y, fg, bg, alpha, char)
   self.buf:_set(x, y, fg, bg, alpha, char)
 end
 
+function BufferView:_fill(x0, y0, x1, y1, fg, bg, alpha, char)
+  self.buf:_fill(x0, y0, x1, y1, fg, bg, alpha, char)
+end
+
 function BufferView:_get(x, y)
   x, y = self:absCoords(x, y)
 
@@ -487,16 +661,7 @@ end
 function BufferView:intersection(x0, y0, w, h)
   x0, y0 = self:absCoords(x0, y0)
 
-  local x0, y0, x1, y1 = self:superCall("intersection", x0, y0, w, h)
-
-  if not x0 then
-    return
-  end
-
-  x0, y0 = self:relCoords(x0, y0)
-  x1, y1 = self:relCoords(x1, y1)
-
-  return x0, y0, x1, y1
+  return self:superCall("intersection", x0, y0, w, h)
 end
 
 function BufferView:view(x, y, w, h, sx, sy, sw, sh)
