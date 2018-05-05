@@ -4,6 +4,9 @@
   {name = "lua-objects", version = "^0.2.0", type="required"},
  },
  files = {
+  {url = "src/buffer/init.lua", path = "/usr/lib/wonderful/buffer/init.lua"},
+  {url = "src/buffer/storage52.lua", path = "/usr/lib/wonderful/buffer/storage52.lua"},
+  {url = "src/buffer/storage53.lua", path = "/usr/lib/wonderful/buffer/storage53.lua"},
   {url = "src/display.lua", path = "/usr/lib/wonderful/display.lua"},
   {url = "src/element/attribute.lua", path = "/usr/lib/wonderful/element/attribute.lua"},
   {url = "src/element/document.lua", path = "/usr/lib/wonderful/element/document.lua"},
@@ -11,7 +14,6 @@
   {url = "src/element/node.lua", path = "/usr/lib/wonderful/element/node.lua"},
   {url = "src/element/stack.lua", path = "/usr/lib/wonderful/element/stack.lua"},
   {url = "src/event.lua", path = "/usr/lib/wonderful/event.lua"},
-  {url = "src/framebuffer.lua", path = "/usr/lib/wonderful/framebuffer.lua"},
   {url = "src/geometry.lua", path = "/usr/lib/wonderful/geometry.lua"},
   {url = "src/init.lua", path = "/usr/lib/wonderful/init.lua"},
   {url = "src/layout/box.lua", path = "/usr/lib/wonderful/layout/box.lua"},

@@ -4,7 +4,7 @@ local computer = require("computer")
 
 local class = require("lua-objects")
 
-local Framebuffer = require("wonderful.framebuffer").Framebuffer
+local Framebuffer = require("wonderful.buffer").Framebuffer
 local Box = require("wonderful.geometry").Box
 
 local function depthResolution(depth)

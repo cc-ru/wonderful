@@ -5,13 +5,19 @@ local class = require("lua-objects")
 local geometry = require("wonderful.geometry")
 local palette = require("wonderful.util.palette")
 
-local floor = math.floor
+local storage
 
-local Buffer = class(nil, {name = "wonderful.framebuffer.Buffer"})
-local Framebuffer = class(Buffer, {name = "wonderful.framebuffer.Framebuffer"})
+if _VERSION == "Lua 5.3" then
+  storage = require("wonderful.buffer.storage53")
+else
+  storage = require("wonderful.buffer.storage52")
+end
+
+local Buffer = class(nil, {name = "wonderful.buffer.Buffer"})
+local Framebuffer = class(Buffer, {name = "wonderful.buffer.Framebuffer"})
 local BufferView = class(
   Buffer,
-  {name = "wonderful.framebuffer.BufferView"}
+  {name = "wonderful.buffer.BufferView"}
 )
 
 function Buffer:__new__(args)
@@ -21,9 +27,6 @@ function Buffer:__new__(args)
 
   self.box = geometry.Box(1, 1, self.w, self.h)
 
-  self.colorData = {}
-  self.textData = {}
-
   if self.depth == 1 then
     self.palette = palette.t1
   elseif self.depth == 4 then
@@ -32,17 +35,22 @@ function Buffer:__new__(args)
     self.palette = palette.t3
   end
 
+  local cells = self.w * self.h
+
+  if cells <= 25 * 16 then
+    self.storage = storage.BufferStorageT1(self.w, self.h)
+  elseif cells <= 50 * 25 then
+    self.storage = storage.BufferStorageT2(self.w, self.h)
+  elseif cells <= 160 * 50 then
+    self.storage = storage.BufferStorageT3(self.w, self.h)
+  else
+    error(("Unsupported resolution: %d×%d"):format(self.w, self.h))
+  end
+
+  self.storage:optimize()
+
   self.defaultColor = self.palette:deflate(0xffffff) * 0x100 +
                       self.palette:deflate(0x000000)
-end
-
-function Buffer:index(x, y)
-  return self.w * (y - 1) + (x - 1) + 1
-end
-
-function Buffer:coords(index)
-  index = index - 1
-  return index % self.w, floor(index / self.w)
 end
 
 function Buffer:inRange(x, y)
@@ -67,15 +75,25 @@ function Buffer:alphaBlend(color1, color2, alpha)
 
   local ialpha = 1 - alpha
 
-  return floor(r1 * ialpha + r2 * alpha + 0.5) * 0x10000 +
-         floor(g1 * ialpha + g2 * alpha + 0.5) * 0x100 +
-         floor(b1 * ialpha + b2 * alpha + 0.5)
+  local r = r1 * ialpha + r2 * alpha + 0.5
+  local g = g1 * ialpha + g2 * alpha + 0.5
+  local b = b1 * ialpha + b2 * alpha + 0.5
+
+  return (r - r % 1) * 0x10000 +
+         (g - g % 1) * 0x100 +
+         (b - b % 1)
 end
 
 function Buffer:_set(x, y, fg, bg, alpha, char)
-  local i = self:index(x, y)
+  local im, jm, km = self.storage:indexMain(x, y)
+  local id, jd, kd = self.storage:indexDiff(x, y)
 
-  local old = self.colorData[i] or self.defaultColor
+  local mainChar = self.storage.data[im][jm][km]
+  local mainColor = self.storage.data[im][jm][km + 1]
+  local diffColor = self.storage.data[id][jd][kd + 1]
+
+  local old = diffColor or mainColor or self.defaultColor
+
   local oldBg = self.palette:inflate(old % 0x100)
 
   fg = self.palette:deflate(self:alphaBlend(oldBg, fg, alpha))
@@ -83,22 +101,18 @@ function Buffer:_set(x, y, fg, bg, alpha, char)
 
   local new = fg * 0x100 + bg
 
-  if new == self.defaultColor then
+  if new == mainColor then
     new = nil
   end
 
-  if char == " " then
+  if char == mainChar then
     char = nil
   end
 
-  if self.colorData[i] == new and self.textData[i] == char then
-    return false
-  end
+  self.storage.data[id][jd][kd] = char
+  self.storage.data[id][jd][kd + 1] = new
 
-  self.colorData[i] = new
-  self.textData[i] = char
-
-  return true
+  return new ~= mainColor or char ~= mainChar
 end
 
 function Buffer:set(x0, y0, fg, bg, alpha, line, vertical)
@@ -129,12 +143,11 @@ function Buffer:set(x0, y0, fg, bg, alpha, line, vertical)
 end
 
 function Buffer:_get(x, y)
-  local i = self:index(x, y)
+  local mainChar, mainColor = self.storage:getMain(x, y)
+  local diffChar, diffColor = self.storage:getDiff(x, y)
 
-  local color = self.colorData[i] or self.defaultColor
-  local char = self.textData[i] or " "
-
-  return char, color
+  return diffChar or mainChar or " ",
+         diffColor or mainColor or self.defaultColor
 end
 
 function Buffer:get(x, y)
@@ -148,7 +161,7 @@ function Buffer:get(x, y)
   local char, color = self:_get(x, y)
 
   return char,
-         self.palette:inflate(floor(color / 0x100)),
+         self.palette:inflate((color - color % 100) / 0x100),
          self.palette:inflate(color % 0x100)
 end
 
@@ -196,8 +209,7 @@ function Buffer:fill(x0, y0, w, h, fg, bg, alpha, char)
 end
 
 function Buffer:clear()
-  self.colorData = {}
-  self.textData = {}
+  self.storage:clear()
 end
 
 function Buffer:view(x, y, w, h, sx, sy, sw, sh)
@@ -234,30 +246,38 @@ function Framebuffer:__new__(args)
 end
 
 function Framebuffer:_set(x, y, fg, bg, alpha, char)
-  local modified = self:superCall("_set", x, y, fg, bg, alpha, char)
+  local diff = self:superCall("_set", x, y, fg, bg, alpha, char)
 
-  if modified then
-    self.dirty[math.floor((y - 1) / self.blockSize) * self.blocksW +
-               math.ceil(x / self.blockSize)] = true
+  local blockX = (y - 1) / self.blockSize
+  -- floor
+  blockX = blockX - blockX % 1
+
+  local blockY = x / self.blockSize
+  -- ceil
+  if blockY ~= blockY % 1 then
+    blockY = blockY + (1 - blockY % 1)
   end
+
+  local block = blockX * self.blocksW + blockY
+
+  self.dirty[block] = (self.dirty[block] or 0) + (diff and 1 or -1)
 end
 
 function Framebuffer:clear()
   self:superCall("clear")
 
   self:markForRedraw()
-
 end
 
 function Framebuffer:markForRedraw()
   for i = 1, self.blocksW * self.blocksH, 1 do
-    self.dirty[i] = true
+    self.dirty[i] = math.huge
   end
 end
 
 local function writeFillInstruction(instructions, textData, fills, x, y,
                                     char, color)
-  local fg, bg = floor(color / 0x100), color % 0x100
+  local fg, bg = (color - color % 0x100) / 0x100, color % 0x100
 
   if not instructions[bg] then
     instructions[bg] = {}
@@ -285,7 +305,7 @@ end
 
 local function writeLineInstruction(instructions, textData, lines,
                                     x, y, line, color)
-  local fg, bg = floor(color / 0x100), color % 0x100
+  local fg, bg = (color - color % 0x100) / 0x100, color % 0x100
 
   if not instructions[bg] then
     instructions[bg] = {}
@@ -336,7 +356,7 @@ function Framebuffer:flush(sx, sy, gpu)
       blockH = self.h % self.blockSize
     end
 
-    if not self.dirty[blockI] then
+    if self.dirty[blockI] == 0 then
       goto continue
     end
 
@@ -410,8 +430,8 @@ function Framebuffer:flush(sx, sy, gpu)
 
       for i, pos in ipairs(chain) do
         local text = textData[background][foreground][i]
-        local x = floor(pos / 0x100)
         local y = pos % 0x100
+        local x = (pos - y) / 0x100
 
         if fills[background] and fills[background][foreground] and
             fills[background][foreground][i] then
