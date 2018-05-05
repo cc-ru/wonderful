@@ -44,23 +44,28 @@ function DisplayManager:__new__()
   end
 
   for address in component.list("gpu", true) do
+    local maxDepth = tonumber(((computer.getDeviceInfo() or {})[address] or
+                               {}).width) or 8
+
     self.gpus[address] = {
       address = address,
-      depth = tonumber(((computer.getDeviceInfo() or {})[address] or
-                        {}).width) or 8
+      depth = maxDepth
     }
 
     self.inital[address] = {
       screen = component.invoke(address, "getScreen"),
-      depth = component.invoke(address, "getDepth"),
-      background = component.invoke(address, "getBackground"),
-      foreground = component.invoke(address, "getForeground"),
+      depth = component.invoke(address, "getDepth") or maxDepth,
+      background = component.invoke(address, "getBackground") or 0x000000,
+      foreground = component.invoke(address, "getForeground") or 0xFFFFFF,
       resolution = {component.invoke(address, "getResolution")}
     }
 
-    local curDepth = component.invoke(address, "maxDepth")
-    if curDepth > self.maxDepth then
-      self.maxDepth = curDepth
+    if not self.inital[address].resolution[1] then
+      self.inital[address].resolution = {depthResolution(maxDepth)}
+    end
+
+    if maxDepth > self.maxDepth then
+      self.maxDepth = maxDepth
     end
 
     noGPUs = false
@@ -82,7 +87,10 @@ function DisplayManager:restore()
   for gpu, inital in pairs(self.inital) do
     local w, h = table.unpack(inital.resolution)
 
-    component.invoke(gpu, "bind", inital.screen)
+    if inital.screen then
+      component.invoke(gpu, "bind", inital.screen)
+    end
+
     component.invoke(gpu, "setDepth", inital.depth)
     component.invoke(gpu, "setBackground", inital.background)
     component.invoke(gpu, "setForeground", inital.foreground)
@@ -194,7 +202,7 @@ function DisplayManager:getGPU(display)
   end
 
   table.sort(candidates, function(rhs, lhs)
-    return rhs.depth < lhs.depth
+    return self.gpus[rhs].depth < self.gpus[lhs].depth
   end)
 
   local bindIndex

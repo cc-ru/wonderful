@@ -39,6 +39,7 @@ local BufferStorageT1 = class(
 function BufferStorageT1:__new__(w, h)
   self.w = w
   self.h = h
+  self:clear()
 end
 
 function BufferStorageT1:clear()
@@ -63,6 +64,7 @@ local BufferStorageT2 = class(
 function BufferStorageT2:__new__(w, h)
   self.w = w
   self.h = h
+  self:clear()
 end
 
 function BufferStorageT2:clear()
@@ -87,6 +89,7 @@ local BufferStorageT3 = class(
 function BufferStorageT3:__new__(w, h)
   self.w = w
   self.h = h
+  self:clear()
 end
 
 function BufferStorageT3:clear()
