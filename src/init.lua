@@ -5,6 +5,7 @@ local class = require("lua-objects")
 
 local document = require("wonderful.element.document")
 local display = require("wonderful.display")
+local geometry = require("wonderful.geometry")
 local signal = require("wonderful.signal")
 
 local Wonderful = class(nil, {name = "wonderful.Wonderful"})
@@ -40,7 +41,7 @@ function Wonderful:addDocument(args)
   local args = args or {}
 
   if args.x and args.y and args.w and args.h then
-    args.box = Box(args.x, args.y, args.w, args.h)
+    args.box = geometry.Box(args.x, args.y, args.w, args.h)
   end
 
   local display = self.displayManager:newDisplay {

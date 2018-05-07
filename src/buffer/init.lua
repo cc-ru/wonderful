@@ -612,10 +612,11 @@ function Framebuffer:flush(sx, sy, gpu)
             else
               writeLineInstruction(instructions, textData, lines, lineX - 1,
                                    y - 1, table.concat(line), lineColor)
-              self:mergeDiff(x, y)
 
               lineX, lineColor, lineBg, line = x, color, bg, {char}
             end
+
+            self:mergeDiff(x, y)
           end
         end
 
@@ -687,7 +688,7 @@ function BufferView:relCoords(x, y)
          y - self.coordBox.y + 1
 end
 
-function Buffer:inRange(x, y)
+function BufferView:inRange(x, y)
   x, y = self:absCoords(x, y)
 
   return self.box:has(x, y)
