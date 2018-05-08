@@ -23,13 +23,12 @@
 -- - f
 local class = require("lua-objects")
 local wonderful = require("wonderful")
-local welement = require("wonderful.element")
 
 local wmain = wonderful.Wonderful()
 
 local doc = wmain:addDocument()
 
-local Container = class(welement.Element, {name = "Container"})
+local Container = class(wonderful.element.Element, {name = "Container"})
 
 function Container:__new__(name)
   self:superCall("__new__")

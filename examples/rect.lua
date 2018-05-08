@@ -7,13 +7,12 @@ local com = require("component")
 
 local wonderful = require("wonderful")
 local wstyle = require("wonderful.style")
-local welement = require("wonderful.element")
 
 local class = require("lua-objects")
 
 local wmain = wonderful.Wonderful()
 
-local Rectangle = class(welement.LeafElement, {name = "Rectangle"})
+local Rectangle = class(wonderful.element.LeafElement, {name = "Rectangle"})
 
 local doc = wmain:addDocument {style = wstyle.WonderfulStyle {
   types = {
@@ -46,7 +45,7 @@ function Rectangle:sizeHint()
   return 80, 1
 end
 
-local Dummy = class(welement.Element, {name = "Dummy"})
+local Dummy = class(wonderful.element.Element, {name = "Dummy"})
 
 function Dummy:sizeHint()
   return 80, 25
