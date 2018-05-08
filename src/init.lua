@@ -7,6 +7,7 @@ local document = require("wonderful.element.document")
 local display = require("wonderful.display")
 local geometry = require("wonderful.geometry")
 local signal = require("wonderful.signal")
+local tableUtil = require("wonderful.util.table")
 
 local Wonderful = class(nil, {name = "wonderful.Wonderful"})
 
@@ -181,10 +182,10 @@ function Wonderful:__destroy__()
   self.documents = {}
 end
 
-return {
+return tableUtil.autoimport({
   Wonderful = Wonderful,
   Document = document.Document,
   DisplayManager = display.DisplayManager,
   Display = display.Display,
-}
+}, "wonderful")
 

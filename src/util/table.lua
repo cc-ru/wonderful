@@ -40,9 +40,26 @@ local function isin(value, tbl)
   return false
 end
 
+local function autoimport(root, pkg)
+  return setmetatable(root, {
+    __index = function(self, name)
+      local success, mod = pcall(require, pkg .. "." .. name)
+
+      if success then
+        if type(mod) == "table" and not getmetatable(mod) then
+          return autoimport(mod, pkg .. "." .. name)
+        else
+          return mod
+        end
+      end
+    end
+  })
+end
+
 return {
   shalloweq = shalloweq,
   shallowcopy = shallowcopy,
   isin = isin,
+  autoimport = autoimport,
 }
 
