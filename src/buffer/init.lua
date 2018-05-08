@@ -524,7 +524,9 @@ function Framebuffer:flush(sx, sy, gpu)
       blockH = self.h % self.blockSize
     end
 
-    if not self.dirty[blockI] or self.dirty[blockI] == 0 then
+    local dirtiness = self.dirty[blockI]
+
+    if not dirtiness or dirtiness == 0 then
       goto continue
     end
 
@@ -546,7 +548,7 @@ function Framebuffer:flush(sx, sy, gpu)
         for y = blockY + 1, blockY + blockH do
           local char, color = self.storage:getDiff(x, y)
 
-          if not char and not color then
+          if not char and not color and dirtiness ~= math.huge then
             goto notrect
           end
 
@@ -585,7 +587,7 @@ function Framebuffer:flush(sx, sy, gpu)
         for x = blockX + 1, blockX + blockW do
           local char, color = self.storage:getDiff(x, y)
 
-          if not char and not color then
+          if not char and not color and dirtiness ~= math.huge then
             if #line > 0 then
               writeLineInstruction(instructions, textData, lines, lineX - 1,
                                    y - 1, table.concat(line), lineColor)
