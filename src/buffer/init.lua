@@ -513,6 +513,9 @@ function Framebuffer:flush(sx, sy, gpu)
   local lastBlockX = (self.blocksW - 1) * self.blockSize
   local lastBlockY = (self.blocksH - 1) * self.blockSize
 
+  local storage = self.storage
+  local data = self.storage.data
+
   while true do
     local blockW, blockH = self.blockSize, self.blockSize
 
@@ -531,31 +534,31 @@ function Framebuffer:flush(sx, sy, gpu)
     end
 
     do
-      local rectChar, rectColor = self.storage:getDiff(blockX + 1, blockY + 1)
+      local rectChar, rectColor = storage:getDiff(blockX + 1, blockY + 1)
 
       if not rectChar and not rectColor then
         goto notrect
       end
 
       if not rectChar or not rectColor then
-        local i, j, k = self.storage:indexMain(blockX + 1, blockY + 1)
-        rectChar = rectChar or self.storage.data[i][j][k] or " "
-        rectColor = rectColor or self.storage.data[i][j][k + 1] or
+        local i, j, k = storage:indexMain(blockX + 1, blockY + 1)
+        rectChar = rectChar or data[i][j][k] or " "
+        rectColor = rectColor or data[i][j][k + 1] or
                     self.defaultColor
       end
 
       for x = blockX + 1, blockX + blockW do
         for y = blockY + 1, blockY + blockH do
-          local char, color = self.storage:getDiff(x, y)
+          local char, color = storage:getDiff(x, y)
 
           if not char and not color and dirtiness ~= math.huge then
             goto notrect
           end
 
           if not char or not color then
-            local i, j, k = self.storage:indexMain(blockX + 1, blockY + 1)
-            char = char or self.storage.data[i][j][k] or " "
-            color = color or self.storage.data[i][j][k + 1] or self.defaultColor
+            local i, j, k = storage:indexMain(blockX + 1, blockY + 1)
+            char = char or data[i][j][k] or " "
+            color = color or data[i][j][k + 1] or self.defaultColor
           end
 
           if char ~= rectChar or color ~= rectColor then
@@ -585,7 +588,7 @@ function Framebuffer:flush(sx, sy, gpu)
         local lineColor, lineBg
 
         for x = blockX + 1, blockX + blockW do
-          local char, color = self.storage:getDiff(x, y)
+          local char, color = storage:getDiff(x, y)
 
           if not char and not color and dirtiness ~= math.huge then
             if #line > 0 then
@@ -595,9 +598,9 @@ function Framebuffer:flush(sx, sy, gpu)
             end
           else
             if not char or not color then
-              local i, j, k = self.storage:indexMain(x, y)
-              char = char or self.storage.data[i][j][k] or " "
-              color = color or self.storage.data[i][j][k + 1] or
+              local i, j, k = storage:indexMain(x, y)
+              char = char or data[i][j][k] or " "
+              color = color or data[i][j][k + 1] or
                       self.defaultColor
             end
 
