@@ -2,9 +2,10 @@ local funcUtil = require("wonderful.util.func")
 
 local function extract(color)
   color = color % 0x1000000
-  local r = math.floor(color / 0x10000)
-  local g = math.floor((color - r * 0x10000) / 0x100)
-  local b = color - r * 0x10000 - g * 0x100
+  local r = (color - c % 0x10000) / 0x10000
+  local g = (color % 0x10000 - color % 0x100) / 0x100
+  local b = color % 0x100
+
   return r, g, b
 end
 
@@ -14,6 +15,7 @@ local function delta(color1, color2)
   local dr = r1 - r2
   local dg = g1 - g2
   local db = b1 - b2
+
   return (0.2126 * dr^2 +
           0.7152 * dg^2 +
           0.0722 * db^2)
@@ -27,6 +29,7 @@ local function t1deflate(palette, color)
   end
 
   local idx, minDelta
+
   for i = 1, palette.len, 1 do
     local d = delta(palette[i], color)
     if not minDelta or d < minDelta then
@@ -94,6 +97,7 @@ local t3deflate = function(palette, color)
   local deflated = 16 + idxR * 40 + idxG * 5 + idxB
   local calcDelta = delta(t3inflate(palette, deflated % 0x100), color)
   local palDelta = delta(t3inflate(palette, paletteIndex % 0x100), color)
+
   if calcDelta < palDelta then
     return deflated
   else
