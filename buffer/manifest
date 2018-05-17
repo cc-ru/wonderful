@@ -1,0 +1,11 @@
+{name = "wonderful-buffer",
+ version = "0.0.0",
+ dependencies = {
+   {name = "lua-objects", version = "^0.2.0", type = "required"},
+   {name = "wonderful-common", version = "^0.0.0", type="required"},
+ },
+ files = {
+   {url = "src/buffer/init.lua", path = "/usr/lib/wonderful/buffer/init.lua"},
+   {url = "src/buffer/storage52.lua", path = "/usr/lib/wonderful/buffer/storage52.lua"},
+   {url = "src/buffer/storage53.lua", path = "/usr/lib/wonderful/buffer/storage53.lua"},
+ }}
