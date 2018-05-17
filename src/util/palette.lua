@@ -2,7 +2,7 @@ local funcUtil = require("wonderful.util.func")
 
 local function extract(color)
   color = color % 0x1000000
-  local r = (color - c % 0x10000) / 0x10000
+  local r = (color - color % 0x10000) / 0x10000
   local g = (color % 0x10000 - color % 0x100) / 0x100
   local b = color % 0x100
 
@@ -10,8 +10,16 @@ local function extract(color)
 end
 
 local function delta(color1, color2)
-  local r1, g1, b1 = extract(color1)
-  local r2, g2, b2 = extract(color2)
+  -- inlined: extract
+  local r1 = (color1 - color1 % 0x10000) / 0x10000
+  local g1 = (color1 % 0x10000 - color1 % 0x100) / 0x100
+  local b1 = color1 % 0x100
+
+  -- inlined: extract
+  local r2 = (color2 - color2 % 0x10000) / 0x10000
+  local g2 = (color2 % 0x10000 - color2 % 0x100) / 0x100
+  local b2 = color2 % 0x100
+
   local dr = r1 - r2
   local dg = g1 - g2
   local db = b1 - b2
@@ -32,6 +40,7 @@ local function t1deflate(palette, color)
 
   for i = 1, palette.len, 1 do
     local d = delta(palette[i], color)
+
     if not minDelta or d < minDelta then
       idx, minDelta = i, d
     end
@@ -90,10 +99,20 @@ local t3deflate = function(palette, color)
     end
   end
 
-  local r, g, b = extract(color)
-  local idxR = math.floor(r * RCOEF + 0.5)
-  local idxG = math.floor(g * GCOEF + 0.5)
-  local idxB = math.floor(b * BCOEF + 0.5)
+  -- inlined: extract
+  local r = (color - color % 0x10000) / 0x10000
+  local g = (color % 0x10000 - color % 0x100) / 0x100
+  local b = color % 0x100
+
+  local idxR = r * RCOEF + 0.5
+  idxR = idxR - idxR % 1
+
+  local idxG = g * GCOEF + 0.5
+  idxG = idxG - idxG % 1
+
+  local idxB = b * BCOEF + 0.5
+  idxB = idxB - idxB % 1
+
   local deflated = 16 + idxR * 40 + idxG * 5 + idxB
   local calcDelta = delta(t3inflate(palette, deflated % 0x100), color)
   local palDelta = delta(t3inflate(palette, paletteIndex % 0x100), color)
@@ -117,11 +136,22 @@ local function generateT3Palette()
   for idx = 16, 255, 1 do
     local i = idx - 16
     local iB = i % 5
-    local iG = math.floor(i / 5) % 8
-    local iR = math.floor(i / 5 / 8) % 6
-    local r = math.floor(iR * 0xFF / (6 - 1) + 0.5)
-    local g = math.floor(iG * 0xFF / (8 - 1) + 0.5)
-    local b = math.floor(iB * 0xFF / (5 - 1) + 0.5)
+
+    local iG = (i / 5) % 8
+    iG = iG - iG % 1
+
+    local iR = (i / 5 / 8) % 6
+    iR = iR - iR % 1
+
+    local r = iR * 0xFF / (6 - 1) + 0.5
+    r = r - r % 1
+
+    local g = iG * 0xFF / (8 - 1) + 0.5
+    g = g % 1
+
+    local b = iB * 0xFF / (5 - 1) + 0.5
+    b = b % 1
+
     palette[idx + 1] = r * 0x10000 + g * 0x100 + b
   end
 
@@ -133,7 +163,7 @@ local function generateT3Palette()
 end
 
 return {
-  t1 = generateT1Palette(),
+  t1 = generateT1Palette(0xffffff),
   t2 = generateT2Palette(),
   t3 = generateT3Palette(),
 
