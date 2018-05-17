@@ -1,8 +1,6 @@
 {name = "wonderful-common",
  version = "0.0.0",
- dependencies = {
-   {name = "lua-objects", version = "^0.2.0", type = "required"},
- },
+ dependencies = {},
  files = {
    {url = "src/util/func.lua", path = "/usr/lib/wonderful/util/func.lua"},
    {url = "src/util/iter.lua", path = "/usr/lib/wonderful/util/iter.lua"},
