@@ -2,6 +2,7 @@
  version = "0.0.0",
  dependencies = {},
  files = {
+   {url = "src/geometry.lua", path = "/usr/lib/wonderful/geometry.lua"},
    {url = "src/util/func.lua", path = "/usr/lib/wonderful/util/func.lua"},
    {url = "src/util/iter.lua", path = "/usr/lib/wonderful/util/iter.lua"},
    {url = "src/util/palette.lua", path = "/usr/lib/wonderful/util/palette.lua"},

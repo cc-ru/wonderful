@@ -1,3 +1,6 @@
+--- Display buffers
+-- @module wonderful.buffer
+
 local unicode = require("unicode")
 
 local class = require("lua-objects")
@@ -13,13 +16,32 @@ else
   storage = require("wonderful.buffer.storage52")
 end
 
+--- A non-renderable buffer.
 local Buffer = class(nil, {name = "wonderful.buffer.Buffer"})
-local Framebuffer = class(Buffer, {name = "wonderful.buffer.Framebuffer"})
-local BufferView = class(
-  Buffer,
-  {name = "wonderful.buffer.BufferView"}
-)
 
+local BufferView
+
+--- A non-renderable buffer.
+-- @type Buffer
+
+--- A buffer width.
+-- @field Buffer.w
+
+--- A buffer height.
+-- @field Buffer.h
+
+--- A palette the buffer uses.
+-- @field Buffer.palette
+
+--- A buffer depth.
+-- @field Buffer.depth
+
+--- Construct a new buffer.
+-- @tparam table args keyword argument table
+-- @tparam int args.w width of buffer
+-- @tparam int args.h height of buffer
+-- @tparam int args.depth color depth
+-- @treturn wonderful.buffer.Buffer A buffer instance.
 function Buffer:__new__(args)
   self.w = args.w
   self.h = args.h
@@ -53,10 +75,19 @@ function Buffer:__new__(args)
                       self.palette:deflate(0x000000)
 end
 
+--- Check if a block belongs to the buffer.
+-- @tparam int x row number
+-- @tparam int y row number
+-- @treturn boolean
 function Buffer:inRange(x, y)
   return self.box:has(x, y)
 end
 
+--- Perform alpha blending of two colors.
+-- @tparam int color1 first color
+-- @tparam int color2 second color
+-- @tparam number alpha opacity (alpha value ∈ [0; 1])
+-- @treturn int The result of alpha blending.
 function Buffer:alphaBlend(color1, color2, alpha)
   if color1 == color2 then
     return color1
@@ -84,6 +115,17 @@ function Buffer:alphaBlend(color1, color2, alpha)
          (b - b % 1)
 end
 
+--- Set a block.
+-- This is an internal method that **does not** perform sanity checks.
+-- Futhermore, unlike @{wonderful.buffer.Buffer:set}, this method only sets
+-- a single block per call.
+-- @tparam int x column number
+-- @tparam int y row number
+-- @tparam int fg foreground color
+-- @tparam int bg background color
+-- @tparam number alpha opacity (alpha value ∈ [0; 1])
+-- @tparam string char character
+-- @see wonderful.buffer.Buffer:set
 function Buffer:_set(x, y, fg, bg, alpha, char)
   local im, jm, km = self.storage:indexMain(x, y)
   local id, jd, kd = self.storage:indexDiff(x, y)
@@ -113,6 +155,17 @@ function Buffer:_set(x, y, fg, bg, alpha, char)
   self.storage.data[id][jd][kd + 1] = new
 end
 
+--- Set a line of characters.
+-- This method performs sanity checks, which may reduce perfomance
+-- significantly if used too often.
+-- @tparam int x0 column number
+-- @tparam int y0 row number
+-- @tparam int fg foreground color
+-- @tparam int bg background color
+-- @tparam number alpha opacity (alpha value ∈ [0; 1])
+-- @tparam string line text line
+-- @tparam[opt=false] boolean vertical if true, sets a vertical line
+-- @see wonderful.buffer.Buffer:_set
 function Buffer:set(x0, y0, fg, bg, alpha, line, vertical)
   checkArg(1, x0, "number")
   checkArg(2, y0, "number")
@@ -140,6 +193,15 @@ function Buffer:set(x0, y0, fg, bg, alpha, line, vertical)
   end
 end
 
+--- Retrieve a block from the storage.
+-- This is an internal method that **does not** perform sanity checks.
+-- Futhermore, unlike @{wonderful.buffer.Buffer:get}, this method returns
+-- a packed and deflated color instead of foreground and background.
+-- @tparam int x column number
+-- @tparam int y row number
+-- @treturn string block's character
+-- @treturn int block's packed and deflated color
+-- @see wonderful.buffer.Buffer:get
 function Buffer:_get(x, y)
   local mainChar, mainColor = self.storage:getMain(x, y)
   local diffChar, diffColor = self.storage:getDiff(x, y)
@@ -148,6 +210,15 @@ function Buffer:_get(x, y)
          diffColor or mainColor or self.defaultColor
 end
 
+--- Retrieve a block from the storage.
+-- This method performs sanity checks, which may reduce perfomance
+-- significantly if used too often.
+-- @tparam int x column number
+-- @tparam int y row number
+-- @treturn string block's character
+-- @treturn int block's foreground color
+-- @treturn int block's background color
+-- @see wonderful.buffer.Buffer:_get
 function Buffer:get(x, y)
   checkArg(1, x, "number")
   checkArg(2, y, "number")
@@ -163,6 +234,15 @@ function Buffer:get(x, y)
          self.palette:inflate(color % 0x100)
 end
 
+--- Get an intersection of the buffer and a given sub-box.
+-- @tparam int x0 top-left block column number
+-- @tparam int y0 top-left block row number
+-- @tparam int w width of sub-box
+-- @tparam int h height of sub-box
+-- @treturn int intersection's top-left block column number
+-- @treturn int intersection's top-left block row number
+-- @treturn int intersection's bottom-right block column number
+-- @treturn int intersection's bottom-right block row number
 function Buffer:intersection(x0, y0, w, h)
   if w <= 0 or h <= 0 then
     return
@@ -183,6 +263,17 @@ function Buffer:intersection(x0, y0, w, h)
   return x0, y0, x1, y1
 end
 
+--- Fill an area with a given block.
+-- This is an internal method that **does not** perform sanity checks.
+-- @tparam int x0 top-left block column number
+-- @tparam int y0 top-left block row number
+-- @tparam int x1 bottom-right block column number
+-- @tparam int y1 bottom-right block row number
+-- @tparam int fg foreground color
+-- @tparam int bg background color
+-- @tparam number alpha opacity (alpha value ∈ [0; 1])
+-- @tparam string char character
+-- @see wonderful.buffer.Buffer:fill
 function Buffer:_fill(x0, y0, x1, y1, fg, bg, alpha, char)
   for x = x0, x1, 1 do
     for y = y0, y1, 1 do
@@ -218,6 +309,18 @@ function Buffer:_fill(x0, y0, x1, y1, fg, bg, alpha, char)
   end
 end
 
+--- Fill an area with a given block.
+-- This method performs sanity checks, which may decrease perfomance
+-- significantly if used too often.
+-- @tparam int x0 top-left block column number
+-- @tparam int y0 top-left block row number
+-- @tparam int w area width
+-- @tparam int h area width
+-- @tparam int fg foreground color
+-- @tparam int bg background color
+-- @tparam number alpha opacity (alpha value ∈ [0; 1])
+-- @tparam string char character
+-- @see wonderful.buffer.Buffer:_fill
 function Buffer:fill(x0, y0, w, h, fg, bg, alpha, char)
   checkArg(1, x0, "number")
   checkArg(2, y0, "number")
@@ -234,13 +337,26 @@ function Buffer:fill(x0, y0, w, h, fg, bg, alpha, char)
     return
   end
 
+  char = unicode.sub(char, 1, 1)
+
   self:_fill(x0, y0, x1, y1, fg, bg, alpha, char)
 end
 
+--- Reset all blocks to default.
 function Buffer:clear()
   self.storage:clear()
 end
 
+--- Create a buffer view.
+-- @tparam number x coordinate box's top-left block column number
+-- @tparam number y coordinate box's top-left block row number
+-- @tparam number w coordinate box's width
+-- @tparam number h coordinate box's height
+-- @tparam number sx restricting box's top-left block column number
+-- @tparam number sy restricting box's top-left block row number
+-- @tparam number sw restricting box's width
+-- @tparam number sh restricting box's height
+-- @treturn wonderful.buffer.BufferView
 function Buffer:view(x, y, w, h, sx, sy, sw, sh)
   -- defines the view (buffer-relative) coordinate system
   local coordBox = geometry.Box(x, y, w, h)
@@ -285,8 +401,35 @@ function Buffer:mergeDiff(x, y)
   end
 end
 
+---
+-- @section end
+
 --------------------------------------------------------------------------------
 
+--- A flushable buffer.
+local Framebuffer = class(Buffer, {name = "wonderful.buffer.Framebuffer"})
+
+--- A flushable buffer.
+-- @type Framebuffer
+
+--- A buffer width.
+-- @field Buffer.w
+
+--- A buffer height.
+-- @field Buffer.h
+
+--- A palette the buffer uses.
+-- @field Buffer.palette
+
+--- A buffer depth.
+-- @field Buffer.depth
+
+--- Construct a new framebuffer.
+-- @tparam table args keyword argument table
+-- @tparam int args.w width of buffer
+-- @tparam int args.h height of buffer
+-- @tparam int args.depth color depth
+-- @treturn wonderful.buffer.Framebuffer A framebuffer instance.
 function Framebuffer:__new__(args)
   self:superCall("__new__", args)
 
@@ -299,6 +442,32 @@ function Framebuffer:__new__(args)
   self:markForRedraw()
 end
 
+--- Check if a block belongs to the buffer.
+-- @tparam int x row number
+-- @tparam int y row number
+-- @treturn boolean
+-- @see Buffer:inRange
+-- @function Framebuffer:inRange
+
+--- Perform alpha blending of two colors.
+-- @tparam int color1 first color
+-- @tparam int color2 second color
+-- @tparam number alpha opacity (alpha value ∈ [0; 1])
+-- @treturn int The result of alpha blending.
+-- @see Buffer:alphaBlend
+-- @function Framebuffer:alphaBlend
+
+--- Set a block.
+-- This is an internal method that **does not** perform sanity checks.
+-- Futhermore, unlike @{wonderful.buffer.Framebuffer:set}, this method only sets
+-- a single block per call.
+-- @tparam int x column number
+-- @tparam int y row number
+-- @tparam int fg foreground color
+-- @tparam int bg background color
+-- @tparam number alpha opacity (alpha value ∈ [0; 1])
+-- @tparam string char character
+-- @see wonderful.buffer.Framebuffer:set
 function Framebuffer:_set(x, y, fg, bg, alpha, char)
   local diff
 
@@ -358,6 +527,67 @@ function Framebuffer:_set(x, y, fg, bg, alpha, char)
   self.dirty[block] = (self.dirty[block] or 0) + diff
 end
 
+--- Set a line of characters.
+-- This method performs sanity checks, which may reduce perfomance
+-- significantly if used too often.
+-- @tparam int x0 column number
+-- @tparam int y0 row number
+-- @tparam int fg foreground color
+-- @tparam int bg background color
+-- @tparam number alpha opacity (alpha value ∈ [0; 1])
+-- @tparam string line text line
+-- @tparam[opt=false] boolean vertical if true, sets a vertical line
+-- @see wonderful.buffer.Framebuffer:_set
+-- @see wonderful.buffer.Buffer:_set
+-- @function Framebuffer:set
+
+--- Retrieve a block from the storage.
+-- This is an internal method that **does not** perform sanity checks.
+-- Futhermore, unlike @{wonderful.buffer.Framebuffer:get}, this method returns
+-- a packed and deflated color instead of foreground and background.
+-- @tparam int x column number
+-- @tparam int y row number
+-- @treturn string block's character
+-- @treturn int block's packed and deflated color
+-- @see wonderful.buffer.Framebuffer:get
+-- @see wonderful.buffer.Buffer:_get
+-- @function Framebuffer:_get
+
+--- Retrieve a block from the storage.
+-- This method performs sanity checks, which may reduce perfomance
+-- significantly if used too often.
+-- @tparam int x column number
+-- @tparam int y row number
+-- @treturn string block's character
+-- @treturn int block's foreground color
+-- @treturn int block's background color
+-- @see wonderful.buffer.Framebuffer:_get
+-- @see wonderful.buffer.Buffer:get
+-- @function Framebuffer:get
+
+--- Get an intersection of the buffer and a given sub-box.
+-- @tparam int x0 top-left block column number
+-- @tparam int y0 top-left block row number
+-- @tparam int w width of sub-box
+-- @tparam int h height of sub-box
+-- @treturn int intersection's top-left block column number
+-- @treturn int intersection's top-left block row number
+-- @treturn int intersection's bottom-right block column number
+-- @treturn int intersection's bottom-right block row number
+-- @see wonderful.buffer.Buffer:intersection
+-- @function Framebuffer:intersection
+
+--- Fill an area with a given block.
+-- This is an internal method that **does not** perform sanity checks.
+-- @tparam int x0 top-left block column number
+-- @tparam int y0 top-left block row number
+-- @tparam int x1 bottom-right block column number
+-- @tparam int y1 bottom-right block row number
+-- @tparam int fg foreground color
+-- @tparam int bg background color
+-- @tparam number alpha opacity (alpha value ∈ [0; 1])
+-- @tparam string char character
+-- @see wonderful.buffer.Buffer:fill
 function Framebuffer:_fill(x0, y0, x1, y1, fg, bg, alpha, char)
   local blockX = (x0 - 1) / self.blockSize
   blockX = blockX - blockX % 1
@@ -428,12 +658,29 @@ function Framebuffer:_fill(x0, y0, x1, y1, fg, bg, alpha, char)
   end
 end
 
+--- Fill an area with a given block.
+-- This method performs sanity checks, which may decrease perfomance
+-- significantly if used too often.
+-- @tparam int x0 top-left block column number
+-- @tparam int y0 top-left block row number
+-- @tparam int w area width
+-- @tparam int h area width
+-- @tparam int fg foreground color
+-- @tparam int bg background color
+-- @tparam number alpha opacity (alpha value ∈ [0; 1])
+-- @tparam string char character
+-- @see wonderful.buffer.Framebuffer:_fill
+-- @see wonderful.buffer.Buffer:fill
+-- @function Framebuffer:fill
+
+--- Reset all blocks to default.
 function Framebuffer:clear()
   self:superCall("clear")
 
   self:markForRedraw()
 end
 
+--- Redraw the whole buffer on next flush.
 function Framebuffer:markForRedraw()
   for i = 1, self.blocksW * self.blocksH, 1 do
     self.dirty[i] = math.huge
@@ -499,6 +746,10 @@ local function writeLineInstruction(instructions, textData, lines,
   end
 end
 
+--- Flush a buffer onto a GPU.
+-- @tparam int sx top-left block column number to draw buffer at
+-- @tparam int sy top-left block row number to draw buffer at
+-- @tparam table gpu GPU component proxy
 function Framebuffer:flush(sx, sy, gpu)
   sx, sy = sx - 1, sy - 1
 
@@ -674,8 +925,51 @@ function Framebuffer:flush(sx, sy, gpu)
   self.dirty = {}
 end
 
+--- Create a buffer view.
+-- @tparam number x coordinate box's top-left block column number
+-- @tparam number y coordinate box's top-left block row number
+-- @tparam number w coordinate box's width
+-- @tparam number h coordinate box's height
+-- @tparam number sx restricting box's top-left block column number
+-- @tparam number sy restricting box's top-left block row number
+-- @tparam number sw restricting box's width
+-- @tparam number sh restricting box's height
+-- @treturn wonderful.buffer.BufferView
+-- @see wonderful.buffer.Buffer:view
+-- @function Framebuffer:view
+
+---
+-- @section end
+
 --------------------------------------------------------------------------------
 
+--- A view on some rectangular area within a buffer
+BufferView = class(
+  Buffer,
+  {name = "wonderful.buffer.BufferView"}
+)
+
+--- A view on some rectangular area within a buffer
+-- @type BufferView
+-- @see Buffer:view
+
+--- The buffer's depth.
+-- @field BufferView.depth
+
+--- The buffer's palette.
+-- @field BufferView.palette
+
+--- The view width.
+-- @field BufferView.w
+
+--- The view height
+-- @field BufferView.h
+
+--- Construct a view.
+-- This method **should not** be used directly.
+-- @see wonderful.buffer.Buffer:view
+-- @see wonderful.buffer.Framebuffer:view
+-- @see wonderful.buffer.BufferView:view
 function BufferView:__new__(buf, coordBox, restrictBox)
   self.buf = buf
 
@@ -683,49 +977,110 @@ function BufferView:__new__(buf, coordBox, restrictBox)
   self.box = restrictBox
 end
 
+--- Convert view-relative coordinates to buffer-relative coordinates.
+-- @tparam int x view-relative block column number
+-- @tparam int y view-relative block row number
+-- @treturn int buffer-relative block column number
+-- @treturn int buffer-relative block row number
 function BufferView:absCoords(x, y)
   return x + self.coordBox.x - 1,
          y + self.coordBox.y - 1
 end
 
+--- Convert buffer-relative coordinates to view-relative coordinates.
+-- @tparam int x buffer-relative block column number
+-- @tparam int y buffer-relative block row number
+-- @treturn int x view-relative block column number
+-- @treturn int y view-relative block row number
 function BufferView:relCoords(x, y)
   return x - self.coordBox.x + 1,
          y - self.coordBox.y + 1
 end
 
+--- Check if a block at given buffer-relative coordinates belongs to the view.
+-- @tparam int x view-relative block column number
+-- @tparam int y view-relative block row number
 function BufferView:inRange(x, y)
   x, y = self:absCoords(x, y)
 
   return self.box:has(x, y)
 end
 
+--- Proxy @{wonderful.buffer.Buffer:_set} to the buffer.
+-- @tparam int x view-relative block column number
+-- @tparam int y view-relative block row number
+-- @tparam int fg foreground color
+-- @tparam int bg background color
+-- @tparam number alpha opacity (alpha value ∈ [0; 1])
+-- @tparam string char character
+-- @see wonderful.buffer.Buffer:_set
 function BufferView:_set(x, y, fg, bg, alpha, char)
   x, y = self:absCoords(x, y)
   self.buf:_set(x, y, fg, bg, alpha, char)
 end
 
+--- Proxy @{wonderful.buffer.Buffer:_fill} to the buffer.
+-- @tparam int x0 view-relative top-left block column number
+-- @tparam int y0 view-relative top-left block row number
+-- @tparam int x1 view-relative bottom-right block column number
+-- @tparam int y1 view-relative bottom-right block row number
+-- @tparam int fg foreground color
+-- @tparam int bg background color
+-- @tparam number alpha opacity (alpha value ∈ [0; 1])
+-- @tparam string char character
+-- @see wonderful.buffer.Buffer:_fill
 function BufferView:_fill(x0, y0, x1, y1, fg, bg, alpha, char)
   self.buf:_fill(x0, y0, x1, y1, fg, bg, alpha, char)
 end
 
+--- Proxy @{wonderful.buffer.Buffer:_get} to the buffer.
+-- @tparam int x view-relative block column number
+-- @tparam int y view-relative block row number
+-- @treturn string block's character
+-- @treturn int block's packed and deflated color
+-- @see wonderful.buffer.Buffer:_get
 function BufferView:_get(x, y)
   x, y = self:absCoords(x, y)
 
   return self.buf:_get(x, y)
 end
 
+--- Proxy @{wonderful.buffer.Buffer:intersection} to the buffer.
+-- @tparam int x0 view-relative top-left block column number
+-- @tparam int y0 view-relative top-left block row number
+-- @tparam int w sub-box width
+-- @tparam int h sub-box height
+-- @treturn int buffer-relative intersection's top-left block column number
+-- @treturn int buffer-relative intersection's top-left block row number
+-- @treturn int buffer-relative intersection's bottom-right block column number
+-- @treturn int buffer-relative intersection's bottom-right block row number
+-- @see wonderful.buffer.Buffer:intersection
 function BufferView:intersection(x0, y0, w, h)
   x0, y0 = self:absCoords(x0, y0)
 
   return self:superCall("intersection", x0, y0, w, h)
 end
 
+--- Create a view relative to the view.
+-- The child view is bounded by the parent view's restricting box.
+-- All coordinates are relative to the parent view's coordinate box.
+-- The child view will point to the buffer directly.
+-- @tparam int x coordinate box's top-left block column number
+-- @tparam int y coordinate box's top-left block row number
+-- @tparam int w coordinate box's width
+-- @tparam int h cooridnate box's height
+-- @tparam int sx restricting box's top-left block column number
+-- @tparam int sy restricting box's top-left block row number
+-- @tparam int sw restricting box's width
+-- @tparam int sh restricting box's height
+-- @treturn wonderful.buffer.BufferView
+-- @see wonderful.buffer.Buffer:view
 function BufferView:view(x, y, w, h, sx, sy, sw, sh)
   local x, y = self:absCoords(x, y)
 
   local coordBox = geometry.Box(x, y, w, h)
 
-  local restrictBox = coordBox:relative(sx, sy, sw, sh)
+  local restrictBox = self.coordBox:relative(sx, sy, sw, sh)
   restrictBox = restrictBox:intersection(self.box)
   restrictBox = restrictBox:intersection(coordBox)
 
@@ -736,6 +1091,7 @@ function BufferView:view(x, y, w, h, sx, sy, sw, sh)
 
   return view
 end
+
 
 function BufferView.__getters:depth()
   return self.buf.depth
@@ -753,6 +1109,8 @@ function BufferView.__getters:h()
   return self.coordBox.h
 end
 
+---
+-- @export
 return {
   Buffer = Buffer,
   Framebuffer = Framebuffer,
