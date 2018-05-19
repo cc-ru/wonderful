@@ -1,3 +1,6 @@
+--- Various function utilities (e.g. cache).
+-- @module wonderful.util.func
+
 local function cached(func, entries)
   entries = entries or math.huge
   local cache = {}

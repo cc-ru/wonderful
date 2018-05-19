@@ -1,3 +1,6 @@
+--- The style AST nodes.
+-- @module wonderful.style.node
+
 local class = require("lua-objects")
 
 local Node = class(nil, {name = "wonderful.style.node.Node"})

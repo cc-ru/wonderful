@@ -1,3 +1,6 @@
+--- The style interpreter.
+-- @module wonderful.style.interpreter
+
 local class = require("lua-objects")
 
 local textBuf = require("wonderful.style.buffer")

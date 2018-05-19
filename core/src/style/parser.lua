@@ -1,3 +1,6 @@
+--- The style parser.
+-- @module wonderful.style.parser
+
 local unicode = require("unicode")
 
 local class = require("lua-objects")

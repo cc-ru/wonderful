@@ -1,3 +1,6 @@
+--- Some common signals.
+-- @module wonderful.signal
+
 local class = require("lua-objects")
 
 local Event = require("wonderful.event").Event

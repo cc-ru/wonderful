@@ -1,3 +1,6 @@
+--- Various table utilities.
+-- @module wonderful.util.table
+
 local function shallowcopy(orig)
   if type(orig) ~= "table" then
     return orig

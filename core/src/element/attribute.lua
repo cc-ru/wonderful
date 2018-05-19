@@ -1,3 +1,6 @@
+--- Default element attributes.
+-- @module wonderful.element.attribute
+
 local class = require("lua-objects")
 
 local geometry = require("wonderful.geometry")

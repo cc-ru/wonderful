@@ -1,3 +1,6 @@
+--- The default style selectors.
+-- @module wonderful.style.selector
+
 local class = require("lua-objects")
 
 local Selector = class(nil, {name = "wonderful.style.selector.Selector"})

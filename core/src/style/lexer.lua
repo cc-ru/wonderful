@@ -1,3 +1,6 @@
+--- The style lexer.
+-- @module wonderful.style.lexer
+
 local unicode = require("unicode")
 
 local class = require("lua-objects")

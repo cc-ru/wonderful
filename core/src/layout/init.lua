@@ -1,3 +1,6 @@
+--- The abstract layout classes.
+-- @module wonderful.layout
+
 local class = require("lua-objects")
 
 local Margin = require("wonderful.geometry").Margin

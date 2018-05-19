@@ -1,3 +1,6 @@
+--- The default style types.
+-- @module wonderful.style.type
+
 local class = require("lua-objects")
 
 local lexer = require("wonderful.style.lexer")

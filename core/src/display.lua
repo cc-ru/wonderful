@@ -1,3 +1,6 @@
+--- Display manager and GPU pool.
+-- @module wonderful.display
+
 local bit32 = require("bit32")
 local component = require("component")
 local computer = require("computer")

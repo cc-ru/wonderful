@@ -1,3 +1,6 @@
+--- Various iterator utilities.
+-- @module wonderful.util.iter
+
 local function wrap(iter, state, var)
   return {
     iter = iter,

@@ -1,3 +1,6 @@
+--- The main module, which exports the Wonderful class.
+-- @module wonderful
+
 local component = require("component")
 local event = require("event")
 

@@ -1,3 +1,6 @@
+--- The box layout.
+-- @module wonderful.layout.box
+
 local class = require("lua-objects")
 
 local Box = require("wonderful.geometry").Box

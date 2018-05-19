@@ -1,3 +1,6 @@
+--- The default style properties.
+-- @module wonderful.style.property
+
 local class = require("lua-objects")
 
 local wtype = require("wonderful.style.type")

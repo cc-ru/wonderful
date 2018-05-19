@@ -1,4 +1,6 @@
--- Styles! "I wonder how it works" edition.
+--- The style engine.
+-- "I wonder how it works" edition.
+-- @module wonderful.style
 
 local buffer = require("buffer")
 

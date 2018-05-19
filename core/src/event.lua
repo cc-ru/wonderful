@@ -1,3 +1,6 @@
+--- Base classes of the wonderful's event system.
+-- @module wonderful.event
+
 local class = require("lua-objects")
 
 local iterUtil = require("wonderful.util.iter")

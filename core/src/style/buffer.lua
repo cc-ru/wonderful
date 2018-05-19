@@ -1,4 +1,6 @@
--- A file buffer that keeps track of the current column and row in the file.
+--- A file buffer that keeps track of the current column and row in the file.
+-- @module wonderful.style.buffer
+
 local unicode = require("unicode")
 
 local class = require("lua-objects")

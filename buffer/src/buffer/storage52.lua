@@ -1,3 +1,6 @@
+--- Buffer storage classes for Lua 5.2.
+-- @module wonderful.buffer.storage52
+
 local class = require("lua-objects")
 
 local BufferStorage = class(

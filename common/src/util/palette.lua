@@ -1,3 +1,6 @@
+--- GPU color palettes.
+-- @module wonderful.util.palette
+
 local funcUtil = require("wonderful.util.func")
 
 local function extract(color)

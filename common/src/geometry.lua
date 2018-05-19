@@ -1,3 +1,6 @@
+--- Geometry objects (e.g. boxes).
+-- @module wonderful.geometry
+
 local class = require("lua-objects")
 
 local Box = class(nil, {name = "wonderful.geometry.Box"})

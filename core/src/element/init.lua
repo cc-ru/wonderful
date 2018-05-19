@@ -1,3 +1,6 @@
+--- The @{wonderful.element.LeafElement} and @{wonderful.element.Element} classes.
+-- @module wonderful.element
+
 local class = require("lua-objects")
 
 local attribute = require("wonderful.element.attribute")

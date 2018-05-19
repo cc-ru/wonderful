@@ -1,3 +1,6 @@
+--- The stacking context.
+-- @module wonderful.element.stack
+
 local class = require("lua-objects")
 
 local iterUtil = require("wonderful.util.iter")

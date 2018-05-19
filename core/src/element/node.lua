@@ -1,3 +1,6 @@
+--- Tree node classes.
+-- @module wonderful.element.node
+
 local class = require("lua-objects")
 
 local ChildNode = class(nil, {name = "wonderful.element.node.ChildNode"})
