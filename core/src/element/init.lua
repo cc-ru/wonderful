@@ -13,11 +13,43 @@ local stack = require("wonderful.element.stack")
 local PropRef = require("wonderful.style").PropRef
 local VBoxLayout = require("wonderful.layout.box").VBoxLayout
 
+--- The leaf element class, which can't store children.
+-- @see wonderful.element.node.ChildNode
+-- @see wonderful.event.EventTarget
+-- @see wonderful.layout.LayoutItem
 local LeafElement = class(
   {node.ChildNode, event.EventTarget, layout.LayoutItem},
   {name = "wonderful.element.LeafElement"}
 )
 
+--- The leaf element class, which can't store children.
+-- @type LeafElement
+
+--- The element's calculated box.
+-- @see wonderful.geometry.Box
+-- @field LeafElement.calculatedBox
+
+--- The document's style instance. May be absent.
+-- @field LeafElement.style
+
+--- The document's display. May be absent.
+-- @field LeafElement.display
+
+--- Whether the element is a leaf node.
+-- @field LeafElement.isLeaf
+
+--- Whether static positioning is used.
+-- @field LeafElement.isStaticPositioned
+
+--- The viewport (the shown area when the container is scrolled).
+-- @field LeafElement.viewport
+
+--- Whether the element is part of a free tree.
+-- A free tree is a tree without
+-- a @{wonderful.element.document.Document|Document} node.
+-- @field LeafElement.isFreeTree
+
+--- Construct a new instance.
 function LeafElement:__new__()
   self.attributes = {}
 
@@ -27,14 +59,21 @@ function LeafElement:__new__()
   self.calculatedBox = geometry.Box()
 end
 
+--- Render the element.
+-- @tparam wonderful.buffer.BufferView fbView a view on the framebuffer
 function LeafElement:render(fbView)
   -- hint
 end
 
+--- Set an attribute.
+-- @tparam wonderful.element.attribute.Attribute attribute the attribute
 function LeafElement:set(attribute)
   self.attributes[attribute.key] = attribute
 end
 
+--- Get an attribute by its key.
+-- @tparam string key the key.
+-- @return the attribute or `nil`
 function LeafElement:get(key)
   return self.attributes[key]
 end
@@ -47,22 +86,36 @@ function LeafElement:getBubblingChildren()
   return {}
 end
 
+--- Provide a hint on the element size.
+-- @treturn int the width
+-- @treturn int the height
 function LeafElement:sizeHint()
   return 0, 0
 end
 
+--- Create a style property reference.
+-- @tparam string name the property name
+-- @param default a default value
+-- @treturn wonderful.style.PropRef the property reference
+-- @see wonderful.style.PropRef
 function LeafElement:propRef(name, default)
   return PropRef(self, name, default)
 end
 
+--- Get the element's margin.
+-- @treturn wonderful.element.attribute.Margin
 function LeafElement:getMargin()
   return self:get("margin") or attribute.Margin()
 end
 
+--- Get the element's stretch value.
+-- @treturn wonderful.element.attribute.Stretch
 function LeafElement:getStretch()
   return (self:get("stretch") or attribute.Stretch()).value
 end
 
+--- Set a new calculated box.
+-- @tparam wonderful.geometry.Box new the new box
 function LeafElement:boxCalculated(new)
   self.calculatedBox = new
 end
@@ -92,9 +145,31 @@ function LeafElement.__getters:isFreeTree()
   return not self.rootNode:isa(require("wonderful.element.document").Document)
 end
 
+---
+-- @section end
+
+--- The non-leaf element class.
+-- @see wonderful.element.LeafElement
+-- @see wonderful.element.node.ParentNode
+-- @see wonderful.layout.LayoutContainer
 local Element = class({LeafElement, node.ParentNode, layout.LayoutContainer},
                       {name = "wonderful.element.Element"})
 
+--- A non-leaf element class.
+-- @type Element
+
+--- The layout used to position children.
+-- @field Element.layout
+
+--- The stacking context.
+-- Creates an ad-hoc stacking context if the element belongs to a free tree,
+-- which is merged into the parent when the element is inserted.
+-- @field Element.stackingContext
+
+--- Whether the element is a leaf node.
+-- @field Element.isLeaf
+
+--- Construct a new element instance.
 function Element:__new__()
   self:superCall(LeafElement, "__new__")
   self:superCall(node.ParentNode, "__new__")
@@ -139,6 +214,9 @@ function Element:getLayoutBox()
   return geometry.Box(x, y, w, h)
 end
 
+--- Insert a child at a given index.
+-- @tparam int index the index
+-- @param child the child element
 function Element:insertChild(index, child)
   self:superCall(node.ParentNode, "insertChild", index, child)
 
@@ -162,8 +240,15 @@ function Element:insertChild(index, child)
   self:recompose()
 end
 
+--- Removes a child at a given index.
+-- @tparam int index the index
+-- @return `false` or the removed element
 function Element:removeChild(index)
   local ret = self:superCall(node.ParentNode, "removeChild", index)
+
+  if not ret then
+    return false
+  end
 
   if ret.isStaticPositioned then
     self.stackingContext:removeStatic(self.stackingIndex + index)
@@ -187,11 +272,18 @@ function Element:sizeHint()
          height + padding.t + padding.b
 end
 
+--- Set a scroll box and recompose.
+-- @tparam int x an x offset (0-based)
+-- @tparam int y a y offset (0-based)
+-- @tparam int w a width
+-- @tparam int h a height
+-- @see wonderful.element.attribute.ScrollBox
 function Element:setScrollBox(x, y, w, h)
   self:set(attribute.ScrollBox(x, y, w, h))
   self:recompose()
 end
 
+--- Recompose the element, calculating boxes for its children.
 function Element:recompose()
   if self.isFreeTree then
     return
@@ -223,6 +315,8 @@ function Element.__getters:isLeaf()
   return false
 end
 
+---
+-- @export
 return {
   LeafElement = LeafElement,
   Element = Element,

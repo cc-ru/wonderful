@@ -1,6 +1,8 @@
 project = 'wonderful'
 title = 'wonderful API reference'
-description = 'A *wonderful* GUI library.'
+description = 'The *wonderful* GUI library.'
+full_description = [[
+This is the API reference for the wonderful library.]]
 readme = 'README.md'
 examples = 'examples'
 

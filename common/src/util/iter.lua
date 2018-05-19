@@ -1,6 +1,11 @@
 --- Various iterator utilities.
 -- @module wonderful.util.iter
 
+--- Wrap an `ipairs` or `pairs` iterator.
+-- @tparam function iter an iterator
+-- @param state a state value
+-- @param var the last value
+-- @treturn table a wrapped iterator
 local function wrap(iter, state, var)
   return {
     iter = iter,
@@ -9,6 +14,10 @@ local function wrap(iter, state, var)
   }
 end
 
+--- Create a sorted iterator over a sequence.
+-- @tparam table t a sequence
+-- @tparam[opt=false] boolean rev whether to invert the sorting function
+-- @treturn function an iterator
 local function ipairsSorted(t, rev)
   local keys = {}
 
@@ -30,6 +39,9 @@ local function ipairsSorted(t, rev)
   end
 end
 
+--- Create a reversed iterator over a sequence.
+-- @tparam table table a sequence
+-- @treturn function an iterator
 local function ipairsRev(table)
   local i = #table
 
@@ -41,6 +53,12 @@ local function ipairsRev(table)
   end
 end
 
+--- Chain several wrapped iterators.
+-- When an iterator ends, the next one is used.
+-- @param ... wrapped iterators to chain
+-- @treturn function a chained iterator
+-- @usage chain(wrap(ipairs(a)), wrap(ipairs(b)))
+-- @see wonderful.util.iter.chain
 local function chain(...)
   local chain = {...}
   local i = 1
@@ -65,6 +83,8 @@ local function chain(...)
   return continue
 end
 
+---
+-- @export
 return {
   wrap = wrap,
   ipairsSorted = ipairsSorted,

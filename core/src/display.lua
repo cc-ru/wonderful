@@ -10,6 +10,10 @@ local class = require("lua-objects")
 local Framebuffer = require("wonderful.buffer").Framebuffer
 local Box = require("wonderful.geometry").Box
 
+--- Deduce a maximum resolution by a maximum depth.
+-- @tparam int depth the depth
+-- @treturn int a width
+-- @treturn int a height
 local function depthResolution(depth)
   if depth == 1 then
     return 50, 16
@@ -20,9 +24,17 @@ local function depthResolution(depth)
   end
 end
 
+--- A class that manages GPU pool and stores displays.
 local DisplayManager = class(nil, {name = "wonderful.display.DisplayManager"})
+
+--- A display class.
+-- A display is a reference to an area on a screen.
 local Display = class(nil, {name = "wonderful.display.Display"})
 
+--- A class that manages GPU poll and stores displays.
+-- @type DisplayManager
+
+--- Construct a new display manager instance.
 function DisplayManager:__new__()
   self.screens = {}
   self.gpus = {}
@@ -86,6 +98,7 @@ function DisplayManager:__new__()
   self.primaryGPU = component.getPrimary("gpu")
 end
 
+--- Restores the previous state of GPUs.
 function DisplayManager:restore()
   for gpu, inital in pairs(self.inital) do
     local w, h = table.unpack(inital.resolution)
@@ -104,14 +117,25 @@ function DisplayManager:restore()
   require("term").clear()
 end
 
+--- Set a preferred resolution for a screen.
+-- @tparam string address the address of the screen
+-- @tparam int w the width
+-- @tparam int h the height
 function DisplayManager:setPreferredScreenResolution(address, w, h)
   self.screens[address].preferredResolution = {w, h}
 end
 
+--- Forcefully bind a GPU to a screen.
+-- @tparam string screen the screen address
+-- @tparam string gpu the GPU address
 function DisplayManager:forceScreenGPU(screen, gpu)
   self.screens[screen].forcedGPU = gpu
 end
 
+--- Choose a resolution of a screen.
+-- @tparam string screen the screen address
+-- @treturn int the width
+-- @treturn int the height
 function DisplayManager:getScreenResolution(screen)
   local depth = self:getScreenDepth(screen)
 
@@ -122,6 +146,9 @@ function DisplayManager:getScreenResolution(screen)
   return math.min(w, dw), math.min(h, dh)
 end
 
+--- Get a depth of a screen.
+-- @tparam string screen the screen address
+-- @treturn int the depth
 function DisplayManager:getScreenDepth(screen)
   local screen = self.screens[screen]
 
@@ -131,6 +158,14 @@ function DisplayManager:getScreenDepth(screen)
   )
 end
 
+--- Create a new display by its specification.
+-- @tparam table spec the specification
+-- @tparam[opt] int spec.x a top-left cell's column number
+-- @tparam[opt] int spec.y a top-left cell's row number
+-- @tparam[opt] int spec.w a width of the display
+-- @tparam[opt] int spec.h a height of the display
+-- @tparam[opt] string spec.screen a screen address
+-- @treturn wonderful.display.Display the display
 function DisplayManager:newDisplay(spec)
   local spec = spec or {}
 
@@ -194,6 +229,9 @@ function DisplayManager:newDisplay(spec)
   return display
 end
 
+--- Get a GPU for a display
+-- @tparam wonderful.display.Display display the display
+-- @treturn string a GPU address
 function DisplayManager:getGPU(display)
   local candidates = {}
   local screen = self.screens[display.screen]
@@ -225,8 +263,18 @@ function DisplayManager:getGPU(display)
   return candidates[1]
 end
 
+---
+-- @section end
+
 --------------------------------------------------------------------------------
 
+--- A display class.
+-- A display is a reference to an area on a screen.
+-- @type Display
+
+--- Construct a new display.
+-- You **should not** use this directly.
+-- @see wonderful.display.DisplayManager
 function Display:__new__(manager, screen, box, depth)
   self.manager = manager
   self.screen = screen
@@ -241,11 +289,14 @@ function Display:__new__(manager, screen, box, depth)
   self.fb:optimize()
 end
 
+--- Flush a display's framebuffer onto the display's screen.
 function Display:flush()
   local gpu = component.proxy(self.manager:getGPU(self))
   self.fb:flush(self.box.x, self.box.y, gpu)
 end
 
+---
+-- @export
 return {
   DisplayManager = DisplayManager,
   Display = Display,

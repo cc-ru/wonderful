@@ -5,19 +5,31 @@ local class = require("lua-objects")
 
 local iterUtil = require("wonderful.util.iter")
 
-local deferredCall = require("wonderful.util.func").deferredCall
-
+--- The stacking context class.
 local StackingContext = class(
   nil,
   {name = "wonderful.element.stack.StackingContext"}
 )
 
+--- The stacking context class.
+-- @type StackingContext
+
+--- The iterator over the elements.
+-- @field StackingContext.iter
+
+--- The reversed iterator over the elements.
+-- @field StackingContext.iterRev
+
+--- Construct a new stacking context.
 function StackingContext:__new__()
   self.static = {}
   self.indexed = {}
   self.indexedCache = nil
 end
 
+--- Insert an element at a static index.
+-- @tparam int index the index
+-- @param element the element
 function StackingContext:insertStatic(index, element)
   table.insert(self.static, index, element)
 
@@ -26,6 +38,8 @@ function StackingContext:insertStatic(index, element)
   end
 end
 
+--- Remove an element at a static index.
+-- @tparam int index the index
 function StackingContext:removeStatic(index)
   local el = table.remove(self.static, index)
   el.stackingIndex = nil
@@ -35,6 +49,10 @@ function StackingContext:removeStatic(index)
   end
 end
 
+--- Insert a z-indexed element.
+-- @tparam int index the z-index
+-- @tparam int order the order of the element
+-- @param element the element
 function StackingContext:insertIndexed(index, order, element)
   if not self.indexed[index] then
     self.indexed[index] = {}
@@ -44,11 +62,17 @@ function StackingContext:insertIndexed(index, order, element)
   self.indexedCache = nil
 end
 
+--- Remove a z-indexed element.
+-- @tparam int index the z-index
+-- @tparam int order the order of the element
 function StackingContext:removeIndexed(index, order)
   self.indexed[index][order] = nil
   self.indexedCache = nil
 end
 
+--- Merge the stacking context into another one.
+-- @tparam wonderful.element.stack.StackingContext other the other stacking context
+-- @tparam int stackingIndex the stacking index at which to merge self
 function StackingContext:mergeInto(other, stackingIndex)
   for i = 1, #self.static, 1 do
     other:insertStatic(stackingIndex + i, self.static[i])
@@ -99,6 +123,8 @@ function StackingContext.__getters:iterRev()
   )
 end
 
+---
+-- @export
 return {
   StackingContext = StackingContext,
 }

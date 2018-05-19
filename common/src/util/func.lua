@@ -1,6 +1,19 @@
---- Various function utilities (e.g. cache).
+--- Various function utilities (eg cache).
 -- @module wonderful.util.func
 
+--- Decorate a function to cache results of execution.
+-- When such a function is called, checks if the cache contains an entry for
+-- such arguments. If it does, returns the entry. Otherwise, the original
+-- function is called, and the result is stored in cache.
+--
+-- The original function must return the same result if called with the same
+-- arguments.
+--
+-- The number of entries stored in cache can be limited.
+--
+-- @tparam function func a function to decorate
+-- @tparam[opt=math.huge] int entries a cache size limit
+-- @treturn function the decorated function
 local function cached(func, entries)
   entries = entries or math.huge
   local cache = {}
@@ -37,9 +50,20 @@ local function cached(func, entries)
   end
 end
 
+--- Decorate a function to cache results of execution.
+-- Only a single argument is stored. Works considerably faster than
+-- @{wonderful.util.func.cached} in such cases.
+--
+-- @tparam function func a function to decorate
+-- @tparam[opt=math.huge] number entries a cache size limit
+-- @tparam int pos an index of argument to cache
+-- @treturn function the decorated function
+-- @see wonderful.util.func.cached
 local function cached1arg(func, entries, pos)
+  entries = entries or math.huge
   local cache = {}
   local count = 0
+
   return function(...)
     local arg = select(pos, ...)
     if cache[arg] then
@@ -57,6 +81,8 @@ local function cached1arg(func, entries, pos)
   end
 end
 
+---
+-- @export
 return {
   cached = cached,
   cached1arg = cached1arg,

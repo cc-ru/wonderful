@@ -3,8 +3,26 @@
 
 local class = require("lua-objects")
 
+--- The node class that can't store other child nodes.
+-- @see wonderful.element.node.ParentNode
 local ChildNode = class(nil, {name = "wonderful.element.node.ChildNode"})
 
+--- The node class that can't store other child nodes.
+-- @type ChildNode
+
+--- The reference to the parent node. May be absent.
+-- @field ChildNode.parentNode
+
+--- The reference to the root node. May be absent.
+-- @field ChildNode.rootNode
+
+--- Whether the node has a parent node.
+-- @field ChildNode.hasParentNode
+
+--- The tree level.
+-- @field ChildNode.level
+
+--- Construct a new instance.
 function ChildNode:__new_()
   self.parentNode = nil
 end
@@ -34,15 +52,33 @@ function ChildNode.__getters:level()
   return self.hasParentNode and (self.parentNode.level + 1) or 0
 end
 
+---
+-- @section end
+
+--- The node class that can store child nodes.
+-- @see wonderful.element.node.ChildNode
 local ParentNode = class(
   ChildNode,
   {name = "wonderful.element.node.ParentNode"}
 )
 
+--- The node class that can store child nodes.
+-- @type ParentNode
+
+--- The child nodes.
+-- @field ParentNode.childNodes
+
+--- `true` if the node has child nodes.
+-- @field ParentNode.hasChildNodes
+
+--- Construct a new node.
 function ParentNode:__new__()
   self.childNodes = {}
 end
 
+--- Insert a node at a given index.
+-- @tparam int index the index
+-- @param node the node.
 function ParentNode:insertChild(index, node)
   if node.hasParentNode then
     node.parentNode:removeChild(node.index)
@@ -56,7 +92,14 @@ function ParentNode:insertChild(index, node)
   self:updateIndeces()
 end
 
+--- Remove a node at a given index.
+-- @tparam int index the index
+-- @return `false` or the removed node
 function ParentNode:removeChild(index)
+  if not self.childNodes[index] then
+    return false
+  end
+
   local node = table.remove(self.childNodes, index)
 
   node.parentNode = nil
@@ -68,16 +111,29 @@ function ParentNode:removeChild(index)
   return node
 end
 
+--- Prepend a node.
+-- @param child the node
 function ParentNode:prependChild(child)
   self:insertChild(1, child)
 end
 
+--- Append a node.
+-- @param child the node
 function ParentNode:appendChild(child)
   self:insertChild(#self.childNodes + 1, child)
 end
 
+--- Replace a node at a given index.
+-- @tparam int index the index
+-- @param child the node
+-- @return `false` or the replaced node
 function ParentNode:replaceChild(index, child)
   local old = self:removeChild(index)
+
+  if not old then
+    return false
+  end
+
   self:insertChild(index, child)
   return old
 end
@@ -92,6 +148,8 @@ function ParentNode.__getters:hasChildNodes()
   return #self.childNodes > 0
 end
 
+---
+-- @export
 return {
   ChildNode = ChildNode,
   ParentNode = ParentNode,

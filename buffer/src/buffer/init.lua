@@ -37,11 +37,10 @@ local BufferView
 -- @field Buffer.depth
 
 --- Construct a new buffer.
--- @tparam table args keyword argument table
--- @tparam int args.w width of buffer
--- @tparam int args.h height of buffer
--- @tparam int args.depth color depth
--- @treturn wonderful.buffer.Buffer A buffer instance.
+-- @tparam table args a keyword argument table
+-- @tparam int args.w a width of buffer
+-- @tparam int args.h a height of buffer
+-- @tparam int args.depth a color depth
 function Buffer:__new__(args)
   self.w = args.w
   self.h = args.h
@@ -75,19 +74,19 @@ function Buffer:__new__(args)
                       self.palette:deflate(0x000000)
 end
 
---- Check if a block belongs to the buffer.
--- @tparam int x row number
--- @tparam int y row number
+--- Check if a cell belongs to the buffer.
+-- @tparam int x a row number
+-- @tparam int y a row number
 -- @treturn boolean
 function Buffer:inRange(x, y)
   return self.box:has(x, y)
 end
 
 --- Perform alpha blending of two colors.
--- @tparam int color1 first color
--- @tparam int color2 second color
--- @tparam number alpha opacity (alpha value ∈ [0; 1])
--- @treturn int The result of alpha blending.
+-- @tparam int color1 the first color
+-- @tparam int color2 the second color
+-- @tparam number alpha an opacity (an alpha value ∈ [0; 1])
+-- @treturn int the result of alpha blending
 function Buffer:alphaBlend(color1, color2, alpha)
   if color1 == color2 then
     return color1
@@ -115,16 +114,16 @@ function Buffer:alphaBlend(color1, color2, alpha)
          (b - b % 1)
 end
 
---- Set a block.
+--- Set a cell.
 -- This is an internal method that **does not** perform sanity checks.
 -- Futhermore, unlike @{wonderful.buffer.Buffer:set}, this method only sets
--- a single block per call.
--- @tparam int x column number
--- @tparam int y row number
--- @tparam int fg foreground color
--- @tparam int bg background color
--- @tparam number alpha opacity (alpha value ∈ [0; 1])
--- @tparam string char character
+-- a single cell per call.
+-- @tparam int x a column number
+-- @tparam int y a row number
+-- @tparam int fg a foreground color
+-- @tparam int bg a background color
+-- @tparam number alpha an opacity (an alpha value ∈ [0; 1])
+-- @tparam string char a character
 -- @see wonderful.buffer.Buffer:set
 function Buffer:_set(x, y, fg, bg, alpha, char)
   local im, jm, km = self.storage:indexMain(x, y)
@@ -158,13 +157,13 @@ end
 --- Set a line of characters.
 -- This method performs sanity checks, which may reduce perfomance
 -- significantly if used too often.
--- @tparam int x0 column number
--- @tparam int y0 row number
--- @tparam int fg foreground color
--- @tparam int bg background color
--- @tparam number alpha opacity (alpha value ∈ [0; 1])
--- @tparam string line text line
--- @tparam[opt=false] boolean vertical if true, sets a vertical line
+-- @tparam int x0 a column number
+-- @tparam int y0 a row number
+-- @tparam int fg a foreground color
+-- @tparam int bg a background color
+-- @tparam number alpha an opacity (an alpha value ∈ [0; 1])
+-- @tparam string line a text line
+-- @tparam[opt=false] boolean vertical if true, set a vertical line
 -- @see wonderful.buffer.Buffer:_set
 function Buffer:set(x0, y0, fg, bg, alpha, line, vertical)
   checkArg(1, x0, "number")
@@ -193,14 +192,14 @@ function Buffer:set(x0, y0, fg, bg, alpha, line, vertical)
   end
 end
 
---- Retrieve a block from the storage.
+--- Retrieve a cell from the storage.
 -- This is an internal method that **does not** perform sanity checks.
 -- Futhermore, unlike @{wonderful.buffer.Buffer:get}, this method returns
 -- a packed and deflated color instead of foreground and background.
--- @tparam int x column number
--- @tparam int y row number
--- @treturn string block's character
--- @treturn int block's packed and deflated color
+-- @tparam int x a column number
+-- @tparam int y a row number
+-- @treturn string a cell's character
+-- @treturn int a cell's packed and deflated color
 -- @see wonderful.buffer.Buffer:get
 function Buffer:_get(x, y)
   local mainChar, mainColor = self.storage:getMain(x, y)
@@ -210,14 +209,14 @@ function Buffer:_get(x, y)
          diffColor or mainColor or self.defaultColor
 end
 
---- Retrieve a block from the storage.
+--- Retrieve a cell from the storage.
 -- This method performs sanity checks, which may reduce perfomance
 -- significantly if used too often.
--- @tparam int x column number
--- @tparam int y row number
--- @treturn string block's character
--- @treturn int block's foreground color
--- @treturn int block's background color
+-- @tparam int x a column number
+-- @tparam int y a row number
+-- @treturn string a cell's character
+-- @treturn int a cell's foreground color
+-- @treturn int a cell's background color
 -- @see wonderful.buffer.Buffer:_get
 function Buffer:get(x, y)
   checkArg(1, x, "number")
@@ -235,14 +234,14 @@ function Buffer:get(x, y)
 end
 
 --- Get an intersection of the buffer and a given sub-box.
--- @tparam int x0 top-left block column number
--- @tparam int y0 top-left block row number
--- @tparam int w width of sub-box
--- @tparam int h height of sub-box
--- @treturn int intersection's top-left block column number
--- @treturn int intersection's top-left block row number
--- @treturn int intersection's bottom-right block column number
--- @treturn int intersection's bottom-right block row number
+-- @tparam int x0 a top-left cell column number
+-- @tparam int y0 a top-left cell row number
+-- @tparam int w a width of sub-box
+-- @tparam int h a height of sub-box
+-- @treturn int an intersection's top-left cell column number
+-- @treturn int an intersection's top-left cell row number
+-- @treturn int an intersection's bottom-right cell column number
+-- @treturn int an intersection's bottom-right cell row number
 function Buffer:intersection(x0, y0, w, h)
   if w <= 0 or h <= 0 then
     return
@@ -263,16 +262,16 @@ function Buffer:intersection(x0, y0, w, h)
   return x0, y0, x1, y1
 end
 
---- Fill an area with a given block.
+--- Fill an area with a given cell.
 -- This is an internal method that **does not** perform sanity checks.
--- @tparam int x0 top-left block column number
--- @tparam int y0 top-left block row number
--- @tparam int x1 bottom-right block column number
--- @tparam int y1 bottom-right block row number
--- @tparam int fg foreground color
--- @tparam int bg background color
--- @tparam number alpha opacity (alpha value ∈ [0; 1])
--- @tparam string char character
+-- @tparam int x0 a top-left cell column number
+-- @tparam int y0 a top-left cell row number
+-- @tparam int x1 a bottom-right cell column number
+-- @tparam int y1 a bottom-right cell row number
+-- @tparam int fg a foreground color
+-- @tparam int bg a background color
+-- @tparam number alpha an opacity (an alpha value ∈ [0; 1])
+-- @tparam string char a character
 -- @see wonderful.buffer.Buffer:fill
 function Buffer:_fill(x0, y0, x1, y1, fg, bg, alpha, char)
   for x = x0, x1, 1 do
@@ -309,17 +308,17 @@ function Buffer:_fill(x0, y0, x1, y1, fg, bg, alpha, char)
   end
 end
 
---- Fill an area with a given block.
+--- Fill an area with a given cell.
 -- This method performs sanity checks, which may decrease perfomance
 -- significantly if used too often.
--- @tparam int x0 top-left block column number
--- @tparam int y0 top-left block row number
--- @tparam int w area width
--- @tparam int h area width
--- @tparam int fg foreground color
--- @tparam int bg background color
--- @tparam number alpha opacity (alpha value ∈ [0; 1])
--- @tparam string char character
+-- @tparam int x0 a top-left cell column number
+-- @tparam int y0 a top-left cell row number
+-- @tparam int w an area width
+-- @tparam int h an area width
+-- @tparam int fg a foreground color
+-- @tparam int bg a background color
+-- @tparam number alpha an opacity (an alpha value ∈ [0; 1])
+-- @tparam string char a character
 -- @see wonderful.buffer.Buffer:_fill
 function Buffer:fill(x0, y0, w, h, fg, bg, alpha, char)
   checkArg(1, x0, "number")
@@ -342,20 +341,20 @@ function Buffer:fill(x0, y0, w, h, fg, bg, alpha, char)
   self:_fill(x0, y0, x1, y1, fg, bg, alpha, char)
 end
 
---- Reset all blocks to default.
+--- Reset all cells to default.
 function Buffer:clear()
   self.storage:clear()
 end
 
 --- Create a buffer view.
--- @tparam number x coordinate box's top-left block column number
--- @tparam number y coordinate box's top-left block row number
--- @tparam number w coordinate box's width
--- @tparam number h coordinate box's height
--- @tparam number sx restricting box's top-left block column number
--- @tparam number sy restricting box's top-left block row number
--- @tparam number sw restricting box's width
--- @tparam number sh restricting box's height
+-- @tparam number x a coordinate box's top-left cell column number
+-- @tparam number y a coordinate box's top-left cell row number
+-- @tparam number w a coordinate box's width
+-- @tparam number h a coordinate box's height
+-- @tparam number sx a restricting box's top-left cell column number
+-- @tparam number sy a restricting box's top-left cell row number
+-- @tparam number sw a restricting box's width
+-- @tparam number sh a restricting box's height
 -- @treturn wonderful.buffer.BufferView
 function Buffer:view(x, y, w, h, sx, sy, sw, sh)
   -- defines the view (buffer-relative) coordinate system
@@ -425,11 +424,10 @@ local Framebuffer = class(Buffer, {name = "wonderful.buffer.Framebuffer"})
 -- @field Buffer.depth
 
 --- Construct a new framebuffer.
--- @tparam table args keyword argument table
--- @tparam int args.w width of buffer
--- @tparam int args.h height of buffer
--- @tparam int args.depth color depth
--- @treturn wonderful.buffer.Framebuffer A framebuffer instance.
+-- @tparam table args a keyword argument table
+-- @tparam int args.w a width of buffer
+-- @tparam int args.h a height of buffer
+-- @tparam int args.depth a color depth
 function Framebuffer:__new__(args)
   self:superCall("__new__", args)
 
@@ -442,31 +440,31 @@ function Framebuffer:__new__(args)
   self:markForRedraw()
 end
 
---- Check if a block belongs to the buffer.
--- @tparam int x row number
--- @tparam int y row number
+--- Check if a cell belongs to the buffer.
+-- @tparam int x a row number
+-- @tparam int y a row number
 -- @treturn boolean
 -- @see Buffer:inRange
 -- @function Framebuffer:inRange
 
 --- Perform alpha blending of two colors.
--- @tparam int color1 first color
--- @tparam int color2 second color
--- @tparam number alpha opacity (alpha value ∈ [0; 1])
--- @treturn int The result of alpha blending.
+-- @tparam int color1 the first color
+-- @tparam int color2 the second color
+-- @tparam number alpha an opacity (an alpha value ∈ [0; 1])
+-- @treturn int the result of alpha blending
 -- @see Buffer:alphaBlend
 -- @function Framebuffer:alphaBlend
 
---- Set a block.
+--- Set a cell.
 -- This is an internal method that **does not** perform sanity checks.
 -- Futhermore, unlike @{wonderful.buffer.Framebuffer:set}, this method only sets
--- a single block per call.
--- @tparam int x column number
--- @tparam int y row number
--- @tparam int fg foreground color
--- @tparam int bg background color
--- @tparam number alpha opacity (alpha value ∈ [0; 1])
--- @tparam string char character
+-- a single cell per call.
+-- @tparam int x a column number
+-- @tparam int y a row number
+-- @tparam int fg a foreground color
+-- @tparam int bg a background color
+-- @tparam number alpha an opacity (an alpha value ∈ [0; 1])
+-- @tparam string char a character
 -- @see wonderful.buffer.Framebuffer:set
 function Framebuffer:_set(x, y, fg, bg, alpha, char)
   local diff
@@ -530,63 +528,63 @@ end
 --- Set a line of characters.
 -- This method performs sanity checks, which may reduce perfomance
 -- significantly if used too often.
--- @tparam int x0 column number
--- @tparam int y0 row number
--- @tparam int fg foreground color
--- @tparam int bg background color
--- @tparam number alpha opacity (alpha value ∈ [0; 1])
--- @tparam string line text line
--- @tparam[opt=false] boolean vertical if true, sets a vertical line
+-- @tparam int x0 a column number
+-- @tparam int y0 a row number
+-- @tparam int fg a foreground color
+-- @tparam int bg a background color
+-- @tparam number alpha an opacity (an alpha value ∈ [0; 1])
+-- @tparam string line a text line
+-- @tparam[opt=false] boolean vertical if true, set a vertical line
 -- @see wonderful.buffer.Framebuffer:_set
 -- @see wonderful.buffer.Buffer:_set
 -- @function Framebuffer:set
 
---- Retrieve a block from the storage.
+--- Retrieve a cell from the storage.
 -- This is an internal method that **does not** perform sanity checks.
 -- Futhermore, unlike @{wonderful.buffer.Framebuffer:get}, this method returns
 -- a packed and deflated color instead of foreground and background.
--- @tparam int x column number
--- @tparam int y row number
--- @treturn string block's character
--- @treturn int block's packed and deflated color
+-- @tparam int x a column number
+-- @tparam int y a row number
+-- @treturn string a cell's character
+-- @treturn int a cell's packed and deflated color
 -- @see wonderful.buffer.Framebuffer:get
 -- @see wonderful.buffer.Buffer:_get
 -- @function Framebuffer:_get
 
---- Retrieve a block from the storage.
+--- Retrieve a cell from the storage.
 -- This method performs sanity checks, which may reduce perfomance
 -- significantly if used too often.
--- @tparam int x column number
--- @tparam int y row number
--- @treturn string block's character
--- @treturn int block's foreground color
--- @treturn int block's background color
+-- @tparam int x a column number
+-- @tparam int y a row number
+-- @treturn string a cell's character
+-- @treturn int a cell's foreground color
+-- @treturn int a cell's background color
 -- @see wonderful.buffer.Framebuffer:_get
 -- @see wonderful.buffer.Buffer:get
 -- @function Framebuffer:get
 
 --- Get an intersection of the buffer and a given sub-box.
--- @tparam int x0 top-left block column number
--- @tparam int y0 top-left block row number
--- @tparam int w width of sub-box
--- @tparam int h height of sub-box
--- @treturn int intersection's top-left block column number
--- @treturn int intersection's top-left block row number
--- @treturn int intersection's bottom-right block column number
--- @treturn int intersection's bottom-right block row number
+-- @tparam int x0 a top-left cell column number
+-- @tparam int y0 a top-left cell row number
+-- @tparam int w a width of sub-box
+-- @tparam int h a height of sub-box
+-- @treturn int an intersection's top-left cell column number
+-- @treturn int an intersection's top-left cell row number
+-- @treturn int an intersection's bottom-right cell column number
+-- @treturn int an intersection's bottom-right cell row number
 -- @see wonderful.buffer.Buffer:intersection
 -- @function Framebuffer:intersection
 
---- Fill an area with a given block.
+--- Fill an area with a given cell.
 -- This is an internal method that **does not** perform sanity checks.
--- @tparam int x0 top-left block column number
--- @tparam int y0 top-left block row number
--- @tparam int x1 bottom-right block column number
--- @tparam int y1 bottom-right block row number
--- @tparam int fg foreground color
--- @tparam int bg background color
--- @tparam number alpha opacity (alpha value ∈ [0; 1])
--- @tparam string char character
+-- @tparam int x0 a top-left cell column number
+-- @tparam int y0 a top-left cell row number
+-- @tparam int x1 a bottom-right cell column number
+-- @tparam int y1 a bottom-right cell row number
+-- @tparam int fg a foreground color
+-- @tparam int bg a background color
+-- @tparam number alpha an opacity (an alpha value ∈ [0; 1])
+-- @tparam string char a character
 -- @see wonderful.buffer.Buffer:fill
 function Framebuffer:_fill(x0, y0, x1, y1, fg, bg, alpha, char)
   local blockX = (x0 - 1) / self.blockSize
@@ -658,22 +656,22 @@ function Framebuffer:_fill(x0, y0, x1, y1, fg, bg, alpha, char)
   end
 end
 
---- Fill an area with a given block.
+--- Fill an area with a given cell.
 -- This method performs sanity checks, which may decrease perfomance
 -- significantly if used too often.
--- @tparam int x0 top-left block column number
--- @tparam int y0 top-left block row number
--- @tparam int w area width
--- @tparam int h area width
--- @tparam int fg foreground color
--- @tparam int bg background color
--- @tparam number alpha opacity (alpha value ∈ [0; 1])
--- @tparam string char character
+-- @tparam int x0 a top-left cell column number
+-- @tparam int y0 a top-left cell row number
+-- @tparam int w an area width
+-- @tparam int h an area width
+-- @tparam int fg a foreground color
+-- @tparam int bg a background color
+-- @tparam number alpha an opacity (an alpha value ∈ [0; 1])
+-- @tparam string char a character
 -- @see wonderful.buffer.Framebuffer:_fill
 -- @see wonderful.buffer.Buffer:fill
 -- @function Framebuffer:fill
 
---- Reset all blocks to default.
+--- Reset all cells to default.
 function Framebuffer:clear()
   self:superCall("clear")
 
@@ -747,8 +745,8 @@ local function writeLineInstruction(instructions, textData, lines,
 end
 
 --- Flush a buffer onto a GPU.
--- @tparam int sx top-left block column number to draw buffer at
--- @tparam int sy top-left block row number to draw buffer at
+-- @tparam int sx a top-left cell column number to draw buffer at
+-- @tparam int sy a top-left cell row number to draw buffer at
 -- @tparam table gpu GPU component proxy
 function Framebuffer:flush(sx, sy, gpu)
   sx, sy = sx - 1, sy - 1
@@ -926,14 +924,14 @@ function Framebuffer:flush(sx, sy, gpu)
 end
 
 --- Create a buffer view.
--- @tparam number x coordinate box's top-left block column number
--- @tparam number y coordinate box's top-left block row number
--- @tparam number w coordinate box's width
--- @tparam number h coordinate box's height
--- @tparam number sx restricting box's top-left block column number
--- @tparam number sy restricting box's top-left block row number
--- @tparam number sw restricting box's width
--- @tparam number sh restricting box's height
+-- @tparam number x a coordinate box's top-left cell column number
+-- @tparam number y a coordinate box's top-left cell row number
+-- @tparam number w a coordinate box's width
+-- @tparam number h a coordinate box's height
+-- @tparam number sx a restricting box's top-left cell column number
+-- @tparam number sy a restricting box's top-left cell row number
+-- @tparam number sw a restricting box's width
+-- @tparam number sh a restricting box's height
 -- @treturn wonderful.buffer.BufferView
 -- @see wonderful.buffer.Buffer:view
 -- @function Framebuffer:view
@@ -978,28 +976,28 @@ function BufferView:__new__(buf, coordBox, restrictBox)
 end
 
 --- Convert view-relative coordinates to buffer-relative coordinates.
--- @tparam int x view-relative block column number
--- @tparam int y view-relative block row number
--- @treturn int buffer-relative block column number
--- @treturn int buffer-relative block row number
+-- @tparam int x a view-relative cell column number
+-- @tparam int y a view-relative cell row number
+-- @treturn int a buffer-relative cell column number
+-- @treturn int a buffer-relative cell row number
 function BufferView:absCoords(x, y)
   return x + self.coordBox.x - 1,
          y + self.coordBox.y - 1
 end
 
 --- Convert buffer-relative coordinates to view-relative coordinates.
--- @tparam int x buffer-relative block column number
--- @tparam int y buffer-relative block row number
--- @treturn int x view-relative block column number
--- @treturn int y view-relative block row number
+-- @tparam int x a buffer-relative cell column number
+-- @tparam int y a buffer-relative cell row number
+-- @treturn int x a view-relative cell column number
+-- @treturn int y a view-relative cell row number
 function BufferView:relCoords(x, y)
   return x - self.coordBox.x + 1,
          y - self.coordBox.y + 1
 end
 
---- Check if a block at given buffer-relative coordinates belongs to the view.
--- @tparam int x view-relative block column number
--- @tparam int y view-relative block row number
+--- Check if a cell at given buffer-relative coordinates belongs to the view.
+-- @tparam int x a view-relative cell column number
+-- @tparam int y a view-relative cell row number
 function BufferView:inRange(x, y)
   x, y = self:absCoords(x, y)
 
@@ -1007,12 +1005,12 @@ function BufferView:inRange(x, y)
 end
 
 --- Proxy @{wonderful.buffer.Buffer:_set} to the buffer.
--- @tparam int x view-relative block column number
--- @tparam int y view-relative block row number
--- @tparam int fg foreground color
--- @tparam int bg background color
--- @tparam number alpha opacity (alpha value ∈ [0; 1])
--- @tparam string char character
+-- @tparam int x a view-relative cell column number
+-- @tparam int y a view-relative cell row number
+-- @tparam int fg a foreground color
+-- @tparam int bg a background color
+-- @tparam number alpha an opacity (an alpha value ∈ [0; 1])
+-- @tparam string char a character
 -- @see wonderful.buffer.Buffer:_set
 function BufferView:_set(x, y, fg, bg, alpha, char)
   x, y = self:absCoords(x, y)
@@ -1020,24 +1018,24 @@ function BufferView:_set(x, y, fg, bg, alpha, char)
 end
 
 --- Proxy @{wonderful.buffer.Buffer:_fill} to the buffer.
--- @tparam int x0 view-relative top-left block column number
--- @tparam int y0 view-relative top-left block row number
--- @tparam int x1 view-relative bottom-right block column number
--- @tparam int y1 view-relative bottom-right block row number
--- @tparam int fg foreground color
--- @tparam int bg background color
--- @tparam number alpha opacity (alpha value ∈ [0; 1])
--- @tparam string char character
+-- @tparam int x0 a view-relative top-left cell column number
+-- @tparam int y0 a view-relative top-left cell row number
+-- @tparam int x1 a view-relative bottom-right cell column number
+-- @tparam int y1 a view-relative bottom-right cell row number
+-- @tparam int fg a foreground color
+-- @tparam int bg a background color
+-- @tparam number alpha an opacity (an alpha value ∈ [0; 1])
+-- @tparam string char a character
 -- @see wonderful.buffer.Buffer:_fill
 function BufferView:_fill(x0, y0, x1, y1, fg, bg, alpha, char)
   self.buf:_fill(x0, y0, x1, y1, fg, bg, alpha, char)
 end
 
 --- Proxy @{wonderful.buffer.Buffer:_get} to the buffer.
--- @tparam int x view-relative block column number
--- @tparam int y view-relative block row number
--- @treturn string block's character
--- @treturn int block's packed and deflated color
+-- @tparam int x a view-relative cell column number
+-- @tparam int y a view-relative cell row number
+-- @treturn string a cell's character
+-- @treturn int a cell's packed and deflated color
 -- @see wonderful.buffer.Buffer:_get
 function BufferView:_get(x, y)
   x, y = self:absCoords(x, y)
@@ -1046,14 +1044,14 @@ function BufferView:_get(x, y)
 end
 
 --- Proxy @{wonderful.buffer.Buffer:intersection} to the buffer.
--- @tparam int x0 view-relative top-left block column number
--- @tparam int y0 view-relative top-left block row number
--- @tparam int w sub-box width
--- @tparam int h sub-box height
--- @treturn int buffer-relative intersection's top-left block column number
--- @treturn int buffer-relative intersection's top-left block row number
--- @treturn int buffer-relative intersection's bottom-right block column number
--- @treturn int buffer-relative intersection's bottom-right block row number
+-- @tparam int x0 a view-relative top-left cell column number
+-- @tparam int y0 a view-relative top-left cell row number
+-- @tparam int w a sub-box width
+-- @tparam int h a sub-box height
+-- @treturn int a buffer-relative intersection's top-left cell column number
+-- @treturn int a buffer-relative intersection's top-left cell row number
+-- @treturn int a buffer-relative intersection's bottom-right cell column number
+-- @treturn int a buffer-relative intersection's bottom-right cell row number
 -- @see wonderful.buffer.Buffer:intersection
 function BufferView:intersection(x0, y0, w, h)
   x0, y0 = self:absCoords(x0, y0)
@@ -1065,14 +1063,14 @@ end
 -- The child view is bounded by the parent view's restricting box.
 -- All coordinates are relative to the parent view's coordinate box.
 -- The child view will point to the buffer directly.
--- @tparam int x coordinate box's top-left block column number
--- @tparam int y coordinate box's top-left block row number
--- @tparam int w coordinate box's width
--- @tparam int h cooridnate box's height
--- @tparam int sx restricting box's top-left block column number
--- @tparam int sy restricting box's top-left block row number
--- @tparam int sw restricting box's width
--- @tparam int sh restricting box's height
+-- @tparam int x a coordinate box's top-left cell column number
+-- @tparam int y a coordinate box's top-left cell row number
+-- @tparam int w a coordinate box's width
+-- @tparam int h a cooridnate box's height
+-- @tparam int sx a restricting box's top-left cell column number
+-- @tparam int sy a restricting box's top-left cell row number
+-- @tparam int sw a restricting box's width
+-- @tparam int sh a restricting box's height
 -- @treturn wonderful.buffer.BufferView
 -- @see wonderful.buffer.Buffer:view
 function BufferView:view(x, y, w, h, sx, sy, sw, sh)

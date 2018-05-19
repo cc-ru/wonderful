@@ -10,11 +10,22 @@ local textBuf = require("wonderful.style.buffer")
 
 local StackingContext = require("wonderful.element.stack").StackingContext
 
+--- The document class.
+-- The root element of a render tree.
+-- @see wonderful.element.Element
 local Document = class(
   element.Element,
   {name = "wonderful.element.document.Document"}
 )
 
+--- The document class.
+-- The root element of a render tree.
+-- @type Document
+
+--- Construct a new document.
+-- @tparam table args a keyword argument table
+-- @tparam[opt] wonderful.style.Style|wonderful.style.buffer.Buffer|{["read"]=function,...}|string args.style a style instance, or a text buffer or input stream or string to parse and use as a style for the document
+-- @tparam wonderful.display.Display args.display a display
 function Document:__new__(args)
   self:superCall(element.Element, "__new__")
 

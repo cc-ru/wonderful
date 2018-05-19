@@ -3,6 +3,11 @@
 
 local funcUtil = require("wonderful.util.func")
 
+--- Extract RGB channel values from a color.
+-- @tparam int color a color
+-- @treturn int a red channel value
+-- @treturn int a green channel value
+-- @treturn int a blue channel value
 local function extract(color)
   color = color % 0x1000000
   local r = (color - color % 0x10000) / 0x10000
@@ -12,7 +17,12 @@ local function extract(color)
   return r, g, b
 end
 
+--- Calculate how much given colors differ visually.
+-- @tparam int color1 the first color
+-- @tparam int color2 the second color
 local function delta(color1, color2)
+  color1 = color1 % 0x1000000
+  color2 = color2 % 0x1000000
   -- inlined: extract
   local r1 = (color1 - color1 % 0x10000) / 0x10000
   local g1 = (color1 % 0x10000 - color1 % 0x100) / 0x100
@@ -32,6 +42,14 @@ local function delta(color1, color2)
           0.0722 * db^2)
 end
 
+--- The T1 palette.
+-- @type PaletteT1
+
+--- Convert a color to a palette index.
+-- @tparam PaletteT1 a palette
+-- @tparam int a color
+-- @treturn int the palette index
+-- @function PaletteT1.deflate
 local function t1deflate(palette, color)
   for idx = 1, palette.len, 1 do
     if palette[idx] == color then
@@ -52,10 +70,22 @@ local function t1deflate(palette, color)
   return idx - 1
 end
 
+--- Convert a palette index to a color.
+-- @tparam PaletteT1 a palette
+-- @tparam int an index
+-- @treturn int the color
+-- @function PaletteT1.inflate
 local function t1inflate(palette, index)
   return palette[index + 1]
 end
 
+---
+-- @section end
+
+--- Construct a new T1 palette.
+-- Such a palette contains two colors, one of which is black.
+-- @tparam int secondColor the second color
+-- @treturn PaletteT1 the palette
 local function generateT1Palette(secondColor)
   local palette = {
     0x000000,
@@ -70,9 +100,30 @@ local function generateT1Palette(secondColor)
   return palette
 end
 
+--- The T2 palette.
+-- @type PaletteT2
+
+--- Convert a color to a palette index.
+-- @tparam PaletteT2 a palette
+-- @tparam int a color
+-- @treturn int the palette index
+-- @function PaletteT2.deflate
+
+--- Convert a palette index to a color.
+-- @tparam PaletteT2 a palette
+-- @tparam int an index
+-- @treturn int the color
+-- @function PaletteT2.inflate
+
 local t2deflate = t1deflate
 local t2inflate = t1inflate
 
+---
+-- @section end
+
+--- Construct a new T2 palette.
+-- Such a palette contains 16 fixed colors.
+-- @treturn PaletteT2 the palette
 local function generateT2Palette()
   local palette = {0xFFFFFF, 0xFFCC33, 0xCC66CC, 0x6699FF,
                    0xFFFF33, 0x33CC33, 0xFF6699, 0x333333,
@@ -86,12 +137,26 @@ local function generateT2Palette()
   return palette
 end
 
+--- The T3 palette.
+-- @type PaletteT3
+
+--- Convert a palette index to a color.
+-- @tparam PaletteT3 a palette
+-- @tparam int an index
+-- @treturn int the color
+-- @function PaletteT3.inflate
+
 local t3inflate = t2inflate
 
 local RCOEF = (6 - 1) / 0xFF
 local GCOEF = (8 - 1) / 0xFF
 local BCOEF = (5 - 1) / 0xFF
 
+--- Convert a color to a palette index.
+-- @tparam PaletteT3 a palette
+-- @tparam int a color
+-- @treturn int the palette index
+-- @function PaletteT3.deflate
 local t3deflate = function(palette, color)
   local paletteIndex = palette.t2deflate(palette, color)
 
@@ -127,6 +192,13 @@ local t3deflate = function(palette, color)
   end
 end
 
+---
+-- @section end
+
+--- Construct a new T3 palette.
+-- Such a palette contains 16 variable and 240 fixed colors. The variable colors
+-- are set to shades of grey by default.
+-- @treturn PaletteT3 the palette
 local function generateT3Palette()
   local palette = {
     len = 16
@@ -165,10 +237,21 @@ local function generateT3Palette()
   return palette
 end
 
+--- A pre-generated T1 palette (the second color is `0xffffff`).
+local t1 = generateT1Palette(0xffffff)
+
+--- A pre-generated T2 palette.
+local t2 = generateT2Palette()
+
+--- A pre-generated T3 palette with default palette colors.
+local t3 = generateT3Palette()
+
+---
+-- @export
 return {
-  t1 = generateT1Palette(0xffffff),
-  t2 = generateT2Palette(),
-  t3 = generateT3Palette(),
+  t1 = t1,
+  t2 = t2,
+  t3 = t3,
 
   extract = extract,
   delta = delta,
