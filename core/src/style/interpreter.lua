@@ -591,6 +591,7 @@ function Context:loadName(path, name)
   return load(path, "t", _G)()[name]
 end
 
+--- @export
 return {
   Variable = Variable,
   Rule = Rule,

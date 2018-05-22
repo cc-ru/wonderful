@@ -199,6 +199,7 @@ function Buffer:getPosition()
   return self.line, self.col
 end
 
+--- @export
 return {
   Buffer = Buffer,
 }

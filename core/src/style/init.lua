@@ -227,6 +227,7 @@ function PropRef:update()
   self.value = self.style:getProperty(self.element, self.name)
 end
 
+--- @export
 return {
   Style = Style,
   WonderfulStyle = WonderfulStyle,

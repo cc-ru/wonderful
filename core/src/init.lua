@@ -1,4 +1,10 @@
 --- The main module, which exports the Wonderful class.
+-- You need an instance of this class in order to run a GUI. It allows you to
+-- create documents (which you're not supposed to create any other way
+-- unless you're casting some pitch-black magic).
+--
+-- It's also responsible for catching events (such as touches or key presses)
+-- when running the event loop.
 -- @module wonderful
 
 local component = require("component")
@@ -12,8 +18,16 @@ local geometry = require("wonderful.geometry")
 local signal = require("wonderful.signal")
 local tableUtil = require("wonderful.util.table")
 
+--- The main class of the library.
 local Wonderful = class(nil, {name = "wonderful.Wonderful"})
 
+--- The main class of the library.
+-- @type Wonderful
+
+--- Whether the event loop is running.
+-- @field Wonderful.running
+
+--- Construct a new instance.
 function Wonderful:__new__()
   self.displayManager = display.DisplayManager()
   self.documents = {}
@@ -31,6 +45,7 @@ function Wonderful:__new__()
   self:addSignal("clipboard", signal.Clipboard)
 end
 
+--- Update the keyboard bind mappings.
 function Wonderful:updateKeyboards()
   self.keyboards = {}
 
@@ -41,6 +56,16 @@ function Wonderful:updateKeyboards()
   end
 end
 
+--- Create a new instance of @{wonderful.element.document.Document}.
+-- @tparam table args a keyword argument table
+-- @tparam[opt] int args.x a column number of the document region's top-left cell
+-- @tparam[opt] int args.y a row number of the document region's top-left cell
+-- @tparam[opt] int args.w a width of the document region
+-- @tparam[opt] int args.h a height of the document region
+-- @tparam[opt] string args.screen a screen address
+-- @tparam[opt] wonderful.style.Style|wonderful.style.buffer.Buffer|{["read"]=function,...}|string args.style a value to pass to the @{wonderful.element.document.Document|Document}'s constructor as a style
+-- @treturn wonderful.element.document.Document the document instance
+-- @see wonderful.element.document.Document:__new__
 function Wonderful:addDocument(args)
   local args = args or {}
 
@@ -119,6 +144,11 @@ do
     end
   end
 
+  --- Trace a "hit": find an element by touch coordinates.
+  -- @tparam string screen a screen address
+  -- @tparam number x a column number
+  -- @tparam number y a row number
+  -- @return an element
   function Wonderful:hit(screen, x, y)
     for _, document in ipairs(self.documents) do
       if document.display.screen == screen and
@@ -134,12 +164,17 @@ do
   end
 end
 
+--- Add a new signal to dispatch.
+-- @tparam string name a signal name
+-- @param cls a @{wonderful.signal.Signal} class
 function Wonderful:addSignal(name, cls)
   self.signals[name] = cls
 end
 
+--- Run the event loop.
 function Wonderful:run()
   self.running = true
+
   while self.running do
     local pulled = {event.pull()}
     local name = table.remove(pulled, 1)
@@ -174,10 +209,13 @@ function Wonderful:run()
   end
 end
 
+--- Stop the event loop.
 function Wonderful:stop()
   self.running = false
 end
 
+--- Destroy an instance of the main class.
+-- Runs @{wonderful.display.DisplayManager:restore}, and cleans up.
 function Wonderful:__destroy__()
   self.running = false
   self.displayManager:restore()
@@ -185,10 +223,11 @@ function Wonderful:__destroy__()
   self.documents = {}
 end
 
-return tableUtil.autoimport({
+---
+-- @export
+local module = {
   Wonderful = Wonderful,
-  Document = document.Document,
-  DisplayManager = display.DisplayManager,
-  Display = display.Display,
-}, "wonderful")
+}
+
+return tableUtil.autoimport(export, "wonderful")
 

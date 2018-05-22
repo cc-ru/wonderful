@@ -1,4 +1,4 @@
---- The @{wonderful.element.document.Document} class.
+--- The @{wonderful.element.document.Document|Document} class.
 -- @module wonderful.element.document
 
 local class = require("lua-objects")

@@ -32,6 +32,7 @@ function ColorType:parse(expr)
   end
 end
 
+--- @export
 return {
   ExprType = ExprType,
 

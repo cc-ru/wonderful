@@ -121,6 +121,7 @@ function AnyTypeNode:__new__(line, col)
   self.col = col
 end
 
+--- @export
 return {
   Node = Node,
 

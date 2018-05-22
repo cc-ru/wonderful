@@ -7,19 +7,32 @@ local Box = require("wonderful.geometry").Box
 local Layout = require("wonderful.layout").Layout
 local LayoutItem = require("wonderful.layout").LayoutItem
 
+--- The enum of directions in which children can be layed out.
 local Direction = {
-  TopToBottom = 0,
-  BottomToTop = 1,
-  LeftToRight = 2,
-  RightToLeft = 3
+  TopToBottom = 0,  --- The first child is at the top, consequent ones are put below it.
+  BottomToTop = 1,  --- The first child is at the bottom, consequent ones are put above it.
+  LeftToRight = 2,  --- The first child is at the left, consequent ones are put to the right of it.
+  RightToLeft = 3,  --- The first child is at the right, consequent ones are put to the left of it.
 }
 
+--- The box layout.
 local BoxLayout = class(Layout, {name = "wonderful.layout.box.BoxLayout"})
 
+--- The box layout.
+-- @type BoxLayout
+
+--- The direction in which the layout children are layed out.
+-- @field BoxLayout.direction
+
+--- Construct a new instance.
+-- @tparam number direction a direction in which to lay children out
+-- @see wonderful.layout.box.Direction
 function BoxLayout:__new__(direction)
   self.direction = direction
 end
 
+--- Recompose the layout children.
+-- @param el a container element
 function BoxLayout:recompose(el)
   -- Do not touch. For the sake of your own sanity.
   -- TODO: handle BTT and RTL directions
@@ -155,6 +168,9 @@ function BoxLayout:recompose(el)
   end
 end
 
+--- Estimate a size of an element and its children.
+-- @treturn number the width
+-- @treturn number the height
 function BoxLayout:sizeHint(el)
   local width, height = 0, 0
 
@@ -177,20 +193,42 @@ function BoxLayout:sizeHint(el)
   return width, height
 end
 
+---
+-- @section end
+
+--- A specialized version of `BoxLayout` that uses a vertical layout direction.
+-- @see wonderful.layout.box.BoxLayout
 local VBoxLayout = class(BoxLayout, {name = "wonderful.layout.box.VBoxLayout"})
 
+--- A specialized version of `BoxLayout` that uses a vertical layout direction.
+-- @type VBoxLayout
+
+--- Construct a new instance.
+-- @tparam boolean reversed whether to set the direction to bottom-to-top
 function VBoxLayout:__new__(reversed)
   self:superCall(BoxLayout, "__new__",
                  reversed and Direction.BottomToTop or Direction.TopToBottom)
 end
 
+---
+-- @section end
+
+--- A specialized version of `BoxLayout` that uses a horizontal layout direction.
+-- @see wonderful.layout.box.BoxLayout
 local HBoxLayout = class(BoxLayout, {name = "wonderful.layout.box.HBoxLayout"})
 
+--- A specialized version of `BoxLayout` that uses a horizontal layout direction.
+-- @type HBoxLayout
+
+--- Construct a new instance.
+-- @tparam boolean reversed whether to set the direction to right-to-left
 function HBoxLayout:__new__(reversed)
   self:superCall(BoxLayout, "__new__",
                  reversed and Direction.RightToLeft or Direction.LeftToRight)
 end
 
+---
+-- @export
 return {
   Direction = Direction,
   BoxLayout = BoxLayout,

@@ -13,6 +13,7 @@ function Selector:matches(component)
   return true
 end
 
+--- @export
 return {
   Selector = Selector,
 }

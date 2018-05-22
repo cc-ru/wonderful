@@ -1,4 +1,4 @@
---- The @{wonderful.element.LeafElement} and @{wonderful.element.Element} classes.
+--- The @{wonderful.element.LeafElement|LeafElement} and @{wonderful.element.Element|Element} classes.
 -- @module wonderful.element
 
 local class = require("lua-objects")

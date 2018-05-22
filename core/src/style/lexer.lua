@@ -288,6 +288,7 @@ function TokenStream:getIdent()
   return firstChar .. self.buf:readWhileIn(self.ident, false)
 end
 
+--- @export
 return {
   Token = Token,
 

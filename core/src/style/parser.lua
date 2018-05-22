@@ -408,7 +408,7 @@ function Parser:parseTarget()
   return node.TargetNode(token.line, token.col, component, classes, selectors)
 end
 
-
+--- @export
 return {
   Parser = Parser,
 }

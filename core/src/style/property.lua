@@ -31,6 +31,7 @@ BgColor.name = "background-color"
 BgColor.exprType = wtype.ColorType
 BgColor.inherit = false
 
+--- @export
 return {
   Property = Property,
 
