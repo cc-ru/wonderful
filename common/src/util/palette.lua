@@ -222,10 +222,10 @@ local function generateT3Palette()
     r = r - r % 1
 
     local g = iG * 0xFF / (8 - 1) + 0.5
-    g = g % 1
+    g = g - g % 1
 
     local b = iB * 0xFF / (5 - 1) + 0.5
-    b = b % 1
+    b = b - b % 1
 
     palette[idx + 1] = r * 0x10000 + g * 0x100 + b
   end

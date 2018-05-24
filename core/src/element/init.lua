@@ -175,6 +175,7 @@ function Element:__new__()
   self:superCall(node.ParentNode, "__new__")
 
   self.layout = VBoxLayout()
+  self.layout:optimize()
 end
 
 function Element:getBubblingChildren()

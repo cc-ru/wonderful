@@ -42,6 +42,11 @@ function Wonderful:__new__(args)
   end
 
   self.displayManager = display.DisplayManager()
+
+  if not self.debug then
+    self.displayManager:optimize()
+  end
+
   self.documents = {}
   self.signals = {}
   self.running = false
@@ -55,6 +60,10 @@ function Wonderful:__new__(args)
   self:addSignal("key_down", signal.KeyDown)
   self:addSignal("key_up", signal.KeyUp)
   self:addSignal("clipboard", signal.Clipboard)
+
+  if not self.debug then
+    self:optimize()
+  end
 end
 
 --- Update the keyboard bind mappings.
@@ -83,6 +92,10 @@ function Wonderful:addDocument(args)
 
   if args.x and args.y and args.w and args.h then
     args.box = geometry.Box(args.x, args.y, args.w, args.h)
+
+    if not self.debug then
+      args.box:optimize()
+    end
   end
 
   local display = self.displayManager:newDisplay {
@@ -91,10 +104,18 @@ function Wonderful:addDocument(args)
     debug = self.debug
   }
 
+  if not self.debug then
+    display:optimize()
+  end
+
   local document = document.Document {
     style = args.style,
     display = display
   }
+
+  if not self.debug then
+    document:optimize()
+  end
 
   table.insert(self.documents, document)
   return document
@@ -242,5 +263,5 @@ local module = {
   Wonderful = Wonderful,
 }
 
-return tableUtil.autoimport(export, "wonderful")
+return tableUtil.autoimport(module, "wonderful")
 

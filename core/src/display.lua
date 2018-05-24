@@ -224,6 +224,10 @@ function DisplayManager:newDisplay(spec)
     self, spec.screen, spec.box, self:getScreenDepth(spec.screen), self.debug
   )
 
+  if not self.debug then
+    display:optimize()
+  end
+
   local w, h = self:getScreenResolution(spec.screen)
   local gpu = component.proxy(self:getGPU(display))
   gpu.setResolution(w, h)

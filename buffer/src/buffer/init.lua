@@ -50,7 +50,7 @@ function Buffer:__new__(args)
   self.h = args.h
   self.depth = args.depth
 
-  if self.debug == nil then
+  if args.debug == nil then
     self.debug = true
   else
     self.debug = not not args.debug
@@ -151,19 +151,35 @@ end
 -- @tparam string char a character
 -- @see wonderful.buffer.Buffer:set
 function Buffer:_set(x, y, fg, bg, alpha, char)
-  local im, jm, km = self.storage:indexMain(x, y)
-  local id, jd, kd = self.storage:indexDiff(x, y)
+  local storage = self.storage
+  local im, jm = storage:indexMain(x, y)
+  local id, jd = storage:indexDiff(x, y)
 
-  local mainChar = self.storage.data[im][jm][km]
-  local mainColor = self.storage.data[im][jm][km + 1]
-  local diffColor = self.storage.data[id][jd][kd + 1]
+  local mainChar = storage.data[im][jm]
+  local mainColor = storage.data[im][jm + 1]
+  local diffColor = storage.data[id][jd + 1]
 
   local old = diffColor or mainColor or self.defaultColor
 
   local oldBg = self.palette:inflate(old % 0x100)
 
-  fg = self.palette:deflate(self:alphaBlend(oldBg, fg, alpha))
-  bg = self.palette:deflate(self:alphaBlend(oldBg, bg, alpha))
+  if alpha == 0 then
+    fg = oldBg
+    bg = oldBg
+  elseif alpha == 1 then
+    -- don't change colors
+  else
+    if oldBg ~= fg then
+      fg = self:alphaBlend(oldBg, fg, alpha)
+    end
+
+    if oldBg ~= bg then
+      bg = self:alphaBlend(oldBg, bg, alpha)
+    end
+  end
+
+  fg = self.palette:deflate(fg)
+  bg = self.palette:deflate(bg)
 
   local new = fg * 0x100 + bg
 
@@ -175,8 +191,8 @@ function Buffer:_set(x, y, fg, bg, alpha, char)
     char = nil
   end
 
-  self.storage.data[id][jd][kd] = char
-  self.storage.data[id][jd][kd + 1] = new
+  storage.data[id][jd] = char
+  storage.data[id][jd + 1] = new
 end
 
 --- Set a line of characters.
@@ -308,12 +324,12 @@ end
 function Buffer:_fill(x0, y0, x1, y1, fg, bg, alpha, char)
   for x = x0, x1, 1 do
     for y = y0, y1, 1 do
-      local im, jm, km = self.storage:indexMain(x, y)
-      local id, jd, kd = self.storage:indexDiff(x, y)
+      local im, jm = self.storage:indexMain(x, y)
+      local id, jd = self.storage:indexDiff(x, y)
 
-      local mainChar = self.storage.data[im][jm][km]
-      local mainColor = self.storage.data[im][jm][km + 1]
-      local diffColor = self.storage.data[id][jd][kd + 1]
+      local mainChar = self.storage.data[im][jm]
+      local mainColor = self.storage.data[im][jm + 1]
+      local diffColor = self.storage.data[id][jd + 1]
 
       local old = diffColor or mainColor or self.defaultColor
 
@@ -334,8 +350,8 @@ function Buffer:_fill(x0, y0, x1, y1, fg, bg, alpha, char)
         cchar = nil
       end
 
-      self.storage.data[id][jd][kd] = cchar
-      self.storage.data[id][jd][kd + 1] = new
+      self.storage.data[id][jd] = cchar
+      self.storage.data[id][jd + 1] = new
     end
   end
 end
@@ -421,18 +437,18 @@ function Buffer:view(x, y, w, h, sx, sy, sw, sh)
 end
 
 function Buffer:mergeDiff(x, y)
-  local im, jm, km = self.storage:indexMain(x, y)
-  local id, jd, kd = self.storage:indexDiff(x, y)
-  local char = self.storage.data[id][jd][kd]
-  local color = self.storage.data[id][jd][kd + 1]
+  local im, jm = self.storage:indexMain(x, y)
+  local id, jd = self.storage:indexDiff(x, y)
+  local char = self.storage.data[id][jd]
+  local color = self.storage.data[id][jd + 1]
 
   if char then
     if char == " " then
       char = nil
     end
 
-    self.storage.data[im][jm][km] = char
-    self.storage.data[id][jd][kd] = nil
+    self.storage.data[im][jm] = char
+    self.storage.data[id][jd] = nil
   end
 
   if color then
@@ -440,8 +456,8 @@ function Buffer:mergeDiff(x, y)
       color = nil
     end
 
-    self.storage.data[im][jm][km + 1] = color
-    self.storage.data[id][jd][kd + 1] = nil
+    self.storage.data[im][jm + 1] = color
+    self.storage.data[id][jd + 1] = nil
   end
 end
 
@@ -517,13 +533,13 @@ function Framebuffer:_set(x, y, fg, bg, alpha, char)
 
   do
     -- Copypasted from parent to avoid search costs
-    local im, jm, km = self.storage:indexMain(x, y)
-    local id, jd, kd = self.storage:indexDiff(x, y)
+    local im, jm = self.storage:indexMain(x, y)
+    local id, jd = self.storage:indexDiff(x, y)
 
-    local mainChar = self.storage.data[im][jm][km]
-    local mainColor = self.storage.data[im][jm][km + 1]
-    local diffChar = self.storage.data[id][jd][kd]
-    local diffColor = self.storage.data[id][jd][kd + 1]
+    local mainChar = self.storage.data[im][jm]
+    local mainColor = self.storage.data[im][jm + 1]
+    local diffChar = self.storage.data[id][jd]
+    local diffColor = self.storage.data[id][jd + 1]
 
     local old = diffColor or mainColor or self.defaultColor
 
@@ -542,8 +558,8 @@ function Framebuffer:_set(x, y, fg, bg, alpha, char)
       char = nil
     end
 
-    self.storage.data[id][jd][kd] = char
-    self.storage.data[id][jd][kd + 1] = new
+    self.storage.data[id][jd] = char
+    self.storage.data[id][jd + 1] = new
 
     if (diffChar or diffColor) and not (new or char) then
       -- Dirty block is made clean
@@ -647,13 +663,13 @@ function Framebuffer:_fill(x0, y0, x1, y1, fg, bg, alpha, char)
         block = block + 1
       end
 
-      local im, jm, km = self.storage:indexMain(x, y)
-      local id, jd, kd = self.storage:indexDiff(x, y)
+      local im, jm = self.storage:indexMain(x, y)
+      local id, jd = self.storage:indexDiff(x, y)
 
-      local mainChar = self.storage.data[im][jm][km]
-      local mainColor = self.storage.data[im][jm][km + 1]
-      local diffChar = self.storage.data[id][jd][kd]
-      local diffColor = self.storage.data[id][jd][kd + 1]
+      local mainChar = self.storage.data[im][jm]
+      local mainColor = self.storage.data[im][jm + 1]
+      local diffChar = self.storage.data[id][jd]
+      local diffColor = self.storage.data[id][jd + 1]
 
       local old = diffColor or mainColor or self.defaultColor
 
@@ -674,8 +690,8 @@ function Framebuffer:_fill(x0, y0, x1, y1, fg, bg, alpha, char)
         cchar = nil
       end
 
-      self.storage.data[id][jd][kd] = cchar
-      self.storage.data[id][jd][kd + 1] = new
+      self.storage.data[id][jd] = cchar
+      self.storage.data[id][jd + 1] = new
 
       local diff
 
@@ -840,9 +856,9 @@ function Framebuffer:flush(sx, sy, gpu)
       end
 
       if not rectChar or not rectColor then
-        local i, j, k = storage:indexMain(blockX + 1, blockY + 1)
-        rectChar = rectChar or data[i][j][k] or " "
-        rectColor = rectColor or data[i][j][k + 1] or
+        local i, j = storage:indexMain(blockX + 1, blockY + 1)
+        rectChar = rectChar or data[i][j] or " "
+        rectColor = rectColor or data[i][j + 1] or
                     self.defaultColor
       end
 
@@ -855,9 +871,9 @@ function Framebuffer:flush(sx, sy, gpu)
           end
 
           if not char or not color then
-            local i, j, k = storage:indexMain(blockX + 1, blockY + 1)
-            char = char or data[i][j][k] or " "
-            color = color or data[i][j][k + 1] or self.defaultColor
+            local i, j = storage:indexMain(blockX + 1, blockY + 1)
+            char = char or data[i][j] or " "
+            color = color or data[i][j + 1] or self.defaultColor
           end
 
           if char ~= rectChar or color ~= rectColor then
@@ -897,9 +913,9 @@ function Framebuffer:flush(sx, sy, gpu)
             end
           else
             if not char or not color then
-              local i, j, k = storage:indexMain(x, y)
-              char = char or data[i][j][k] or " "
-              color = color or data[i][j][k + 1] or
+              local i, j = storage:indexMain(x, y)
+              char = char or data[i][j] or " "
+              color = color or data[i][j + 1] or
                       self.defaultColor
             end
 
