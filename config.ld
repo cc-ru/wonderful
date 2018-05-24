@@ -1,8 +1,10 @@
 project = 'wonderful'
-title = 'wonderful API reference'
+title = 'wonderful documentation'
 description = 'The *wonderful* GUI library.'
 full_description = [[
-This is the API reference for the wonderful library.]]
+This is the API reference for the wonderful library.
+
+Also see @{000-Home.md|the manual} pages.]]
 
 examples = 'examples'
 

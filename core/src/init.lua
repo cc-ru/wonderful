@@ -30,7 +30,7 @@ local Wonderful = class(nil, {name = "wonderful.Wonderful"})
 --- Construct a new instance.
 -- The debug mode introduces a few checks that allow to catch bugs and errors.
 -- It may slow down the program significantly, though.
--- @tparam ?table args a keyword arguments table
+-- @tparam[opt] table args a keyword arguments table
 -- @tparam[opt] boolean args.debug whether the debug mode should be set
 function Wonderful:__new__(args)
   if args then
