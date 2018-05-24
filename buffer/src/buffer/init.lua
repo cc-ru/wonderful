@@ -38,14 +38,23 @@ local BufferView
 -- @field Buffer.depth
 
 --- Construct a new buffer.
+-- The debug mode introduces a few sanity checks. They allow to notice the
+-- potential bugs and errors, but also slow down the program significantly.
 -- @tparam table args a keyword argument table
 -- @tparam int args.w a width of buffer
 -- @tparam int args.h a height of buffer
 -- @tparam int args.depth a color depth
+-- @tparam boolean args.debug whether the debug mode should be set
 function Buffer:__new__(args)
   self.w = args.w
   self.h = args.h
   self.depth = args.depth
+
+  if self.debug == nil then
+    self.debug = true
+  else
+    self.debug = not not args.debug
+  end
 
   self.box = geometry.Box(1, 1, self.w, self.h)
 
@@ -80,6 +89,11 @@ end
 -- @tparam int y a row number
 -- @treturn boolean
 function Buffer:inRange(x, y)
+  if self.debug then
+    checkArg(1, x, "number")
+    checkArg(2, y, "number")
+  end
+
   return self.box:has(x, y)
 end
 
@@ -89,6 +103,16 @@ end
 -- @tparam number alpha an opacity (an alpha value ∈ [0; 1])
 -- @treturn int the result of alpha blending
 function Buffer:alphaBlend(color1, color2, alpha)
+  if self.debug then
+    checkArg(1, color1, "number")
+    checkArg(2, color2, "number")
+    checkArg(3, alpha, "number")
+
+    if alpha < 0 or alpha > 1 then
+      error("bad argument #3: alpha ∉ [0; 1]", 1)
+    end
+  end
+
   if color1 == color2 then
     return color1
   end
@@ -156,8 +180,6 @@ function Buffer:_set(x, y, fg, bg, alpha, char)
 end
 
 --- Set a line of characters.
--- This method performs sanity checks, which may reduce perfomance
--- significantly if used too often.
 -- @tparam int x0 a column number
 -- @tparam int y0 a row number
 -- @tparam int fg a foreground color
@@ -167,12 +189,14 @@ end
 -- @tparam[opt=false] boolean vertical if true, set a vertical line
 -- @see wonderful.buffer.Buffer:_set
 function Buffer:set(x0, y0, fg, bg, alpha, line, vertical)
-  checkArg(1, x0, "number")
-  checkArg(2, y0, "number")
-  checkArg(3, fg, "number")
-  checkArg(4, bg, "number")
-  checkArg(5, alpha, "number")
-  checkArg(6, line, "string")
+  if self.debug then
+    checkArg(1, x0, "number")
+    checkArg(2, y0, "number")
+    checkArg(3, fg, "number")
+    checkArg(4, bg, "number")
+    checkArg(5, alpha, "number")
+    checkArg(6, line, "string")
+  end
 
   for i = 1, unicode.len(line), 1 do
     local x, y
@@ -211,8 +235,6 @@ function Buffer:_get(x, y)
 end
 
 --- Retrieve a cell from the storage.
--- This method performs sanity checks, which may reduce perfomance
--- significantly if used too often.
 -- @tparam int x a column number
 -- @tparam int y a row number
 -- @treturn string a cell's character
@@ -220,8 +242,10 @@ end
 -- @treturn int a cell's background color
 -- @see wonderful.buffer.Buffer:_get
 function Buffer:get(x, y)
-  checkArg(1, x, "number")
-  checkArg(2, y, "number")
+  if self.debug then
+    checkArg(1, x, "number")
+    checkArg(2, y, "number")
+  end
 
   if not self:inRange(x, y) then
     return false
@@ -244,6 +268,13 @@ end
 -- @treturn int an intersection's bottom-right cell column number
 -- @treturn int an intersection's bottom-right cell row number
 function Buffer:intersection(x0, y0, w, h)
+  if self.debug then
+    checkArg(1, x0, "number")
+    checkArg(2, y0, "number")
+    checkArg(3, w, "number")
+    checkArg(4, h, "number")
+  end
+
   if w <= 0 or h <= 0 then
     return
   end
@@ -322,14 +353,16 @@ end
 -- @tparam string char a character
 -- @see wonderful.buffer.Buffer:_fill
 function Buffer:fill(x0, y0, w, h, fg, bg, alpha, char)
-  checkArg(1, x0, "number")
-  checkArg(2, y0, "number")
-  checkArg(3, w, "number")
-  checkArg(4, h, "number")
-  checkArg(5, fg, "number")
-  checkArg(6, bg, "number")
-  checkArg(7, alpha, "number")
-  checkArg(8, char, "string")
+  if self.debug then
+    checkArg(1, x0, "number")
+    checkArg(2, y0, "number")
+    checkArg(3, w, "number")
+    checkArg(4, h, "number")
+    checkArg(5, fg, "number")
+    checkArg(6, bg, "number")
+    checkArg(7, alpha, "number")
+    checkArg(8, char, "string")
+  end
 
   local x0, y0, x1, y1 = self:intersection(x0, y0, w, h)
 
@@ -358,6 +391,17 @@ end
 -- @tparam number sh a restricting box's height
 -- @treturn wonderful.buffer.BufferView
 function Buffer:view(x, y, w, h, sx, sy, sw, sh)
+  if self.debug then
+    checkArg(1, x, "number")
+    checkArg(2, y, "number")
+    checkArg(3, w, "number")
+    checkArg(4, h, "number")
+    checkArg(5, sx, "number")
+    checkArg(6, sy, "number")
+    checkArg(7, sw, "number")
+    checkArg(8, sh, "number")
+  end
+
   -- defines the view (buffer-relative) coordinate system
   local coordBox = geometry.Box(x, y, w, h)
 
@@ -370,7 +414,7 @@ function Buffer:view(x, y, w, h, sx, sy, sw, sh)
   -- don't allow to write outside the coordinate box
   restrictBox = restrictBox:intersection(coordBox)
 
-  local view = BufferView(self, coordBox, restrictBox)
+  local view = BufferView(self, coordBox, restrictBox, self.debug)
   view:optimize()
 
   return view
@@ -429,6 +473,7 @@ local Framebuffer = class(Buffer, {name = "wonderful.buffer.Framebuffer"})
 -- @tparam int args.w a width of buffer
 -- @tparam int args.h a height of buffer
 -- @tparam int args.depth a color depth
+-- @tparam boolean args.debug whether the debug mode should be set
 function Framebuffer:__new__(args)
   self:superCall("__new__", args)
 
@@ -527,8 +572,6 @@ function Framebuffer:_set(x, y, fg, bg, alpha, char)
 end
 
 --- Set a line of characters.
--- This method performs sanity checks, which may reduce perfomance
--- significantly if used too often.
 -- @tparam int x0 a column number
 -- @tparam int y0 a row number
 -- @tparam int fg a foreground color
@@ -553,8 +596,6 @@ end
 -- @function Framebuffer:_get
 
 --- Retrieve a cell from the storage.
--- This method performs sanity checks, which may reduce perfomance
--- significantly if used too often.
 -- @tparam int x a column number
 -- @tparam int y a row number
 -- @treturn string a cell's character
@@ -658,8 +699,6 @@ function Framebuffer:_fill(x0, y0, x1, y1, fg, bg, alpha, char)
 end
 
 --- Fill an area with a given cell.
--- This method performs sanity checks, which may decrease perfomance
--- significantly if used too often.
 -- @tparam int x0 a top-left cell column number
 -- @tparam int y0 a top-left cell row number
 -- @tparam int w an area width
@@ -750,6 +789,16 @@ end
 -- @tparam int sy a top-left cell row number to draw buffer at
 -- @tparam table gpu GPU component proxy
 function Framebuffer:flush(sx, sy, gpu)
+  if self.debug then
+    checkArg(1, sx, "number")
+    checkArg(2, sy, "number")
+    checkArg(3, gpu, "table")
+
+    if gpu.type ~= "gpu" then
+      error("bad argument #3: gpu proxy expected", 1)
+    end
+  end
+
   sx, sy = sx - 1, sy - 1
 
   local instructions = {}
@@ -969,11 +1018,12 @@ BufferView = class(
 -- @see wonderful.buffer.Buffer:view
 -- @see wonderful.buffer.Framebuffer:view
 -- @see wonderful.buffer.BufferView:view
-function BufferView:__new__(buf, coordBox, restrictBox)
+function BufferView:__new__(buf, coordBox, restrictBox, debug)
   self.buf = buf
 
   self.coordBox = coordBox
   self.box = restrictBox
+  self.debug = debug
 end
 
 --- Convert view-relative coordinates to buffer-relative coordinates.
@@ -982,6 +1032,11 @@ end
 -- @treturn int a buffer-relative cell column number
 -- @treturn int a buffer-relative cell row number
 function BufferView:absCoords(x, y)
+  if self.debug then
+    checkArg(1, x, "number")
+    checkArg(2, y, "number")
+  end
+
   return x + self.coordBox.x - 1,
          y + self.coordBox.y - 1
 end
@@ -992,6 +1047,10 @@ end
 -- @treturn int x a view-relative cell column number
 -- @treturn int y a view-relative cell row number
 function BufferView:relCoords(x, y)
+  if self.debug then
+    checkArg(1, x, "number")
+    checkArg(2, y, "number")
+  end
   return x - self.coordBox.x + 1,
          y - self.coordBox.y + 1
 end
@@ -1055,6 +1114,13 @@ end
 -- @treturn int a buffer-relative intersection's bottom-right cell row number
 -- @see wonderful.buffer.Buffer:intersection
 function BufferView:intersection(x0, y0, w, h)
+  if self.debug then
+    checkArg(1, x0, "number")
+    checkArg(2, y0, "number")
+    checkArg(3, w, "number")
+    checkArg(4, h, "number")
+  end
+
   x0, y0 = self:absCoords(x0, y0)
 
   return self:superCall("intersection", x0, y0, w, h)
@@ -1075,6 +1141,17 @@ end
 -- @treturn wonderful.buffer.BufferView
 -- @see wonderful.buffer.Buffer:view
 function BufferView:view(x, y, w, h, sx, sy, sw, sh)
+  if self.debug then
+    checkArg(1, x, "number")
+    checkArg(2, y, "number")
+    checkArg(3, w, "number")
+    checkArg(4, h, "number")
+    checkArg(5, sx, "number")
+    checkArg(6, sy, "number")
+    checkArg(7, sw, "number")
+    checkArg(8, sh, "number")
+  end
+
   local x, y = self:absCoords(x, y)
 
   local coordBox = geometry.Box(x, y, w, h)

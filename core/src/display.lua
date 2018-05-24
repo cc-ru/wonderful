@@ -159,12 +159,15 @@ function DisplayManager:getScreenDepth(screen)
 end
 
 --- Create a new display by its specification.
+-- The debug mode introduces a few checks that catch errors and bugs where it
+-- makes sense. It may slow down the program significantly, though.
 -- @tparam table spec the specification
 -- @tparam[opt] int spec.x a top-left cell's column number
 -- @tparam[opt] int spec.y a top-left cell's row number
 -- @tparam[opt] int spec.w a width of the display
 -- @tparam[opt] int spec.h a height of the display
 -- @tparam[opt] string spec.screen a screen address
+-- @tparam[opt] boolean spec.debug whether the debug mode should be set
 -- @treturn wonderful.display.Display the display
 function DisplayManager:newDisplay(spec)
   local spec = spec or {}
@@ -218,7 +221,7 @@ function DisplayManager:newDisplay(spec)
   end
 
   local display = Display(
-    self, spec.screen, spec.box, self:getScreenDepth(spec.screen)
+    self, spec.screen, spec.box, self:getScreenDepth(spec.screen), self.debug
   )
 
   local w, h = self:getScreenResolution(spec.screen)
@@ -275,7 +278,7 @@ end
 --- Construct a new display.
 -- You **should not** use this directly.
 -- @see wonderful.display.DisplayManager
-function Display:__new__(manager, screen, box, depth)
+function Display:__new__(manager, screen, box, depth, debug)
   self.manager = manager
   self.screen = screen
   self.box = box
@@ -283,7 +286,8 @@ function Display:__new__(manager, screen, box, depth)
   self.fb = Framebuffer {
     w = box.w,
     h = box.h,
-    depth = depth
+    depth = depth,
+    debug = debug
   }
 
   self.fb:optimize()

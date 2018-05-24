@@ -28,7 +28,19 @@ local Wonderful = class(nil, {name = "wonderful.Wonderful"})
 -- @field Wonderful.running
 
 --- Construct a new instance.
-function Wonderful:__new__()
+-- The debug mode introduces a few checks that allow to catch bugs and errors.
+-- It may slow down the program significantly, though.
+-- @tparam ?table args a keyword arguments table
+-- @tparam[opt] boolean args.debug whether the debug mode should be set
+function Wonderful:__new__(args)
+  if args then
+    if args.debug == nil then
+      self.debug = true
+    else
+      self.debug = not not args.debug
+    end
+  end
+
   self.displayManager = display.DisplayManager()
   self.documents = {}
   self.signals = {}
@@ -75,7 +87,8 @@ function Wonderful:addDocument(args)
 
   local display = self.displayManager:newDisplay {
     box = args.box,
-    screen = args.screen
+    screen = args.screen,
+    debug = self.debug
   }
 
   local document = document.Document {
