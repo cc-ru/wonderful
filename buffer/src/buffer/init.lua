@@ -1,4 +1,5 @@
 --- Display buffers and buffer view.
+-- @see 205-Buffer.md
 -- @module wonderful.buffer
 
 local unicode = require("unicode")
