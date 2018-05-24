@@ -3,7 +3,7 @@
  dependencies = {
    {name = "lua-objects", version = "^0.2.0", type = "required"},
    {name = "wonderful-common", version = "^0.0.0", type = "required"},
-   {name = "wonderful-buffer", version = "^0.0.0", type = "required"},
+   {name = "wonderful-buffer", version = "^0.1.0", type = "required"},
  },
  files = {
    {url = "src/display.lua", path = "/usr/lib/wonderful/display.lua"},
