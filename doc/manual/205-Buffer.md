@@ -56,7 +56,7 @@ of the top-left corner on the screen, and a GPU proxy.
 fb:flush(20, 5, require("component").gpu)`
 ```
 
-[This example](../blob/examples/render-png.lua) shows how to use the buffer
+[This example](../examples/render-png.lua.html) shows how to use the buffer
 outside of a GUI environment.
 
 ## Buffer views

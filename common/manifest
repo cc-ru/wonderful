@@ -1,5 +1,5 @@
 {name = "wonderful-common",
- version = "0.0.0",
+ version = "0.1.0",
  dependencies = {},
  files = {
    {url = "src/geometry.lua", path = "/usr/lib/wonderful/geometry.lua"},
