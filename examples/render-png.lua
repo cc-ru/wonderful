@@ -10,7 +10,8 @@ local path = require("shell").resolve((...))
 local png = require("libPNGimage")
 local wbuffer = require("wonderful.buffer")
 
-local fb = wbuffer.Framebuffer {w = 160, h = 50, depth = 8}
+local fb = wbuffer.Framebuffer {w = 160, h = 50, depth = 8, debug = false}
+fb:optimize()
 
 local img = png.newFromFile(path)
 
