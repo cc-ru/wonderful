@@ -16,3 +16,5 @@ different from other libraries:
 - **OOP.** I mean, proper OOP. Multi-inheritance, getters and setters, and
   more—thanks to the lua-objects library.
 
+The manual pages and API reference are available on
+[doc.fomalhaut.me](http://doc.fomalhaut.me/wonderful/).
