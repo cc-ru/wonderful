@@ -100,6 +100,29 @@ local function autoimport(root, pkg)
   })
 end
 
+--- Swaps the keys and values of a table.
+-- @tparam table tbl a table
+-- @treturn table a swapped table
+-- @raise the table has two keys with the same value
+-- @usage
+-- local tbl = {13, 19, 20, 45}
+-- local swapped = swapPairs(tbl)
+-- print(swapped[13]) --> 1
+-- print(swapped[1]) --> nil
+local function swapPairs(tbl)
+  local result = {}
+
+  for k, v in pairs(tbl) do
+    if result[v] then
+      error("the table has two keys with the same value")
+    end
+
+    result[v] = k
+  end
+
+  return result
+end
+
 ---
 -- @export
 return {
@@ -107,5 +130,6 @@ return {
   shallowcopy = shallowcopy,
   isin = isin,
   autoimport = autoimport,
+  swapPairs = swapPairs,
 }
 

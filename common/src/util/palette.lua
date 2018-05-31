@@ -16,6 +16,7 @@
 -- @module wonderful.util.palette
 
 local funcUtil = require("wonderful.util.func")
+local tableUtil = require("wonderful.util.table")
 
 --- Extract RGB channel values from a color.
 -- @tparam int color a color
@@ -65,16 +66,33 @@ end
 -- @treturn int the palette index
 -- @function PaletteT1.deflate
 local function t1deflate(palette, color)
-  for idx = 1, palette.len, 1 do
-    if palette[idx] == color then
-      return idx - 1
-    end
+  local idx = palette.colors[color]
+
+  if idx then
+    return idx - 1
   end
 
-  local idx, minDelta
+  local minDelta
 
   for i = 1, palette.len, 1 do
-    local d = delta(palette[i], color)
+    -- inlined: delta
+    local color1 = palette[i] % 0x1000000
+    local r1 = (color1 - color1 % 0x10000) / 0x10000
+    local g1 = (color1 % 0x10000 - color1 % 0x100) / 0x100
+    local b1 = color1 % 0x100
+
+    local color2 = color % 0x1000000
+    local r2 = (color2 - color2 % 0x10000) / 0x10000
+    local g2 = (color2 % 0x10000 - color2 % 0x100) / 0x100
+    local b2 = color2 % 0x100
+
+    local dr = r1 - r2
+    local dg = g1 - g2
+    local db = b1 - b2
+
+    local d = (0.2126 * dr^2 +
+               0.7152 * dg^2 +
+               0.0722 * db^2)
 
     if not minDelta or d < minDelta then
       idx, minDelta = i, d
@@ -106,9 +124,11 @@ local function generateT1Palette(secondColor)
     secondColor
   }
 
+  palette.colors = tableUtil.swapPairs(palette)
   palette.len = 2
 
-  palette.deflate = funcUtil.cached1arg(t1deflate, 128, 2)
+  --palette.deflate = funcUtil.cached1arg(t1deflate, 128, 2)
+  palette.deflate = t1deflate
   palette.inflate = t1inflate
 
   return palette
@@ -143,9 +163,11 @@ local function generateT2Palette()
                    0xFFFF33, 0x33CC33, 0xFF6699, 0x333333,
                    0xCCCCCC, 0x336699, 0x9933CC, 0x333399,
                    0x663300, 0x336600, 0xFF3333, 0x000000}
+  palette.colors = tableUtil.swapPairs(palette)
   palette.len = 16
 
-  palette.deflate = funcUtil.cached1arg(t2deflate, 128, 2)
+  --palette.deflate = funcUtil.cached1arg(t2deflate, 128, 2)
+  palette.deflate = t2deflate
   palette.inflate = t2inflate
 
   return palette
@@ -171,33 +193,92 @@ local BCOEF = (5 - 1) / 0xFF
 -- @tparam int a color
 -- @treturn int the palette index
 -- @function PaletteT3.deflate
-local t3deflate = function(palette, color)
-  local paletteIndex = palette.t2deflate(palette, color)
+local function t3deflate(palette, color)
+  local idx = palette.colors[color]
 
-  -- don't use `palette.len` here
-  for i = 1, #palette, 1 do
-    if palette[i] == color then
-      return i - 1
+  if idx then
+    return idx - 1
+  end
+
+  local paletteIndex
+
+  -- inlined: t1deflate
+  do
+    local minDelta
+
+    for i = 1, palette.len, 1 do
+      local color1 = palette[i] % 0x1000000
+      local r1 = (color1 - color1 % 0x10000) / 0x10000
+      local g1 = (color1 % 0x10000 - color1 % 0x100) / 0x100
+      local b1 = color1 % 0x100
+
+      local color2 = color % 0x1000000
+      local r2 = (color2 - color2 % 0x10000) / 0x10000
+      local g2 = (color2 % 0x10000 - color2 % 0x100) / 0x100
+      local b2 = color2 % 0x100
+
+      local dr = r1 - r2
+      local dg = g1 - g2
+      local db = b1 - b2
+
+      local d = (0.2126 * dr^2 +
+                 0.7152 * dg^2 +
+                 0.0722 * db^2)
+
+      if not minDelta or d < minDelta then
+        paletteIndex, minDelta = i, d
+      end
     end
   end
 
-  -- inlined: extract
-  local r = (color - color % 0x10000) / 0x10000
-  local g = (color % 0x10000 - color % 0x100) / 0x100
-  local b = color % 0x100
+  paletteIndex = paletteIndex - 1
 
-  local idxR = r * RCOEF + 0.5
+  -- inlined: extract
+  local color1 = color % 0x1000000
+  local r1 = (color1 - color1 % 0x10000) / 0x10000
+  local g1 = (color1 % 0x10000 - color1 % 0x100) / 0x100
+  local b1 = color1 % 0x100
+
+  local idxR = r1 * RCOEF + 0.5
   idxR = idxR - idxR % 1
 
-  local idxG = g * GCOEF + 0.5
+  local idxG = g1 * GCOEF + 0.5
   idxG = idxG - idxG % 1
 
-  local idxB = b * BCOEF + 0.5
+  local idxB = b1 * BCOEF + 0.5
   idxB = idxB - idxB % 1
 
   local deflated = 16 + idxR * 40 + idxG * 5 + idxB
-  local calcDelta = delta(t3inflate(palette, deflated % 0x100), color)
-  local palDelta = delta(t3inflate(palette, paletteIndex % 0x100), color)
+
+  -- inlined:
+  -- - local calcDelta = delta(color, t3inflate(palette, deflated % 0x100))
+  -- - local palDelta = delta(color, t3inflate(palette, paletteIndex % 0x100))
+
+  local color2 = t3inflate(palette, deflated % 0x100) % 0x1000000
+  local r2 = (color2 - color2 % 0x10000) / 0x10000
+  local g2 = (color2 % 0x10000 - color2 % 0x100) / 0x100
+  local b2 = color2 % 0x100
+
+  local color3 = t3inflate(palette, paletteIndex % 0x100) % 0x1000000
+  local r3 = (color3 - color3 % 0x10000) / 0x10000
+  local g3 = (color3 % 0x10000 - color3 % 0x100) / 0x100
+  local b3 = color3 % 0x100
+
+  local calcDr = r1 - r2
+  local calcDg = g1 - g2
+  local calcDb = b1 - b2
+
+  local palDr = r1 - r3
+  local palDg = g1 - g3
+  local palDb = b1 - b3
+
+  local calcDelta = (0.2126 * calcDr^2 +
+                     0.7152 * calcDg^2 +
+                     0.0722 * calcDb^2)
+
+  local palDelta = (0.2126 * palDr^2 +
+                    0.7152 * palDg^2 +
+                    0.0722 * palDb^2)
 
   if calcDelta < palDelta then
     return deflated
@@ -214,9 +295,7 @@ end
 -- are set to shades of grey by default.
 -- @treturn PaletteT3 the palette
 local function generateT3Palette()
-  local palette = {
-    len = 16
-  }
+  local palette = {}
 
   for i = 1, 16, 1 do
     palette[i] = 0xFF * i / (16 + 1) * 0x10101
@@ -244,8 +323,11 @@ local function generateT3Palette()
     palette[idx + 1] = r * 0x10000 + g * 0x100 + b
   end
 
-  palette.deflate = funcUtil.cached1arg(t3deflate, 128, 2)
-  palette.t2deflate = funcUtil.cached1arg(t2deflate, 128, 2)
+  palette.colors = tableUtil.swapPairs(palette)
+  palette.len = 16
+
+  --palette.deflate = funcUtil.cached1arg(t3deflate, 128, 2)
+  palette.deflate = t3deflate
   palette.inflate = t3inflate
 
   return palette
