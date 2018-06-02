@@ -127,7 +127,6 @@ local function generateT1Palette(secondColor)
   palette.colors = tableUtil.swapPairs(palette)
   palette.len = 2
 
-  --palette.deflate = funcUtil.cached1arg(t1deflate, 128, 2)
   palette.deflate = t1deflate
   palette.inflate = t1inflate
 
@@ -166,7 +165,6 @@ local function generateT2Palette()
   palette.colors = tableUtil.swapPairs(palette)
   palette.len = 16
 
-  --palette.deflate = funcUtil.cached1arg(t2deflate, 128, 2)
   palette.deflate = t2deflate
   palette.inflate = t2inflate
 
@@ -326,7 +324,6 @@ local function generateT3Palette()
   palette.colors = tableUtil.swapPairs(palette)
   palette.len = 16
 
-  --palette.deflate = funcUtil.cached1arg(t3deflate, 128, 2)
   palette.deflate = t3deflate
   palette.inflate = t3inflate
 
