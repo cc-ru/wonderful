@@ -208,7 +208,7 @@ function EventTarget:_handleEvent(listener, event)
 
   event.phase = EventPhase.AtTarget
   event.currentTarget = self
-  listener.handler(event)
+  listener.handler(self, event)
 
   event.phase = EventPhase.Bubbling
 

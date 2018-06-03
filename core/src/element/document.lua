@@ -22,6 +22,7 @@ local kbd = require("keyboard")
 local display = require("wonderful.display")
 local element = require("wonderful.element")
 local focus = require("wonderful.element.focus")
+local signal = require("wonderful.signal")
 local style = require("wonderful.style")
 local textBuf = require("wonderful.style.buffer")
 
@@ -76,6 +77,8 @@ function Document:__new__(args)
   self.rootFocusingContext:insertStatic(1, self)
 
   self.calculatedBox = self.globalDisplay.box
+
+  self:setDefaultEventListener(signal.KeyDown, self.onKeyDown)
 end
 
 function Document:render(view)
