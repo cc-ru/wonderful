@@ -163,6 +163,26 @@ end
 ---
 -- @section end
 
+--- The focus attribute.
+local Focus = class(Attribute, {name = "wonderful.element.attribute.Focus"})
+
+--- The focus attribute.
+-- @type Focus
+
+--- the key by which the attribute is accessed (`"focus"`).
+Focus.key = "focus"
+
+--- The default value of the attribute (`nil`).
+Focus.DEFAULT = nil
+
+--- Construct a new instance.
+-- @tparam number|nil value a focusing index, or nil for static focusing
+function Focus:__new__(value)
+  self.value = type(value) == "number" and value or Focus.DEFAULT
+end
+
+--- @section end
+
 --- The style class names.
 local Classes = class(
   Attribute,

@@ -17,11 +17,15 @@
 
 local class = require("lua-objects")
 
-local element = require("wonderful.element")
+local kbd = require("keyboard")
+
 local display = require("wonderful.display")
+local element = require("wonderful.element")
+local focus = require("wonderful.element.focus")
 local style = require("wonderful.style")
 local textBuf = require("wonderful.style.buffer")
 
+local FocusingContext = focus.FocusingContext
 local StackingContext = require("wonderful.element.stack").StackingContext
 
 --- The document class.
@@ -68,6 +72,9 @@ function Document:__new__(args)
   self.rootStackingContext = StackingContext()
   self.rootStackingContext:insertStatic(1, self)
 
+  self.rootFocusingContext = FocusingContext()
+  self.rootFocusingContext:insertStatic(1, self)
+
   self.calculatedBox = self.globalDisplay.box
 end
 
@@ -75,8 +82,55 @@ function Document:render(view)
   view:fill(1, 1, view.w, view.h, 0xffffff, 0x000000, 1, " ")
 end
 
+function Document:onKeyDown(e)
+  if e.code == kbd.keys.tab then
+    if kbd:isShiftDown(e.keyboard) then
+      self:switchFocus(true)
+    else
+      self:switchFocus(false)
+    end
+  end
+end
+
+--- Switch focus to the next (or previous) element in the focusing context.
+--
+-- Usually called by pressing `Tab` / `Shift-Tab`.
+-- @tparam boolean reversed if true, switches to the previous element
+function Document:switchFocus(reversed)
+  local ctx = self.focusingContext
+  local prev = ctx.focused.element
+
+  if reversed then
+    ctx:prev()
+  else
+    ctx:next()
+  end
+
+  local new = ctx.focused.element
+
+  if prev then
+    prev.focused = false
+  end
+
+  if new then
+    new.focused = true
+  end
+
+  if prev then
+    prev:dispatchEvent(focus.FocusOut(new))
+  end
+
+  if new then
+    new:dispatchEvent(focus.FocusIn(prev))
+  end
+end
+
 function Document.__getters:stackingContext()
   return self.rootStackingContext
+end
+
+function Document.__getters:focusingContext()
+  return self.rootFocusingContext
 end
 
 function Document.__getters:viewport()

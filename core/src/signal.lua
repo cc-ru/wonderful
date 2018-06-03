@@ -36,6 +36,8 @@ local ComponentAdded = class(Signal, {name = "wonderful.signal.ComponentAdded"})
 -- @field ComponentAdded.componentType
 
 --- Construct a new instance.
+-- @tparam string address a component address
+-- @tparam string componentType a component type
 function ComponentAdded:__new__(address, componentType)
   self:superCall(Signal, "__new__")
   self.address = address
@@ -310,19 +312,19 @@ end
 local KeyUp = class(Signal, {name = "wonderful.signal.KeyUp"})
 
 --- The `"key_up"` signal.
--- @type KeyDown
+-- @type KeyUp
 
 --- The keyboard address.
--- @field KeyDown.keyboard
+-- @field KeyUp.keyboard
 
 --- The character Unicode codepoint.
--- @field KeyDown.char
+-- @field KeyUp.char
 
 --- The key code.
--- @field KeyDown.code
+-- @field KeyUp.code
 
 --- The player name. May be absent.
--- @field KeyDown.player
+-- @field KeyUp.player
 
 --- Construct a new instance.
 -- @tparam string keyboard a keyboard address
