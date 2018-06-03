@@ -137,7 +137,7 @@ end
 --- Set `focused` to the next element in the focusing context.
 --
 -- Starts from the beginning if the method returned `false` the last time.
--- @tparam boolean `false` if went through the end of the focusing context chain.
+-- @treturn boolean `false` if went through the end of the focusing context chain.
 function FocusingContext:next()
   local element = self.focused.element
 
@@ -222,7 +222,7 @@ end
 --- Set `focused` to the previous element in the focusing context.
 --
 -- Starts from the end if the method returned `false` the last time.
--- @tparam boolean `false` if went through the start of the focusing context chain.
+-- @treturn boolean `false` if went through the start of the focusing context chain.
 function FocusingContext:prev()
   local element = self.focused.element
 
@@ -266,7 +266,7 @@ function FocusingContext:prev()
 
         return true
       else
-        --- Reached the start of self.static.
+        -- Reached the start of self.static.
         if #self.indexedKeys > 0 then
           self.focused.static = false
           self.focused.indexKey = #self.indexedKeys

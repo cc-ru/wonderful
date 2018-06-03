@@ -26,5 +26,6 @@ kind_names = {
 
 format = 'discount'
 no_space_before_args = true
+convert_opt = true
 wrap = true
 sort_modules = true

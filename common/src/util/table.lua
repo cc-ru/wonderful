@@ -195,9 +195,9 @@ end
 -- remove it.
 -- @tparam table tbl the sequence
 -- @param value the value
--- @param[1] the key of the removed entry
--- @param[1] the value of the removed entry
--- @tparam[2] nil no entry was found
+-- @return[1] the key of the removed entry
+-- @return[1] the value of the removed entry
+-- @treturn[2] nil no entry was found
 local function removeFirst(tbl, value)
   for k, v in ipairs(tbl) do
     if v == value then
@@ -216,12 +216,12 @@ end
 --
 -- The range of search is `[start; stop]`.
 -- @tparam table tbl the sequence
--- @tparam `function(element, key, tbl)` predicate the predicate
+-- @tparam function(element,key,tbl) predicate the predicate
 -- @tparam[opt=1] int start the index to start searching from
--- @tparam[opt=#tbl] int stop the index to stop searching at
--- @param[1] the entry key
--- @param[1] the entry value
--- @tparam[2] nil no entries satisfy the predicate
+-- @tparam[optchain=#tbl] int stop the index to stop searching at
+-- @return[1] the entry key
+-- @return[1] the entry value
+-- @treturn[2] nil no entries satisfy the predicate
 local function first(tbl, predicate, start, stop)
   for k = start or 1, stop or #tbl, 1 do
     local v = tbl[k]
@@ -241,12 +241,12 @@ end
 --
 -- The range of search is `[start; stop]`.
 -- @tparam table tbl the sequence
--- @tparam `function(element, key, tbl)` predicate the predicate
+-- @tparam function(element,key,tbl) predicate the predicate
 -- @tparam[opt=1] int start the start index
--- @tparam[opt=#tbl] int stop the end index
--- @param[1] the entry key
--- @param[1] the entry value
--- @tparam[2] nil no entries satisfy the predicate
+-- @tparam[optchain=#tbl] int stop the end index
+-- @return[1] the entry key
+-- @return[1] the entry value
+-- @treturn[2] nil no entries satisfy the predicate
 local function last(tbl, predicate, start, stop)
   for k = stop or #tbl, start or 1, -1 do
     local v = tbl[k]
