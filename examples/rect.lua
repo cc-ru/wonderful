@@ -10,7 +10,9 @@ local wstyle = require("wonderful.style")
 
 local class = require("lua-objects")
 
-local wmain = wonderful.Wonderful()
+local wmain = wonderful.Wonderful {
+  debug = false
+}
 
 local Rectangle = class(wonderful.element.LeafElement, {name = "Rectangle"})
 

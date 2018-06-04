@@ -24,7 +24,9 @@
 local class = require("lua-objects")
 local wonderful = require("wonderful")
 
-local wmain = wonderful.Wonderful()
+local wmain = wonderful.Wonderful {
+  debug = false
+}
 
 local doc = wmain:addDocument()
 

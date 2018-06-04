@@ -10,7 +10,9 @@ local Classes = wonderful.element.attribute.Classes
 local Margin = wonderful.element.attribute.Margin
 local ScrollBox = wonderful.element.attribute.ScrollBox
 
-local wmain = wonderful.Wonderful()
+local wmain = wonderful.Wonderful {
+  debug = false
+}
 
 local Rectangle = class(wonderful.element.Element, {name = "Rectangle"})
 
