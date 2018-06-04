@@ -81,18 +81,30 @@ function LeafElement:render(fbView)
 end
 
 --- Set an attribute.
+--
+-- If a class is passed (rather than its instance), the attribute is unset.
 -- @tparam wonderful.element.attribute.Attribute attribute the attribute
+-- @see wonderful.element.LeafElement:get
+-- @usage
+-- -- Sets an attribute.
+-- element:set(Attribute("test"))
+--
+-- -- Unsets an attribute.
+-- element:set(Attribute)
 function LeafElement:set(attribute)
   local previous = self.attributes[attribute.key]
   local new = attribute
 
-  self.attributes[attribute.key] = attribute
+  if new.is_class then
+    new = nil
+  end
+
+  self.attributes[attribute.key] = new
 
   if previous then
     previous:onUnset(self, new)
   end
 
-  -- TODO: unsetting attributes
   if new then
     new:onSet(self, previous)
   end
