@@ -83,7 +83,13 @@ end
 --- Set an attribute.
 -- @tparam wonderful.element.attribute.Attribute attribute the attribute
 function LeafElement:set(attribute)
+  local previous = self.attributes[attribute.key]
+  local new = attribute
+
   self.attributes[attribute.key] = attribute
+
+  previous:onUnset(self, new)
+  new:onSet(self, previous)
 end
 
 --- Get an attribute by its key.
@@ -320,17 +326,6 @@ function Element:sizeHint()
   local padding = self:getLayoutPadding()
   return width + padding.l + padding.r,
          height + padding.t + padding.b
-end
-
---- Set a scroll box and recompose.
--- @tparam int x an x offset (0-based)
--- @tparam int y a y offset (0-based)
--- @tparam int w a width
--- @tparam int h a height
--- @see wonderful.element.attribute.ScrollBox
-function Element:setScrollBox(x, y, w, h)
-  self:set(attribute.ScrollBox(x, y, w, h))
-  self:recompose()
 end
 
 --- Recompose the element, calculating boxes for its children.

@@ -44,6 +44,18 @@ function Attribute:__new__(key, value)
   self.value = value
 end
 
+--- The on-set handler, called when the attribute is set.
+-- @param element the element the attribute is assigned to.
+-- @param[opt] previous the previous value, if any
+function Attribute:onSet(element, previous)
+end
+
+--- The on-unset handler, called when the attribute is unset.
+-- @param element the element the attribute was removed from.
+-- @param[opt] new the new value, if any
+function Attribute:onUnset(element, new)
+end
+
 ---
 -- @section end
 
@@ -160,6 +172,22 @@ function ZIndex:__new__(value)
   self.value = type(value) == "number" and value or ZIndex.DEFAULT
 end
 
+function ZIndex:onSet(element, previous)
+  local index = element.index
+  local parent = element.parent
+
+  parent:removeChild(index)
+  parent:insertChild(index, element)
+end
+
+function ZIndex:onUnset(element, new)
+  local index = element.index
+  local parent = element.parent
+
+  parent:removeChild(index)
+  parent:insertChild(index, element)
+end
+
 ---
 -- @section end
 
@@ -179,6 +207,22 @@ Focus.DEFAULT = nil
 -- @tparam number|nil value a focusing index, or nil for static focusing
 function Focus:__new__(value)
   self.value = type(value) == "number" and value or Focus.DEFAULT
+end
+
+function Focus:onSet(element, previous)
+  local index = element.index
+  local parent = element.parent
+
+  parent:removeChild(index)
+  parent:insertChild(index, element)
+end
+
+function Focus:onUnset(element, new)
+  local index = element.index
+  local parent = element.parent
+
+  parent:removeChild(index)
+  parent:insertChild(index, element)
 end
 
 --- @section end
@@ -309,6 +353,14 @@ ScrollBox.key = "scrollBox"
 -- @tparam int h
 function ScrollBox:__new__(x, y, w, h)
   self:superCall(geometry.Box, "__new__", x, y, w, h)
+end
+
+function ScrollBox:onSet(element, previous)
+  element:recompose()
+end
+
+function ScrollBox:onUnset(element, new)
+  element:recompose()
 end
 
 ---
