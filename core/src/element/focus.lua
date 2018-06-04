@@ -41,7 +41,7 @@ local FocusingContext = class(
 -- @field FocusingContext.iterRev
 
 --- Construct a new instance.
-function FocusingContent:__new__()
+function FocusingContext:__new__()
   self.static = {}
   self.indexed = {}
   self.indexedKeys = {}
@@ -333,8 +333,8 @@ function FocusingContext.__getters:iter()
   end
 
   return iterUtil.chain(
-    iterUtil.wrap(ipairs(indexed))
-    iterUtil.wrap(ipairs(self.static)),
+    iterUtil.wrap(ipairs(indexed)),
+    iterUtil.wrap(ipairs(self.static))
   )
 end
 
@@ -348,8 +348,8 @@ function FocusingContext.__getters:iterRev()
   end
 
   return iterUtil.chain(
-    iterUtil.wrap(iterUtil.ipairsRev(self.static))
-    iterUtil.wrap(iterUtil.ipairsRev(indexed)),
+    iterUtil.wrap(iterUtil.ipairsRev(self.static)),
+    iterUtil.wrap(iterUtil.ipairsRev(indexed))
   )
 end
 

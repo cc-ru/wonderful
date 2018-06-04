@@ -88,8 +88,14 @@ function LeafElement:set(attribute)
 
   self.attributes[attribute.key] = attribute
 
-  previous:onUnset(self, new)
-  new:onSet(self, previous)
+  if previous then
+    previous:onUnset(self, new)
+  end
+
+  -- TODO: unsetting attributes
+  if new then
+    new:onSet(self, previous)
+  end
 end
 
 --- Get an attribute by its key.

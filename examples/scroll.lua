@@ -6,6 +6,10 @@ local wonderful = require("wonderful")
 
 local class = require("lua-objects")
 
+local Classes = wonderful.element.attribute.Classes
+local Margin = wonderful.element.attribute.Margin
+local ScrollBox = wonderful.element.attribute.ScrollBox
+
 local wmain = wonderful.Wonderful()
 
 local Rectangle = class(wonderful.element.Element, {name = "Rectangle"})
@@ -62,20 +66,20 @@ function Rectangle:sizeHint()
 end
 
 local rootRect = Rectangle {w = 80, h = 25}
-rootRect:set(wonderful.element.attribute.Classes("root"))
-rootRect:set(wonderful.element.attribute.ScrollBox(0, 0))
+rootRect:set(Classes("root"))
+rootRect:set(ScrollBox(0, 0))
 doc:appendChild(rootRect)
 
 local level1 = Rectangle {w = 76, h = 15}
-level1:set(wonderful.element.attribute.Classes("level-1"))
-level1:set(wonderful.element.attribute.Margin(2, 4, 0, 0))
-level1:set(wonderful.element.attribute.ScrollBox(0, 0))
+level1:set(Classes("level-1"))
+level1:set(Margin(2, 4, 0, 0))
+level1:set(ScrollBox(0, 0))
 rootRect:appendChild(level1)
 
 for i = 1, 10, 1 do
   local level2 = Rectangle {w = 72, h = 7}
-  level2:set(wonderful.element.attribute.Classes("level-2"))
-  level2:set(wonderful.element.attribute.Margin(2, 4, 0, 0))
+  level2:set(Classes("level-2"))
+  level2:set(Margin(2, 4, 0, 0))
   level1:appendChild(level2)
 end
 
@@ -97,12 +101,12 @@ while true do
     local scrollBox = element:get("scrollBox")
 
     if e[4] == 208 then -- arrow down
-      element:setScrollBox(scrollBox.x, scrollBox.y + 1,
-                           scrollBox.w, scrollBox.h)
+      element:set(ScrollBox(scrollBox.x, scrollBox.y + 1,
+                            scrollBox.w, scrollBox.h))
       wmain:render()
     elseif e[4] == 200 then -- arrow up
-      element:setScrollBox(scrollBox.x, scrollBox.y - 1,
-                           scrollBox.w, scrollBox.h)
+      element:set(ScrollBox(scrollBox.x, scrollBox.y - 1,
+                            scrollBox.w, scrollBox.h))
       wmain:render()
     end
   end

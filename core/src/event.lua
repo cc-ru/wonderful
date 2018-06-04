@@ -17,7 +17,7 @@
 
 local class = require("lua-objects")
 
-local iterUtil = require("wonderful.util.iter")
+local tableUtil = require("wonderful.util.table")
 
 --- The enum of event handling phases.
 -- @field None the default state, when an event hasn't been dispatched yet.
@@ -109,7 +109,7 @@ function EventTarget:addEventListener(cls, handler, options)
     self.listeners[cls] = {}
   end
 
-  local listener = iterUtil.shallowcopy(options or {})
+  local listener = tableUtil.shallowcopy(options or {})
   listener.handler = handler
 
   table.insert(self.listeners[cls], listener)
@@ -128,11 +128,11 @@ function EventTarget:removeEventListener(cls, handler, options)
     return false
   end
 
-  local query = iterUtil.shallowcopy(options or {})
+  local query = tableUtil.shallowcopy(options or {})
   query.handler = query
 
   for i, listener in ipairs(self.listeners[cls]) do
-    if iterUtil.shalloweq(listener, query) then
+    if tableUtil.shalloweq(listener, query) then
       table.remove(self.listeners, i)
       return true
     end
@@ -147,7 +147,7 @@ end
 -- @tparam table options a table of listener options
 -- @tparam boolean options.capture TODO
 function EventTarget:setDefaultEventListener(cls, handler, options)
-  local listener = iterUtil.shallowcopy(options or {})
+  local listener = tableUtil.shallowcopy(options or {})
   listener.handler = handler
 
   self.defaultListeners[cls] = listener
