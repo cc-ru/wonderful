@@ -92,14 +92,14 @@ end
 -- -- Unsets an attribute.
 -- element:set(Attribute)
 function LeafElement:set(attribute)
-  local previous = self.attributes[attribute.key]
+  local previous = self.attributes[attribute.class]
   local new = attribute
 
   if new.is_class then
     new = nil
   end
 
-  self.attributes[attribute.key] = new
+  self.attributes[attribute.class] = new
 
   if previous then
     previous:onUnset(self, new)
@@ -110,11 +110,24 @@ function LeafElement:set(attribute)
   end
 end
 
---- Get an attribute by its key.
--- @tparam string key the key.
+--- Get an attribute by its class.
+-- @param clazz the attribute class
+-- @tparam[opt=false] boolean default whether to return the default if not found
 -- @return the attribute or `nil`
-function LeafElement:get(key)
-  return self.attributes[key]
+-- @see wonderful.element.LeafElement:set
+-- @usage
+-- element:set(Attribute("test"))
+-- print(element:get(Attribute).value)
+function LeafElement:get(clazz, default)
+  local attr = self.attributes[clazz.class]
+
+  if attr then
+    return attr
+  elseif default and clazz then
+    return clazz()
+  else
+    return nil
+  end
 end
 
 function LeafElement:getCapturingParent()

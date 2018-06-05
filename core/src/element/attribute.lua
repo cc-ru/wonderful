@@ -32,15 +32,11 @@ local Attribute = class(
 --- The base atribute class.
 -- @type Attribute
 
---- The key by which the attribute is accessed by.
--- @field Attribute.key
-
 --- The value of the attribute
 -- @field Attribute.value
 
 --- Construct a new attribute.
-function Attribute:__new__(key, value)
-  self.key = key
+function Attribute:__new__(value)
   self.value = value
 end
 
@@ -79,11 +75,8 @@ Position.OPTIONS = {
   fixed = true
 }
 
---- The key by which the attribute is accessed (`"position"`).
-Position.key = "position"
-
 --- Construct a new instance.
--- @tparam string value one of "static", "absolute", "relative", "fixed"
+-- @tparam ?string value one of "static", "absolute", "relative", "fixed"
 function Position:__new__(value)
   if self.OPTIONS[value] then
     self.value = value
@@ -111,15 +104,12 @@ local Margin = class(
 --- The margin attribute.
 -- @type Margin
 
---- The key by which the attribute is accessed (`"margin"`).
-Margin.key = "margin"
-
 --- Construct a new instance.
--- @tparam int l the left margin
--- @tparam int t the top margin
--- @tparam int r the right margin
--- @tparam int b the bottom margin
-function Margin:__new__(...)
+-- @tparam ?int l the left margin
+-- @tparam ?int t the top margin
+-- @tparam ?int r the right margin
+-- @tparam ?int b the bottom margin
+function Margin:__new__(l, t, r, b)
   self:superCall(geometry.Margin, "__new__", ...)
 end
 
@@ -136,14 +126,11 @@ local Padding = class(
 --- The padding attribute.
 -- @type Padding
 
---- The key by which the attribute is accessed (`"padding"`).
-Padding.key = "padding"
-
 --- Construct a new instance.
--- @tparam int l the left padding
--- @tparam int t the top padding
--- @tparam int r the right padding
--- @tparam int b the bottom padding
+-- @tparam ?int l the left padding
+-- @tparam ?int t the top padding
+-- @tparam ?int r the right padding
+-- @tparam ?int b the bottom padding
 function Padding:__new__(...)
   self:superCall(geometry.Padding, "__new__", ...)
 end
@@ -160,14 +147,11 @@ local ZIndex = class(
 --- The z-index attribute.
 -- @type ZIndex
 
---- The key by which the attribute is accessed (`"zIndex"`).
-ZIndex.key = "zIndex"
-
 --- The default value of the attribute (`1`).
 ZIndex.DEFAULT = 1
 
 --- Construct a new instance.
--- @tparam number value a z-index
+-- @tparam ?number value a z-index
 function ZIndex:__new__(value)
   self.value = type(value) == "number" and value or ZIndex.DEFAULT
 end
@@ -197,14 +181,11 @@ local Focus = class(Attribute, {name = "wonderful.element.attribute.Focus"})
 --- The focus attribute.
 -- @type Focus
 
---- the key by which the attribute is accessed (`"focus"`).
-Focus.key = "focus"
-
 --- The default value of the attribute (`nil`).
 Focus.DEFAULT = nil
 
 --- Construct a new instance.
--- @tparam number|nil value a focusing index, or nil for static focusing
+-- @tparam ?number value a focusing index, or nil for static focusing
 function Focus:__new__(value)
   self.value = type(value) == "number" and value or Focus.DEFAULT
 end
@@ -235,9 +216,6 @@ local Classes = class(
 
 --- The style class names.
 -- @type Classes
-
---- The key by which the attribute is accessed (`"classes"`).
-Classes.key = "classes"
 
 --- Construct a new instance.
 -- @tparam string,... ... class names
@@ -312,14 +290,11 @@ local Stretch = class(Attribute, {name = "wonderful.element.attribute.Stretch"})
 --- The stretch attribute.
 -- @type Stretch
 
---- The key by which the attribute is accessed (`"stretch"`).
-Stretch.key = "stretch"
-
 --- The default value of the attribute (`0`).
 Stretch.DEFAULT = 0
 
 --- Construct a new instance.
--- @tparam number stretch a value
+-- @tparam ?number stretch a value
 function Stretch:__new__(stretch)
   stretch = tonumber(stretch)
 
@@ -343,14 +318,11 @@ local ScrollBox = class(
 --- The scroll box attribute.
 -- @type ScrollBox
 
---- The key by which the attribute is accessed (`"scrollBox"`).
-ScrollBox.key = "scrollBox"
-
 --- Construct a new instance.
--- @tparam int x
--- @tparam int y
--- @tparam int w
--- @tparam int h
+-- @tparam ?int x
+-- @tparam ?int y
+-- @tparam ?int w
+-- @tparam ?int h
 function ScrollBox:__new__(x, y, w, h)
   self:superCall(geometry.Box, "__new__", x, y, w, h)
 end
