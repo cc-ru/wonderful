@@ -31,6 +31,7 @@ local style = function()
   return require("wonderful.style")
 end
 
+local Classes = require("wonderful.element.attribute").Classes
 local isin = tblUtil.isin
 
 local function traverseSpec(spec, func)
@@ -154,9 +155,7 @@ function Spec:targetMatches(target, component)
 
   -- Check classes
   for k, v in pairs(target.classes) do
-    local classes = component:get("classes")
-
-    if not classes or not classes:isSet(v) then
+    if component:get(Classes, true):isSet(v) then
       return false
     end
   end

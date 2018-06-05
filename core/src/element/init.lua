@@ -157,13 +157,13 @@ end
 --- Get the element's margin.
 -- @treturn wonderful.element.attribute.Margin
 function LeafElement:getMargin()
-  return self:get("margin") or attribute.Margin()
+  return self:get(attribute.Margin, true)
 end
 
 --- Get the element's stretch value.
 -- @treturn wonderful.element.attribute.Stretch
 function LeafElement:getStretch()
-  return (self:get("stretch") or attribute.Stretch()).value
+  return self:get(attribute.Stretch).value
 end
 
 --- Set a new calculated box.
@@ -185,7 +185,7 @@ function LeafElement.__getters:isLeaf()
 end
 
 function LeafElement.__getters:isStaticPositioned()
-  local position = self:get("position")
+  local position = self:get(attribute.Position)
   return position and position:isStatic() or true
 end
 
@@ -244,12 +244,12 @@ function Element:getLayoutItems()
 end
 
 function Element:getLayoutPadding()
-  return self:get("padding") or attribute.Padding()
+  return self:get(attribute.Padding)
 end
 
 function Element:getLayoutBox()
   local x, y, w, h = self.calculatedBox:unpack()
-  local scrollBox = self:get("scrollBox")
+  local scrollBox = self:get(attribute.ScrollBox)
 
   if scrollBox then
     if scrollBox.x then
@@ -281,7 +281,7 @@ function Element:insertChild(index, child)
   if child.isStaticPositioned then
     self.stackingContext:insertStatic(self.stackingIndex + index, child)
   else
-    local zIndex = child:get("zIndex")
+    local zIndex = child:get(attribute.ZIndex)
 
     self.stackingContext:insertIndexed(
       self.stackingIndex + index,
@@ -295,7 +295,7 @@ function Element:insertChild(index, child)
     child._stackingContext = nil
   end
 
-  local focusAttribute = child:get("focus")
+  local focusAttribute = child:get(attribute.Focus)
 
   if not focusAttribute then
     self.focusingContext:insertStatic(self.focusingIndex + index, child)
@@ -328,7 +328,7 @@ function Element:removeChild(index)
   if ret.isStaticPositioned then
     self.stackingContext:removeStatic(self.stackingIndex + index)
   else
-    local zIndex = child:get("zIndex")
+    local zIndex = child:get(attribute.ZIndex)
 
     self.stackingContext:removeIndexed(
       self.stackingIndex + index,
@@ -336,7 +336,7 @@ function Element:removeChild(index)
     )
   end
 
-  local focusAttribute = child:get("focus")
+  local focusAttribute = child:get(attribute.Focus)
 
   if not focusAttribute then
     self.focusingContext:removeStatic(self.focusingIndex + index)

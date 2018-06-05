@@ -20,7 +20,8 @@ local class = require("lua-objects")
 local iterUtil = require("wonderful.util.iter")
 local tableUtil = require("wonderful.util.table")
 
-local event = require("wonderful.event").Event
+local Classes = require("wonderful.element.attribute").Classes
+local Event = require("wonderful.event").Event
 
 --- The focusing context class.
 local FocusingContext = class(
@@ -152,7 +153,7 @@ function FocusingContext:next()
       return true
     else
       local k, v = tableUtil.first(self.static, function(v)
-        return v:get("focus")
+        return v:get(Focus)
       end)
 
       if k then
@@ -201,7 +202,7 @@ function FocusingContext:next()
 
     if self.focused.static then
       local k, v = tableUtil.first(self.static, function(v)
-        return v:get("focus")
+        return v:get(Focus)
       end, self.focused.index + 1)
 
       if k then
@@ -228,7 +229,7 @@ function FocusingContext:prev()
 
   if not element then
     local k, v = tableUtil.last(self.static, function(v)
-      return v:get("focus")
+      return v:get(Focus)
     end)
 
     if k then
@@ -257,7 +258,7 @@ function FocusingContext:prev()
   else
     if self.focused.static then
       local k, v = tableUtil.last(self.static, function(v)
-        return v:get("focus")
+        return v:get(Focus)
       end, 1, self.focused.index - 1)
 
       if k then
