@@ -109,7 +109,7 @@ local Margin = class(
 -- @tparam ?int t the top margin
 -- @tparam ?int r the right margin
 -- @tparam ?int b the bottom margin
-function Margin:__new__(l, t, r, b)
+function Margin:__new__(...)
   self:superCall(geometry.Margin, "__new__", ...)
 end
 
@@ -138,43 +138,6 @@ end
 ---
 -- @section end
 
---- The z-index attribute.
-local ZIndex = class(
-  Attribute,
-  {name = "wonderful.element.attribute.ZIndex"}
-)
-
---- The z-index attribute.
--- @type ZIndex
-
---- The default value of the attribute (`1`).
-ZIndex.DEFAULT = 1
-
---- Construct a new instance.
--- @tparam ?number value a z-index
-function ZIndex:__new__(value)
-  self.value = type(value) == "number" and value or ZIndex.DEFAULT
-end
-
-function ZIndex:onSet(element, previous)
-  local index = element.index
-  local parent = element.parent
-
-  parent:removeChild(index)
-  parent:insertChild(index, element)
-end
-
-function ZIndex:onUnset(element, new)
-  local index = element.index
-  local parent = element.parent
-
-  parent:removeChild(index)
-  parent:insertChild(index, element)
-end
-
----
--- @section end
-
 --- The focus attribute.
 local Focus = class(Attribute, {name = "wonderful.element.attribute.Focus"})
 
@@ -194,16 +157,20 @@ function Focus:onSet(element, previous)
   local index = element.index
   local parent = element.parent
 
-  parent:removeChild(index)
-  parent:insertChild(index, element)
+  if parent then
+    parent:removeChild(index)
+    parent:insertChild(index, element)
+  end
 end
 
 function Focus:onUnset(element, new)
   local index = element.index
   local parent = element.parent
 
-  parent:removeChild(index)
-  parent:insertChild(index, element)
+  if parent then
+    parent:removeChild(index)
+    parent:insertChild(index, element)
+  end
 end
 
 --- @section end
@@ -345,7 +312,7 @@ return {
   Position = Position,
   Margin = Margin,
   Padding = Padding,
-  ZIndex = ZIndex,
+  Focus = Focus,
   Classes = Classes,
   Stretch = Stretch,
   ScrollBox = ScrollBox,

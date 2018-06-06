@@ -27,7 +27,6 @@ local style = require("wonderful.style")
 local textBuf = require("wonderful.style.buffer")
 
 local FocusingContext = focus.FocusingContext
-local StackingContext = require("wonderful.element.stack").StackingContext
 
 --- The document class.
 -- The root element of a render tree.
@@ -69,9 +68,6 @@ function Document:__new__(args)
   end
 
   self.globalDisplay = args.display
-
-  self.rootStackingContext = StackingContext()
-  self.rootStackingContext:insertStatic(1, self)
 
   self.rootFocusingContext = FocusingContext()
   self.rootFocusingContext:insertStatic(1, self)
@@ -126,10 +122,6 @@ function Document:switchFocus(reversed)
   if new then
     new:dispatchEvent(focus.FocusIn(prev))
   end
-end
-
-function Document.__getters:stackingContext()
-  return self.rootStackingContext
 end
 
 function Document.__getters:focusingContext()

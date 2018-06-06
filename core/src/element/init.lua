@@ -23,7 +23,6 @@ local focus = require("wonderful.element.focus")
 local geometry = require("wonderful.geometry")
 local layout = require("wonderful.layout")
 local node = require("wonderful.element.node")
-local stack = require("wonderful.element.stack")
 
 local PropRef = require("wonderful.style").PropRef
 local VBoxLayout = require("wonderful.layout.box").VBoxLayout
@@ -84,6 +83,7 @@ end
 --
 -- If a class is passed (rather than its instance), the attribute is unset.
 -- @tparam wonderful.element.attribute.Attribute attribute the attribute
+-- @return self
 -- @see wonderful.element.LeafElement:get
 -- @usage
 -- -- Sets an attribute.
@@ -108,6 +108,8 @@ function LeafElement:set(attribute)
   if new then
     new:onSet(self, previous)
   end
+
+  return self
 end
 
 --- Get an attribute by its class.
@@ -163,7 +165,7 @@ end
 --- Get the element's stretch value.
 -- @treturn wonderful.element.attribute.Stretch
 function LeafElement:getStretch()
-  return self:get(attribute.Stretch).value
+  return self:get(attribute.Stretch, true).value
 end
 
 --- Set a new calculated box.
@@ -185,8 +187,7 @@ function LeafElement.__getters:isLeaf()
 end
 
 function LeafElement.__getters:isStaticPositioned()
-  local position = self:get(attribute.Position)
-  return position and position:isStatic() or true
+  return self:get(attribute.Position, true):isStatic()
 end
 
 function LeafElement.__getters:viewport()
@@ -212,11 +213,6 @@ local Element = class({LeafElement, node.ParentNode, layout.LayoutContainer},
 
 --- The layout used to position children.
 -- @field Element.layout
-
---- The stacking context.
--- Creates an ad-hoc stacking context if the element belongs to a free tree,
--- which is merged into the parent when the element is inserted.
--- @field Element.stackingContext
 
 --- The focusing context.
 -- Creates an ad-hoc focusing context if the element belongs to a free tree,
@@ -244,7 +240,7 @@ function Element:getLayoutItems()
 end
 
 function Element:getLayoutPadding()
-  return self:get(attribute.Padding)
+  return self:get(attribute.Padding, true)
 end
 
 function Element:getLayoutBox()
@@ -278,23 +274,6 @@ end
 function Element:insertChild(index, child)
   self:superCall(node.ParentNode, "insertChild", index, child)
 
-  if child.isStaticPositioned then
-    self.stackingContext:insertStatic(self.stackingIndex + index, child)
-  else
-    local zIndex = child:get(attribute.ZIndex)
-
-    self.stackingContext:insertIndexed(
-      self.stackingIndex + index,
-      zIndex and zIndex.value or 1,
-      child
-    )
-  end
-
-  if child._stackingContext then
-    child._stackingContext:mergeInto(self.stackingContext, child.stackingIndex)
-    child._stackingContext = nil
-  end
-
   local focusAttribute = child:get(attribute.Focus)
 
   if not focusAttribute then
@@ -323,17 +302,6 @@ function Element:removeChild(index)
 
   if not ret then
     return false
-  end
-
-  if ret.isStaticPositioned then
-    self.stackingContext:removeStatic(self.stackingIndex + index)
-  else
-    local zIndex = child:get(attribute.ZIndex)
-
-    self.stackingContext:removeIndexed(
-      self.stackingIndex + index,
-      zIndex and zIndex.value or 1
-    )
   end
 
   local focusAttribute = child:get(attribute.Focus)
@@ -371,19 +339,6 @@ function Element:recompose()
     if element:isa(Element) then
       element:recompose()
     end
-  end
-end
-
-function Element.__getters:stackingContext()
-  if self.parentNode then
-    return self.parentNode.stackingContext
-  else
-    if not self._stackingContext then
-      self._stackingContext = stack.StackingContext()
-      self.stackingIndex = 0
-    end
-
-    return self._stackingContext
   end
 end
 

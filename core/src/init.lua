@@ -135,78 +135,54 @@ function Wonderful:addDocument(args)
   return document
 end
 
-do
-  local function rStackingContext(root)
-    local buf = root.display.fb
+function Wonderful:render()
+  for _, document in ipairs(self.documents) do
+    local buf = document.display.fb
 
-    for _, el in root.stackingContext.iter do
-      if el.isLeaf or el.stackingContext == root.stackingContext then
-        if el.calculatedBox then
-          local coordBox = el.calculatedBox
-          local viewport = el.viewport
+    document:walkDf(function(node)
+      if el.calculatedBox then
+        local coordBox = el.calculatedBox
+        local viewport = el.viewport
 
-          local view = buf:view(coordBox.x,
-                                coordBox.y,
-                                coordBox.w,
-                                coordBox.h,
-                                viewport.x,
-                                viewport.y,
-                                viewport.w,
-                                viewport.h)
+        local view = buf:view(coordBox.x,
+                              coordBox.y,
+                              coordBox.w,
+                              coordBox.h,
+                              viewport.x,
+                              viewport.y,
+                              viewport.w,
+                              viewport.h)
 
-          if view then
-            el:render(view)
-          end
-        end
-      else
-        rStackingContext(el)
+        el:render(view)
       end
-    end
+    end)
   end
 
-  function Wonderful:render()
-    for _, document in ipairs(self.documents) do
-      rStackingContext(document)
-    end
-
-    for _, display in ipairs(self.displayManager.displays) do
-      display:flush()
-    end
+  for _, display in ipairs(self.displayManager.displays) do
+    display:flush()
   end
 end
 
-do
-  local function hStackingContext(root)
-    for _, el in root.stackingContext.iterRev do
-      if el.isLeaf or el.stackingContext == root.stackingContext then
-        if el.calculatedBox:has(x, y) then
-          return el
+--- Trace a "hit": find an element by touch coordinates.
+-- @tparam string screen a screen address
+-- @tparam number x a column number
+-- @tparam number y a row number
+-- @return an element
+function Wonderful:hit(screen, x, y)
+  for _, document in ipairs(self.documents) do
+    if document.display.screen == screen and
+       document.display.box:has(x, y) then
+
+      local hit
+
+      document:walkDf(function(element)
+        if element.calculatedBox:has(x, y) then
+          hit = element
         end
-      else
-        local hit = hStackingContext(el)
+      end)
 
-        if hit then
-          return hit
-        end
-      end
-    end
-  end
-
-  --- Trace a "hit": find an element by touch coordinates.
-  -- @tparam string screen a screen address
-  -- @tparam number x a column number
-  -- @tparam number y a row number
-  -- @return an element
-  function Wonderful:hit(screen, x, y)
-    for _, document in ipairs(self.documents) do
-      if document.display.screen == screen and
-         document.display.box:has(x, y) then
-
-        local hit = hStackingContext(document, x, y)
-
-        if hit then
-          return hit
-        end
+      if hit then
+        return hit
       end
     end
   end

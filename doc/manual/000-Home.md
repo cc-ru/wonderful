@@ -23,10 +23,6 @@ The renderer uses a GPU pool and draws with an available GPU to minimize the del
 Changes aren't pushed directly to the screen—they are stored in a buffer. When you call `Document:render()`,
 the renderer compares it with what's drawn on the screen, optimizes the calls, and outputs to screen.
 
-#### Layers
-The Document class implements a stacking context, so you can set the ZIndex attribute to make a component
-float above others. Just like you do in HTML/CSS, yes.
-
 #### Advanced event system
 Handlers are called in the top-to-bottom order if it makes sense (like click handlers). For other events,
 we use the child-to-parent order.

@@ -41,6 +41,18 @@ function ChildNode:__new_()
   self.parentNode = nil
 end
 
+--- Walk the tree breadth-first.
+-- @tparam function(node) func the function to call for each node
+function ChildNode:walkBf(func)
+  func(self)
+end
+
+--- Walk the tree depth-first (pre-order).
+-- @tparam function(node) func the function to call for each node
+function ChildNode:walkDf(func)
+  func(self)
+end
+
 function ChildNode.__getters:rootNode()
   if self.rootMemo then
     return self.rootMemo
@@ -88,6 +100,34 @@ local ParentNode = class(
 --- Construct a new node.
 function ParentNode:__new__()
   self.childNodes = {}
+end
+
+--- Walk the tree breadth-first.
+-- @tparam function(node) func the function to call for each node
+function ParentNode:walk(func)
+  local queue = {self}
+
+  while #queue > 0 do
+    local node = table.remove(queue, 1)
+
+    func(node)
+
+    if node:isa(ParentNode) then
+      for i, child in ipairs(node.childNodes) do
+        table.insert(queue, child)
+      end
+    end
+  end
+end
+
+--- Walk the tree depth-first (pre-order).
+-- @tparam function(node) func the function to call for each node
+function Parent:walkDf(func)
+  func(self)
+
+  for i, child in ipairs(self.childNodes) do
+    child:walkDf(func)
+  end
 end
 
 --- Insert a node at a given index.
