@@ -41,16 +41,31 @@ function ChildNode:__new_()
   self.parentNode = nil
 end
 
---- Walk the tree breadth-first.
+--- Perform left-to-right breadth-first tree traversal.
+--
+-- If the function returns a non-`nil` value, traversal is stopped, and the
+-- returned value is returned.
 -- @tparam function(node) func the function to call for each node
-function ChildNode:walkBf(func)
-  func(self)
+function ChildNode:lbfsWalk(func)
+  return func(self)
 end
 
---- Walk the tree depth-first (pre-order).
+--- Perform left-to-right pre-order depth-first traversal.
+--
+-- If the function returns a non-`nil` value, traversal is stopped, and the
+-- returned value is returned.
 -- @tparam function(node) func the function to call for each node
-function ChildNode:walkDf(func)
-  func(self)
+function ChildNode:nlrWalk(func)
+  return func(self)
+end
+
+--- Perform right-to-left post-order depth-first traversal.
+--
+-- If the function returns a non-`nil` value, traversal is stopped, and the
+-- returned value is returned.
+-- @tparam function(node) func the function to call for each node
+function ChildNode:rlnWalk(func)
+  return func(self)
 end
 
 function ChildNode.__getters:rootNode()
@@ -102,15 +117,22 @@ function ParentNode:__new__()
   self.childNodes = {}
 end
 
---- Walk the tree breadth-first.
+--- Perform left-to-right breadth-first tree traversal.
+--
+-- If the function returns a non-`nil` value, traversal is stopped, and the
+-- returned value is returned.
 -- @tparam function(node) func the function to call for each node
-function ParentNode:walk(func)
+function ParentNode:lbfsWalk(func)
   local queue = {self}
 
   while #queue > 0 do
     local node = table.remove(queue, 1)
 
-    func(node)
+    local result = func(node)
+
+    if result ~= nil then
+      return result
+    end
 
     if node:isa(ParentNode) then
       for i, child in ipairs(node.childNodes) do
@@ -120,14 +142,42 @@ function ParentNode:walk(func)
   end
 end
 
---- Walk the tree depth-first (pre-order).
+--- Perform left-to-right pre-order depth-first traversal.
+--
+-- If the function returns a non-`nil` value, traversal is stopped, and the
+-- returned value is returned.
 -- @tparam function(node) func the function to call for each node
-function Parent:walkDf(func)
-  func(self)
+function ParentNode:nlrWalk(func)
+  local result = func(self)
+
+  if result ~= nil then
+    return result
+  end
 
   for i, child in ipairs(self.childNodes) do
-    child:walkDf(func)
+    local result = child:nlrWalk(func)
+
+    if result ~= nil then
+      return result
+    end
   end
+end
+
+--- Perform right-to-left post-order depth-first traversal.
+--
+-- If the function returns a non-`nil` value, traversal is stopped, and the
+-- returned value is returned.
+-- @tparam function(node) func the function to call for each node
+function ParentNode:rlnWalk(func)
+  for i = #self.childNodes, 1, -1 do
+    local result = self.childNodes[i]:rlnWalk(func)
+
+    if result ~= nil then
+      return result
+    end
+  end
+
+  return func(self)
 end
 
 --- Insert a node at a given index.

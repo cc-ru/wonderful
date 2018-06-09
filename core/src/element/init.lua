@@ -19,7 +19,6 @@ local class = require("lua-objects")
 
 local attribute = require("wonderful.element.attribute")
 local event = require("wonderful.event")
-local focus = require("wonderful.element.focus")
 local geometry = require("wonderful.geometry")
 local layout = require("wonderful.layout")
 local node = require("wonderful.element.node")
@@ -214,11 +213,6 @@ local Element = class({LeafElement, node.ParentNode, layout.LayoutContainer},
 --- The layout used to position children.
 -- @field Element.layout
 
---- The focusing context.
--- Creates an ad-hoc focusing context if the element belongs to a free tree,
--- which is merged into the parent when the element is inserted.
--- @field Element.focusingContenxt
-
 --- Whether the element is a leaf node.
 -- @field Element.isLeaf
 
@@ -274,23 +268,6 @@ end
 function Element:insertChild(index, child)
   self:superCall(node.ParentNode, "insertChild", index, child)
 
-  local focusAttribute = child:get(attribute.Focus)
-
-  if not focusAttribute then
-    self.focusingContext:insertStatic(self.focusingIndex + index, child)
-  else
-    self.focusingContext:insertIndexed(
-      self.focusingIndex + index,
-      focusAttribute.value,
-      child
-    )
-  end
-
-  if child._focusingContext then
-    child._focusingContext:mergeInto(self.focusingContext, child.focusingIndex)
-    child._focusingContext = nil
-  end
-
   self:recompose()
 end
 
@@ -298,26 +275,15 @@ end
 -- @tparam int index the index
 -- @return `false` or the removed element
 function Element:removeChild(index)
-  local ret = self:superCall(node.ParentNode, "removeChild", index)
+  local child = self:superCall(node.ParentNode, "removeChild", index)
 
-  if not ret then
+  if not child then
     return false
-  end
-
-  local focusAttribute = child:get(attribute.Focus)
-
-  if not focusAttribute then
-    self.focusingContext:removeStatic(self.focusingIndex + index)
-  else
-    self.focusingContext:removeIndexed(
-      self.focusingIndex + index,
-      focusAttribute.value
-    )
   end
 
   self:recompose()
 
-  return ret
+  return child
 end
 
 function Element:sizeHint()
@@ -339,19 +305,6 @@ function Element:recompose()
     if element:isa(Element) then
       element:recompose()
     end
-  end
-end
-
-function Element.__getters:focusingContext()
-  if self.parentNode then
-    return self.parentNode.focusingContext
-  else
-    if not self._focusingContext then
-      self._focusingContext = focus.FocusingContext()
-      self.focusingIndex = 0
-    end
-
-    return self._focusingContext
   end
 end
 

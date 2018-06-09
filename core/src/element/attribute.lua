@@ -144,32 +144,16 @@ local Focus = class(Attribute, {name = "wonderful.element.attribute.Focus"})
 --- The focus attribute.
 -- @type Focus
 
---- The default value of the attribute (`nil`).
-Focus.DEFAULT = nil
+--- Whether the element the attribute is applied to is permitted to get focus.
+-- @field Focus.enabled
 
 --- Construct a new instance.
--- @tparam ?number value a focusing index, or nil for static focusing
-function Focus:__new__(value)
-  self.value = type(value) == "number" and value or Focus.DEFAULT
-end
-
-function Focus:onSet(element, previous)
-  local index = element.index
-  local parent = element.parent
-
-  if parent then
-    parent:removeChild(index)
-    parent:insertChild(index, element)
-  end
-end
-
-function Focus:onUnset(element, new)
-  local index = element.index
-  local parent = element.parent
-
-  if parent then
-    parent:removeChild(index)
-    parent:insertChild(index, element)
+-- @tparam[opt=true] boolean enable whether to enable focusing on an element
+function Focus:__new__(enable)
+  if enable == nil then
+    self.enabled = true
+  else
+    self.enabled = enable
   end
 end
 

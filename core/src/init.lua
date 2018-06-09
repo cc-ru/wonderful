@@ -139,7 +139,7 @@ function Wonderful:render()
   for _, document in ipairs(self.documents) do
     local buf = document.display.fb
 
-    document:walkDf(function(node)
+    document:nlrWalk(function(node)
       if el.calculatedBox then
         local coordBox = el.calculatedBox
         local viewport = el.viewport
@@ -175,7 +175,7 @@ function Wonderful:hit(screen, x, y)
 
       local hit
 
-      document:walkDf(function(element)
+      document:nlrWalk(function(element)
         if element.calculatedBox:has(x, y) then
           hit = element
         end

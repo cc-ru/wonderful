@@ -19,14 +19,13 @@ local class = require("lua-objects")
 
 local kbd = require("keyboard")
 
+local attribute = require("wonderful.element.attribute")
 local display = require("wonderful.display")
 local element = require("wonderful.element")
 local focus = require("wonderful.element.focus")
 local signal = require("wonderful.signal")
 local style = require("wonderful.style")
 local textBuf = require("wonderful.style.buffer")
-
-local FocusingContext = focus.FocusingContext
 
 --- The document class.
 -- The root element of a render tree.
@@ -69,9 +68,6 @@ function Document:__new__(args)
 
   self.globalDisplay = args.display
 
-  self.rootFocusingContext = FocusingContext()
-  self.rootFocusingContext:insertStatic(1, self)
-
   self.calculatedBox = self.globalDisplay.box
 
   self:setDefaultEventListener(signal.KeyDown, self.onKeyDown)
@@ -96,16 +92,27 @@ end
 -- Usually called by pressing `Tab` / `Shift-Tab`.
 -- @tparam boolean reversed if true, switches to the previous element
 function Document:switchFocus(reversed)
-  local ctx = self.focusingContext
-  local prev = ctx.focused.element
+  local prev = self.focused
+
+  local traversalFunc
 
   if reversed then
-    ctx:prev()
+    traversalFunc = self.rlnWalk
   else
-    ctx:next()
+    traversalFunc = self.nlrWalk
   end
 
-  local new = ctx.focused.element
+  local found = not prev
+
+  local new = traversalFunc(self, function(element)
+    if found and element:get(attribute.Focus, true).enabled then
+      return element
+    end
+
+    if prev == element then
+      found = true
+    end
+  end)
 
   if prev then
     prev.focused = false
@@ -114,6 +121,8 @@ function Document:switchFocus(reversed)
   if new then
     new.focused = true
   end
+
+  self.focused = new
 
   if prev then
     prev:dispatchEvent(focus.FocusOut(new))
