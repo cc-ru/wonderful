@@ -52,8 +52,10 @@ local BufferView
 -- @field Buffer.depth
 
 --- Construct a new buffer.
+--
 -- The debug mode introduces a few sanity checks. They allow to notice the
 -- potential bugs and errors, but also slow down the program significantly.
+--
 -- @tparam table args a keyword argument table
 -- @tparam int args.w a width of buffer
 -- @tparam int args.h a height of buffer
@@ -154,9 +156,11 @@ function Buffer:alphaBlend(color1, color2, alpha)
 end
 
 --- Set a cell.
+--
 -- This is an internal method that **does not** perform sanity checks.
 -- Futhermore, unlike @{wonderful.buffer.Buffer:set}, this method only sets
 -- a single cell per call.
+--
 -- @tparam int x a column number
 -- @tparam int y a row number
 -- @tparam int fg a foreground color
@@ -248,9 +252,11 @@ function Buffer:set(x0, y0, fg, bg, alpha, line, vertical)
 end
 
 --- Retrieve a cell from the storage.
+--
 -- This is an internal method that **does not** perform sanity checks.
 -- Futhermore, unlike @{wonderful.buffer.Buffer:get}, this method returns
 -- a packed and deflated color instead of foreground and background.
+--
 -- @tparam int x a column number
 -- @tparam int y a row number
 -- @treturn string a cell's character
@@ -293,10 +299,11 @@ end
 -- @tparam int y0 a top-left cell row number
 -- @tparam int w a width of sub-box
 -- @tparam int h a height of sub-box
--- @treturn int an intersection's top-left cell column number
--- @treturn int an intersection's top-left cell row number
--- @treturn int an intersection's bottom-right cell column number
--- @treturn int an intersection's bottom-right cell row number
+-- @treturn[1] int an intersection's top-left cell column number
+-- @treturn[1] int an intersection's top-left cell row number
+-- @treturn[1] int an intersection's bottom-right cell column number
+-- @treturn[1] int an intersection's bottom-right cell row number
+-- @treturn[2] nil the intersection is empty
 function Buffer:intersection(x0, y0, w, h)
   if self.debug then
     checkArg(1, x0, "number")
@@ -325,6 +332,7 @@ function Buffer:intersection(x0, y0, w, h)
 end
 
 --- Fill an area with a given cell.
+--
 -- This is an internal method that **does not** perform sanity checks.
 -- @tparam int x0 a top-left cell column number
 -- @tparam int y0 a top-left cell row number
@@ -371,6 +379,7 @@ function Buffer:_fill(x0, y0, x1, y1, fg, bg, alpha, char)
 end
 
 --- Fill an area with a given cell.
+--
 -- This method performs sanity checks, which may decrease perfomance
 -- significantly if used too often.
 -- @tparam int x0 a top-left cell column number
@@ -448,6 +457,69 @@ function Buffer:view(x, y, w, h, sx, sy, sw, sh)
   view:optimize()
 
   return view
+end
+
+--- Copy an area from a buffer and paste it onto self.
+--
+-- If the source area are omitted, the whole source buffer is copied.
+--
+-- @param src the source buffer to copy from
+-- @tparam[opt] int sx the area's top-left cell column number
+-- @tparam[optchain] int sy the area's top-left cell row number
+-- @tparam[optchain] int sw the area width
+-- @tparam[optchain] int sh the area height
+-- @tparam int dx the column at which to paste the area's top-left cell
+-- @tparam int dy the row at which to paste the area's top-left cell
+function Buffer:copyFrom(src, sx, sy, sw, sh, dx, dy)
+  if self.debug then
+    if type(src) ~= "table" or not src.isa or not src:isa(Buffer) then
+      error(1, "bad argument #1: a buffer is expected")
+    end
+  end
+
+  if not (sw or sh or dx or dy) then
+    -- the area is probably omitted
+    dx = sx
+    dy = sy
+    sx = src.box.x
+    sy = src.box.y
+    sw = src.box.w
+    sh = src.bow.h
+  end
+
+  if self.debug then
+    checkArg(2, sx, "number")
+    checkArg(3, sy, "number")
+    checkArg(4, sw, "number")
+    checkArg(5, sh, "number")
+    checkArg(6, dx, "number")
+    checkArg(7, dy, "number")
+  end
+
+  local sx0, sy0, sx1, sy1 = src:intersection(sx, sy, sw, sh)
+
+  if not sx0 then
+    return
+  end
+
+  local w = sx1 - sx0
+  local h = sy1 - sy0
+
+  local x0, y0, x1, y1 = self:intersection(dx, dy, w, h)
+
+  if not x0 then
+    return
+  end
+
+  sx0 = sx0 + (x0 - dx)
+  sy0 = sy0 + (y0 - dy)
+
+  for y = y0, y1, 1 do
+    for x = x0, x1, 1 do
+      local char, fg, bg = src:get(sx0 + x - 1, sy0 + y - 1)
+      self:_set(x, y, fg, bg, 1, char)
+    end
+  end
 end
 
 function Buffer:mergeDiff(x, y)
@@ -532,9 +604,11 @@ end
 -- @function Framebuffer:alphaBlend
 
 --- Set a cell.
+--
 -- This is an internal method that **does not** perform sanity checks.
 -- Futhermore, unlike @{wonderful.buffer.Framebuffer:set}, this method only sets
 -- a single cell per call.
+--
 -- @tparam int x a column number
 -- @tparam int y a row number
 -- @tparam int fg a foreground color
@@ -614,9 +688,11 @@ end
 -- @function Framebuffer:set
 
 --- Retrieve a cell from the storage.
+--
 -- This is an internal method that **does not** perform sanity checks.
 -- Futhermore, unlike @{wonderful.buffer.Framebuffer:get}, this method returns
 -- a packed and deflated color instead of foreground and background.
+--
 -- @tparam int x a column number
 -- @tparam int y a row number
 -- @treturn string a cell's character
@@ -640,15 +716,18 @@ end
 -- @tparam int y0 a top-left cell row number
 -- @tparam int w a width of sub-box
 -- @tparam int h a height of sub-box
--- @treturn int an intersection's top-left cell column number
--- @treturn int an intersection's top-left cell row number
--- @treturn int an intersection's bottom-right cell column number
--- @treturn int an intersection's bottom-right cell row number
+-- @treturn[1] int an intersection's top-left cell column number
+-- @treturn[1] int an intersection's top-left cell row number
+-- @treturn[1] int an intersection's bottom-right cell column number
+-- @treturn[1] int an intersection's bottom-right cell row number
+-- @treturn[2] nil the intersection is empty
 -- @see wonderful.buffer.Buffer:intersection
 -- @function Framebuffer:intersection
 
 --- Fill an area with a given cell.
+--
 -- This is an internal method that **does not** perform sanity checks.
+--
 -- @tparam int x0 a top-left cell column number
 -- @tparam int y0 a top-left cell row number
 -- @tparam int x1 a bottom-right cell column number
@@ -1016,6 +1095,19 @@ end
 -- @see wonderful.buffer.Buffer:view
 -- @function Framebuffer:view
 
+--- Copy an area from a buffer and paste it onto self.
+--
+-- If the source area are omitted, the whole source buffer is copied.
+--
+-- @param src the source buffer to copy from
+-- @tparam[opt] int sx the area's top-left cell column number
+-- @tparam[optchain] int sy the area's top-left cell row number
+-- @tparam[optchain] int sw the area width
+-- @tparam[optchain] int sh the area height
+-- @tparam int dx the column at which to paste the area's top-left cell
+-- @tparam int dy the row at which to paste the area's top-left cell
+-- @function Framebuffer:copyFrom
+
 ---
 -- @section end
 
@@ -1044,6 +1136,7 @@ BufferView = class(
 -- @field BufferView.h
 
 --- Construct a view.
+--
 -- This method **should not** be used directly.
 -- @see wonderful.buffer.Buffer:view
 -- @see wonderful.buffer.Framebuffer:view
@@ -1138,10 +1231,11 @@ end
 -- @tparam int y0 a view-relative top-left cell row number
 -- @tparam int w a sub-box width
 -- @tparam int h a sub-box height
--- @treturn int a buffer-relative intersection's top-left cell column number
--- @treturn int a buffer-relative intersection's top-left cell row number
--- @treturn int a buffer-relative intersection's bottom-right cell column number
--- @treturn int a buffer-relative intersection's bottom-right cell row number
+-- @treturn[1] int a buffer-relative intersection's top-left cell column number
+-- @treturn[1] int a buffer-relative intersection's top-left cell row number
+-- @treturn[1] int a buffer-relative intersection's bottom-right cell column number
+-- @treturn[1] int a buffer-relative intersection's bottom-right cell row number
+-- @treturn[2] nil the intersection is empty
 -- @see wonderful.buffer.Buffer:intersection
 function BufferView:intersection(x0, y0, w, h)
   if self.debug then
@@ -1157,8 +1251,11 @@ function BufferView:intersection(x0, y0, w, h)
 end
 
 --- Create a view relative to the view.
+--
 -- The child view is bounded by the parent view's restricting box.
+--
 -- All coordinates are relative to the parent view's coordinate box.
+--
 -- The child view will point to the buffer directly.
 -- @tparam int x a coordinate box's top-left cell column number
 -- @tparam int y a coordinate box's top-left cell row number
@@ -1198,6 +1295,18 @@ function BufferView:view(x, y, w, h, sx, sy, sw, sh)
   return view
 end
 
+--- Copy an area from a buffer and paste it onto self.
+--
+-- If the source area are omitted, the whole source buffer is copied.
+--
+-- @param src the source buffer to copy from
+-- @tparam[opt] int sx the area's top-left cell column number
+-- @tparam[optchain] int sy the area's top-left cell row number
+-- @tparam[optchain] int sw the area width
+-- @tparam[optchain] int sh the area height
+-- @tparam int dx the column at which to paste the area's top-left cell
+-- @tparam int dy the row at which to paste the area's top-left cell
+-- @function BufferView:copyFrom
 
 function BufferView.__getters:depth()
   return self.buf.depth
