@@ -57,12 +57,14 @@ function DisplayManager:__new__()
 
   self.maxDepth = 1
 
+  local deviceInfo = computer.getDeviceInfo() or {}
+
   local noScreens, noGPUs = true, true
 
   for address in component.list("screen", true) do
     self.screens[address] = {
       address = address,
-      depth = tonumber(((computer.getDeviceInfo() or {})[address] or
+      depth = tonumber((deviceInfo[address] or
                         {}).width) or 8,
       regions = {},
       preferredResolution = nil,
@@ -73,7 +75,7 @@ function DisplayManager:__new__()
   end
 
   for address in component.list("gpu", true) do
-    local maxDepth = tonumber(((computer.getDeviceInfo() or {})[address] or
+    local maxDepth = tonumber((deviceInfo[address] or
                                {}).width) or 8
 
     self.gpus[address] = {
