@@ -290,7 +290,7 @@ function Buffer:get(x, y)
   local char, color = self:_get(x, y)
 
   return char,
-         self.palette:inflate((color - color % 100) / 0x100),
+         self.palette:inflate((color - color % 0x100) / 0x100),
          self.palette:inflate(color % 0x100)
 end
 
@@ -357,8 +357,25 @@ function Buffer:_fill(x0, y0, x1, y1, fg, bg, alpha, char)
 
       local oldBg = self.palette:inflate(old % 0x100)
 
-      fg = self.palette:deflate(self:alphaBlend(oldBg, fg, alpha))
-      bg = self.palette:deflate(self:alphaBlend(oldBg, bg, alpha))
+      local cfg, cbg = fg, bg
+
+      if alpha == 0 then
+        cfg = oldBg
+        cbg = oldBg
+      elseif alpha == 1 then
+        -- don't change colors
+      else
+        if oldBg ~= fg then
+          cfg = self:alphaBlend(oldBg, fg, alpha)
+        end
+
+        if oldBg ~= bg then
+          cbg = self:alphaBlend(oldBg, bg, alpha)
+        end
+      end
+
+      cfg = self.palette:deflate(fg)
+      cbg = self.palette:deflate(bg)
 
       local new = fg * 0x100 + bg
 
@@ -633,8 +650,23 @@ function Framebuffer:_set(x, y, fg, bg, alpha, char)
 
     local oldBg = self.palette:inflate(old % 0x100)
 
-    fg = self.palette:deflate(self:alphaBlend(oldBg, fg, alpha))
-    bg = self.palette:deflate(self:alphaBlend(oldBg, bg, alpha))
+    if alpha == 0 then
+      fg = oldBg
+      bg = oldBg
+    elseif alpha == 1 then
+      -- don't change colors
+    else
+      if oldBg ~= fg then
+        fg = self:alphaBlend(oldBg, fg, alpha)
+      end
+
+      if oldBg ~= bg then
+        bg = self:alphaBlend(oldBg, bg, alpha)
+      end
+    end
+
+    fg = self.palette:deflate(fg)
+    bg = self.palette:deflate(bg)
 
     local new = fg * 0x100 + bg
 
@@ -768,8 +800,25 @@ function Framebuffer:_fill(x0, y0, x1, y1, fg, bg, alpha, char)
 
       local oldBg = self.palette:inflate(old % 0x100)
 
-      local cfg = self.palette:deflate(self:alphaBlend(oldBg, fg, alpha))
-      local cbg = self.palette:deflate(self:alphaBlend(oldBg, bg, alpha))
+      local cfg, cbg = fg, bg
+
+      if alpha == 0 then
+        cfg = oldBg
+        cbg = oldBg
+      elseif alpha == 1 then
+        -- don't change colors
+      else
+        if oldBg ~= fg then
+          cfg = self:alphaBlend(oldBg, fg, alpha)
+        end
+
+        if oldBg ~= bg then
+          cbg = self:alphaBlend(oldBg, bg, alpha)
+        end
+      end
+
+      cfg = self.palette:deflate(fg)
+      cbg = self.palette:deflate(bg)
 
       local new = cfg * 0x100 + cbg
 
