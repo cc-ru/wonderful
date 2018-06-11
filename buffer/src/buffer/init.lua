@@ -519,8 +519,8 @@ function Buffer:copyFrom(src, sx, sy, sw, sh, dx, dy)
     return
   end
 
-  local w = sx1 - sx0
-  local h = sy1 - sy0
+  local w = sx1 - sx0 + 1
+  local h = sy1 - sy0 + 1
 
   local x0, y0, x1, y1 = self:intersection(dx, dy, w, h)
 
@@ -530,11 +530,38 @@ function Buffer:copyFrom(src, sx, sy, sw, sh, dx, dy)
 
   sx0 = sx0 + (x0 - dx)
   sy0 = sy0 + (y0 - dy)
+  w = x1 - x0 + 1
+  h = y1 - y0 + 1
 
-  for y = y0, y1, 1 do
-    for x = x0, x1, 1 do
-      local char, fg, bg = src:get(sx0 + x - 1, sy0 + y - 1)
-      self:_set(x, y, fg, bg, 1, char)
+  local ix0, ix1, ixd = 1, w, 1
+  local iy0, iy1, iyd = 1, h, 1
+
+  if src == self then
+    -- we're doing a self-to-self copy; don't mess up the source area
+
+    if x0 < sx0 then
+      ix0, ix1, ixd = 1, w, 1
+    else
+      ix0, ix1, ixd = w, 1, -1
+    end
+
+    if y0 < sy0 then
+      iy0, iy1, iyd = 1, h, 1
+    else
+      iy0, iy1, iyd = h, 1, -1
+    end
+  end
+
+  for x = ix0, ix1, ixd do
+    for y = iy0, iy1, iyd do
+      local lx = x0 + x - 1
+      local ly = y0 + y - 1
+      local rx = sx0 + x - 1
+      local ry = sy0 + y - 1
+
+      local char, fg, bg = src:get(rx, ry)
+
+      self:_set(lx, ly, fg, bg, 1, char)
     end
   end
 end
