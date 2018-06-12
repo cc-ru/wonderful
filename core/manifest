@@ -12,7 +12,6 @@
    {url = "src/element/focus.lua", path = "/usr/lib/wonderful/element/focus.lua"},
    {url = "src/element/init.lua", path = "/usr/lib/wonderful/element/init.lua"},
    {url = "src/element/node.lua", path = "/usr/lib/wonderful/element/node.lua"},
-   {url = "src/element/stack.lua", path = "/usr/lib/wonderful/element/stack.lua"},
    {url = "src/event.lua", path = "/usr/lib/wonderful/event.lua"},
    {url = "src/init.lua", path = "/usr/lib/wonderful/init.lua"},
    {url = "src/layout/box.lua", path = "/usr/lib/wonderful/layout/box.lua"},
