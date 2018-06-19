@@ -12,81 +12,159 @@
 -- See the License for the specific language governing permissions and
 -- limitations under the License.
 
---- Base classes of the wonderful's event system.
+--- The wonderful's event system.
 -- @module wonderful.event
 
 local class = require("lua-objects")
 
 local tableUtil = require("wonderful.util.table")
 
---- The enum of event handling phases.
--- @field None the default state, when an event hasn't been dispatched yet.
--- @field Capturing TODO
--- @field AtTarget an event is being handled to a listener.
--- @field Bubbling an event is being propagated to children.
+--- The enumeration of event phases.
+--
+-- An event generally goes through all of the phases, in the following order:
+-- None (just created, not yet dispatched), Capturing (dispatches at the root,
+-- and goes down the tree to the target; dispatches at the target as well),
+-- Target, Bubbling (dispatches at the target, and goes up the tree to the root,
+-- inclusive).
+--
+-- Note that some phases may be skipped.
 local EventPhase = {
+  --- The default phase.
   None = 0,
+  --- The event is descending the tree from its root to the target.
   Capturing = 1,
-  AtTarget = 2,
-  Bubbling = 3
+  --- The event has descended to the target.
+  Target = 2,
+  --- The event is ascending the tree from the target to the root.
+  Bubbling = 3,
 }
 
---- The base event class.
--- @see wonderful.event.EventTarget
+--- The base event class, which represents an event.
 local Event = class(nil, {name = "wonderful.event.Event"})
 
---- The base event class.
+--- The base event class, which represents an event.
 -- @type Event
 
---- Whether the event has been cancelled.
--- @field Event.cancelled
--- @see wonderful.event.Event:cancel
+--- Whether the event can be canceled.
+Event.cancelable = true
 
---- Whether the propagation has been stopped.
--- @field Event.propagationStopped
--- @see wonderful.event.Event:stopPropagation
+--- Whether the event runs event listeners at bubbling phase.
+Event.bubblable = true
 
---- Whether the default listener has been prevented from running.
+--- Whether the event runs event listeners at capturing phase.
+Event.capturable = true
+
+--- Whether propagation has been stopped.
+-- @field Event.canceled
+
+--- Whether the default listeners has been prevented from running.
 -- @field Event.defaultPrevented
--- @see wonderful.event.Event:preventDefault
 
---- The current phase of event handling.
+--- The current phase.
 -- @field Event.phase
+
+--- The event target.
+-- @field Event.target
 
 --- Construct a new instance.
 function Event:__new__()
-  self.cancelled = false
-  self.propagationStopped = false
+  self.canceled = false
   self.defaultPrevented = false
-
   self.phase = EventPhase.None
+  self.target = nil
 end
 
---- Cancel the event.
--- The event will still be bubbled to the children, but other listeners
--- added for the current class won't be run.
-function Event:cancel()
-  self.cancelled = true
-end
-
---- Stop propagation of the event.
--- The event listeners for the event will still be run, but it won't be
--- propagated to the children.
-function Event:stopPropagation()
-  self.propagationStopped = true
-end
-
---- Prevent the default listener from running.
--- @see wonderful.event.EventTarget:setDefaultEventListener
+--- Prevent the default listeners from running.
+--
+-- If a default listener has the `before` attribute set, its `onCancel` callback
+-- will be called.
+--
+-- Note that this **does not** stop propagation of the event.
+--
+-- @see Event:cancel
 function Event:preventDefault()
   self.defaultPrevented = true
 end
 
----
--- @section end
+--- Cancel the event, which stops propagation of the event.
+--
+-- Note that this **does not** prevent other listeners defined of the current
+-- target from running, including the default listeners.
+--
+-- @see Event:preventDefault
+function Event:cancel()
+  self.canceled = true
+end
+
+--- @section end
+
+--- The event listener class.
+local EventListener = class(nil, {name = "wonderful.event.EventListener"})
+
+--- The event listener class.
+-- @type EventListener
+
+--- The event target the listener is assigned to.
+-- @field EventListener.target
+
+--- The event to which the listener is assigned to.
+-- @field EventListener.event
+
+--- The handler function, called when the listener catches the event.
+-- @field EventListener.handler
+
+--- Whether the listener is default.
+-- @field EventListener.default
+
+--- Whether the listener is executed before user-defined listeners.
+-- @field EventListener.before
+
+--- The function to call if the listener is canceled. **Rewritable**.
+-- @field EventListener.onCancel
+
+--- Whether the listener is executed at the capture phase.
+-- @field EventListener.capture
+
+--- Construct a new instance.
+--
+-- You don't usually need to instantiate this class directly.
+--
+-- @tparam table args a keyword argument table
+-- @param args.target a event target the listener is attached to
+-- @param args.event an `Event` subclass
+-- @tparam function(target,event,handler) args.handler a handler function
+-- @tparam boolean whether this is a default listener
+-- @tparam[opt=false] boolean args.before whether to run it before the user listeners
+-- @tparam[optchain] function(target,event,handler) args.onCancel a function to run if the default action gets prevented
+-- @tparam[opt=false] boolean args.capture whether to run it at capturing phase
+function EventListener:__new__(args)
+  self.target = args.target
+  self.event = args.event
+  self.handler = args.handler
+  self.default = not not args.default
+  self.before = self.default and not not args.before
+  self._onCancel = self.before and args.onCancel or nil
+  self.capture = not not args.capture
+end
+
+--- Removes the listener from the event target it's attached to.
+function EventListener:remove()
+  self.target:_removeEventListener(self)
+end
+
+function EventListener.__getters:onCancel()
+  return self._onCancel
+end
+
+function EventListener.__setters:onCancel(value)
+  if self.before then
+    self._onCancel = value
+  end
+end
+
+--- @section end
 
 --- The base event target class.
--- @see wonderful.event.Event
 local EventTarget = class(nil, {name = "wonderful.event.EventTarget"})
 
 --- The base event target class.
@@ -94,139 +172,245 @@ local EventTarget = class(nil, {name = "wonderful.event.EventTarget"})
 
 --- Construct a new instance.
 function EventTarget:__new__()
-  self.listeners = {}
-  self.defaultListeners = {}
+  self.eventListeners = {}
 end
 
---- Add an event listener.
--- @param cls a class that inherits from @{wonderful.event.Event}
--- @tparam function handler a handler function
--- @tparam table options a table of listener options
--- @tparam boolean options.once whether to only run the handler once
--- @tparam boolean options.capture TODO
-function EventTarget:addEventListener(cls, handler, options)
-  if not self.listeners[cls] then
-    self.listeners[cls] = {}
+--- Add a default event listener for the class.
+-- @tparam table args a keyword argument table
+-- @param args.event an `Event` subclass
+-- @tparam function(target,event,handler) args.handler a handler function
+-- @tparam[opt=false] boolean args.before whether to run it before the user listeners
+-- @tparam[optchain] function(target,event,handler) args.onCancel a function to run if the default action gets prevented
+-- @tparam[opt=false] boolean args.capture whether to run it at capturing phase
+-- @treturn EventListener the listener instance
+function EventTarget:addDefaultListener(args)
+  local listener = EventListener({
+    target = self,
+    event = args.event,
+    handler = args.handler,
+    default = true,
+    before = args.before,
+    onCancel = args.onCancel,
+    capture = args.capture,
+  })
+
+  if not self.eventListeners[listener.event] then
+    self.eventListeners[listener.event] = {}
   end
 
-  local listener = tableUtil.shallowcopy(options or {})
-  listener.handler = handler
+  table.insert(self.eventListeners[listener.event], listener)
 
-  table.insert(self.listeners[cls], listener)
+  return listener
 end
 
---- Remove an event listener.
--- @param cls a class that inherits from @{wonderful.event.Event}
--- @tparam function handler a handler function
--- @tparam table options a table of the listener options
--- @tparam boolean options.once whether to only run the handler one
--- @tparam boolean options.capture TODO
--- @treturn boolean whether there was a listener that matched the query and was removed
--- @see wonderful.event.EventTarget:addEventListener
-function EventTarget:removeEventListener(cls, handler, options)
-  if not self.listeners[cls] then
-    return false
+--- Add an event listener for the class.
+-- @tparam table args a keyword argument table
+-- @param args.event an `Event` subclass
+-- @tparam function(target,event,handler) args.handler a handler function
+-- @tparam[opt=false] boolean args.capture whether to run it at capturing phase
+-- @treturn EventListener the listener instance
+function EventTarget:addListener(args)
+  local listener = EventListener({
+    target = self,
+    event = args.event,
+    handler = args.handler,
+    default = false,
+    before = false,
+    onCancel = nil,
+    capture = args.capture,
+  })
+
+  if not self.eventListeners[listener.event] then
+    self.eventListeners[listener.event] = {}
   end
 
-  local query = tableUtil.shallowcopy(options or {})
-  query.handler = query
+  table.insert(self.eventListeners[listener.event], listener)
 
-  for i, listener in ipairs(self.listeners[cls]) do
-    if tableUtil.shalloweq(listener, query) then
-      table.remove(self.listeners, i)
-      return true
+  return listener
+end
+
+--- Find a listener by its params.
+-- @tparam table args a keyword argument table
+-- @param args.event the event to which the listener is assigned
+-- @tparam function(target,event,handler) args.handler the handler function
+-- @tparam[opt=false] boolean args.default whether the listener is default
+-- @tparam[opt=false] boolean args.before whether the listener runs before user-defined listeners
+-- @tparam[optchain] function(target,event,handler) args.onCancel the function that runs if the default action gets prevented
+-- @tparam[opt=false] boolean args.capture whether the listener is run at capturing phase
+-- @treturn[1] EventListener the listener
+-- @treturn[2] nil no such listener
+function EventTarget:findListener(args)
+  local event = args.event or error("event not specified", 1)
+  local handler = args.handler or error("handler not specified", 1)
+  local default = not not args.default
+  local before = default and not not args.before
+  local onCancel = before and args.onCancel
+  local capture = not not args.capture
+
+  local _, listener = tableUtil.first(self.eventListeners[event], function(v)
+    return (
+      v.event == event and
+      v.handler == handler and
+      v.default == default and
+      v.before == before and
+      v.onCancel == onCancel and
+      v.capture == capture
+    )
+  end)
+
+  return listener
+end
+
+--- Remove all defined event listeners.
+-- @tparam[opt=false] boolean default whether to remove default listeners as well
+function EventTarget:removeAllListeners(default)
+  if default then
+    self.eventListeners = {}
+
+    return
+  end
+
+  for _, listeners in pairs(self.eventListeners) do
+    for idx = #listeners, 1, -1 do
+      if not listeners[idx].default then
+        table.remove(listeners, idx)
+      end
+    end
+  end
+end
+
+--- Abstract getter of child event targets.
+-- @treturn {EventTarget,...} the children
+function EventTarget:getChildEventTargets()
+  error("abstract method EventTarget:getChildEventTargets left unimplemented")
+end
+
+--- Abstract getter of a parent event target.
+-- @treturn EventTarget the parent
+function EventTarget:getParentEventTarget()
+  error("abstract method EventTarget:getParentEventTarget left unimplemented")
+end
+
+--- Dispatch an event at this event target.
+-- @treturn boolean whether the propagation was stopped
+function EventTarget:dispatchEvent(event)
+  event.phase = EventPhase.None
+
+  -- build the event propagation path
+  local path = {self}
+
+  local element, parent = self
+
+  while true do
+    parent = element:getParentEventTarget()
+
+    if not parent then
+      break
+    end
+
+    table.insert(path, parent)
+    element = parent
+  end
+
+  if event.capturable then
+    event.phase = EventPhase.Capturing
+
+    for i = #path, 1, -1 do
+      event.target = path[i]
+      event.defaultPrevented = false
+
+      path[i]:_dispatchEvent(event)
+
+      if event.propagationStopped then
+        return true
+      end
+    end
+  end
+
+  event.phase = EventPhase.AtTarget
+
+  if event.bubblable then
+    event.phase = EventPhase.Bubbling
+
+    for i = 1, #path, 1 do
+      event.target = path[i]
+      event.defaultPrevented = false
+
+      path[i]:_dispatchEvent(event)
+
+      if event.propagationStopped then
+        return true
+      end
     end
   end
 
   return false
 end
 
---- Set a default event listener for an event.
--- @param cls a class that inherits from @{wonderful.event.Event}
--- @tparam function handler a handler function
--- @tparam table options a table of listener options
--- @tparam boolean options.capture TODO
-function EventTarget:setDefaultEventListener(cls, handler, options)
-  local listener = tableUtil.shallowcopy(options or {})
-  listener.handler = handler
+function EventTarget:_removeEventListener(listener)
+  local removed = not not tableUtil.removeFirst(
+    self.eventListeners[listener.event],
+    listener
+  )
 
-  self.defaultListeners[cls] = listener
+  if removed and #self.eventListeners[listener.event] == 0 then
+    self.eventListeners[listener.event] = nil
+  end
+
+  return removed
 end
 
---- Remove a default event listener.
--- @param cls a class that inherits from @{wonderful.event.Event}
--- @see wonderful.event.EventTarget:setDefaultEventListener
-function EventTarget:removeDefaultEventListener(cls)
-  self.defaultListeners[cls] = nil
-end
+function EventTarget:_dispatchEvent(event)
+  if not self.eventListeners[event.class] then
+    return
+  end
 
---- An abstract getter of a capturing parent.
--- @return the capturing parent
-function EventTarget:getCapturingParent()
-  error("unimplemented abstract method EventTarget:getCapturingParent")
-end
+  local queue = {}
+  local before, user, default = 1, 1, 1
 
---- An abstract getter of bubbling children.
--- @treturn table a table of bubbling children
-function EventTarget:getBubblingChildren()
-  error("unimplemented abstract method EventTarget:getBubblingChildren")
-end
-
---- Dispatch an @{wonderful.event.Event|Event} instance, running handlers.
--- @param event an instance of a class that inherits from @{wonderful.event.Event}
-function EventTarget:dispatchEvent(event)
-  for i, listener in ipairs(self.listeners[event.class]) do
-    self:_handleEvent(listener, event)
-
-    if listener.once then
-      table.remove(self.listeners[event.class], i)
-    end
-
-    if event.cancelled then
-      break
+  for _, listener in ipairs(self.eventListeners) do
+    if event.phase == EventPhase.Capturing and listener.capture or
+        event.phase == EventPhase.Bubbling and not listener.capture then
+      if not listener.default then
+        table.insert(queue, user, listener)
+        user = user + 1
+        default = default + 1
+      elseif not listener.before then
+        table.insert(queue, default, listener)
+        default = default + 1
+      else
+        table.insert(queue, before, listener)
+        before = before + 1
+        user = user + 1
+        default = default + 1
+      end
     end
   end
 
-  if not event.defaultPrevented and self.defaultListeners[event.class] then
-    self:_handleEvent(self.defaultListeners[event.class], event)
+  for idx, listener in ipairs(queue) do
+    if idx <= default and not event.canceled and
+        (idx > before and idx <= user or not event.defaultPrevented) then
+      -- run default-before (if not prevented), user, and default (if not
+      -- prevented) listeners
+
+      listener.handler(self, event, listener)
+
+      if idx <= before and listener.onCancel then
+        -- if the default-before listener has an on-cancel callback, add it to
+        -- the end of the queue again
+        table.insert(queue, listener)
+      end
+    elseif event.canceled and idx > default then
+      -- if the listener is canceled, run on-cancel callbacks
+      listener.onCancel(self, event, listener)
+    end
   end
 end
 
-function EventTarget:_handleEvent(listener, event)
-  event.target = self
-
-  if listener.capture then
-    event.phase = EventPhase.Capturing
-
-    local parent = self:getCapturingParent()
-
-    if parent then
-      event.currentTarget = parent
-      parent:dispatchEvent(event)
-    end
-  end
-
-  event.phase = EventPhase.AtTarget
-  event.currentTarget = self
-  listener.handler(self, event)
-
-  event.phase = EventPhase.Bubbling
-
-  for _, child in ipairs(self:getBubblingChildren()) do
-    if event.propagationStopped then
-      break
-    end
-
-    event.currentTarget = child
-    child:dispatchEvent(event)
-  end
-end
-
----
--- @export
+--- @export
 return {
   EventPhase = EventPhase,
   Event = Event,
+  EventListener = EventListener,
   EventTarget = EventTarget,
 }
-
