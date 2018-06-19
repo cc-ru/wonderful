@@ -70,7 +70,10 @@ function Document:__new__(args)
 
   self.calculatedBox = self.globalDisplay.box
 
-  self:setDefaultEventListener(signal.KeyDown, self.onKeyDown)
+  self:addDefaultListener({
+    event = signal.KeyDown,
+    handler = self.onKeyDown,
+  })
 end
 
 function Document:render(view)
@@ -90,7 +93,11 @@ end
 --- Switch focus to the next (or previous) element in the focusing context.
 --
 -- Usually called by pressing `Tab` / `Shift-Tab`.
+--
+-- The focused element does not change if the events sent get canceled.
+--
 -- @tparam boolean reversed if true, switches to the previous element
+-- @treturn boolean whether the focus was actually switched
 function Document:switchFocus(reversed)
   local prev = self.focused
 
@@ -125,12 +132,28 @@ function Document:switchFocus(reversed)
   self.focused = new
 
   if prev then
-    prev:dispatchEvent(focus.FocusOut(new))
+    if prev:dispatchEvent(focus.FocusOut(new)) then
+      -- the event was canceled
+      prev.focused = true
+      new.focused = false
+      self.focused = prev
+
+      return false
+    end
   end
 
   if new then
-    new:dispatchEvent(focus.FocusIn(prev))
+    if new:dispatchEvent(focus.FocusIn(prev)) then
+      -- the event was canceled
+      prev.focused = true
+      new.focused = false
+      self.focused = prev
+
+      return false
+    end
   end
+
+  return true
 end
 
 function Document.__getters:focusingContext()

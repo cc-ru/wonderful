@@ -24,7 +24,7 @@ local tableUtil = require("wonderful.util.table")
 -- An event generally goes through all of the phases, in the following order:
 -- None (just created, not yet dispatched), Capturing (dispatches at the root,
 -- and goes down the tree to the target; dispatches at the target as well),
--- Target, Bubbling (dispatches at the target, and goes up the tree to the root,
+-- Bubbling (dispatches at the target, and goes up the tree to the root,
 -- inclusive).
 --
 -- Note that some phases may be skipped.
@@ -33,10 +33,8 @@ local EventPhase = {
   None = 0,
   --- The event is descending the tree from its root to the target.
   Capturing = 1,
-  --- The event has descended to the target.
-  Target = 2,
   --- The event is ascending the tree from the target to the root.
-  Bubbling = 3,
+  Bubbling = 2,
 }
 
 --- The base event class, which represents an event.
@@ -55,24 +53,16 @@ Event.bubblable = true
 Event.capturable = true
 
 --- Whether propagation has been stopped.
--- @field Event.canceled
+Event.canceled = false
 
 --- Whether the default listeners has been prevented from running.
--- @field Event.defaultPrevented
+Event.defaultPrevented = false
 
 --- The current phase.
--- @field Event.phase
+Event.phase = EventPhase.None
 
 --- The event target.
--- @field Event.target
-
---- Construct a new instance.
-function Event:__new__()
-  self.canceled = false
-  self.defaultPrevented = false
-  self.phase = EventPhase.None
-  self.target = nil
-end
+Event.target = nil
 
 --- Prevent the default listeners from running.
 --
@@ -93,7 +83,9 @@ end
 --
 -- @see Event:preventDefault
 function Event:cancel()
-  self.canceled = true
+  if self.cancelable then
+    self.canceled = true
+  end
 end
 
 --- @section end
@@ -292,59 +284,92 @@ function EventTarget:getParentEventTarget()
 end
 
 --- Dispatch an event at this event target.
--- @treturn boolean whether the propagation was stopped
-function EventTarget:dispatchEvent(event)
+--
+-- Flood dispatch means that the event propagates to the element's children,
+-- but does not bubble back, effectively leaving capturing phase only.
+-- Canceling such an event only stops the event from propagating down the target
+-- at which the element is stopped; siblings and parent targets are not
+-- affected.
+--
+-- @param event the event to dispatch
+-- @tparam boolean flood whether to use flood dispatch
+-- @treturn[1] boolean usual dispatch: whether the propagation was stopped
+-- @treturn[2] nil flood dispatch
+function EventTarget:dispatchEvent(event, flood)
   event.phase = EventPhase.None
 
-  -- build the event propagation path
-  local path = {self}
+  if not flood then
+    -- Build the event propagation path
+    local path = {self}
 
-  local element, parent = self
+    local element, parent = self
 
-  while true do
-    parent = element:getParentEventTarget()
+    while true do
+      parent = element:getParentEventTarget()
 
-    if not parent then
-      break
+      if not parent then
+        break
+      end
+
+      table.insert(path, parent)
+      element = parent
     end
 
-    table.insert(path, parent)
-    element = parent
-  end
+    if event.capturable then
+      event.phase = EventPhase.Capturing
 
-  if event.capturable then
-    event.phase = EventPhase.Capturing
+      for i = #path, 1, -1 do
+        event.target = path[i]
+        event.defaultPrevented = false
 
-    for i = #path, 1, -1 do
-      event.target = path[i]
-      event.defaultPrevented = false
+        path[i]:_dispatchEvent(event)
 
-      path[i]:_dispatchEvent(event)
-
-      if event.propagationStopped then
-        return true
+        if event.propagationStopped then
+          return true
+        end
       end
     end
-  end
 
-  event.phase = EventPhase.AtTarget
+    event.phase = EventPhase.AtTarget
 
-  if event.bubblable then
-    event.phase = EventPhase.Bubbling
+    if event.bubblable then
+      event.phase = EventPhase.Bubbling
 
-    for i = 1, #path, 1 do
-      event.target = path[i]
-      event.defaultPrevented = false
+      for i = 1, #path, 1 do
+        event.target = path[i]
+        event.defaultPrevented = false
 
-      path[i]:_dispatchEvent(event)
+        path[i]:_dispatchEvent(event)
 
-      if event.propagationStopped then
-        return true
+        if event.propagationStopped then
+          return true
+        end
       end
     end
-  end
 
-  return false
+    return false
+  else
+    -- flood dispatch
+    if event.capturable then
+      local function dispatch(element)
+        event.canceled = false
+        event.target = element
+        event.defaultPrevented = false
+
+        element:_dispatchEvent(event)
+
+        if not event.canceled then
+          for _, child in ipairs(element:getChildEventTargets()) do
+            dispatch(child)
+          end
+        end
+      end
+
+      event.phase = EventPhase.Capturing
+
+      dispatch(self)
+    end
+  end
 end
 
 function EventTarget:_removeEventListener(listener)
@@ -400,8 +425,8 @@ function EventTarget:_dispatchEvent(event)
         -- the end of the queue again
         table.insert(queue, listener)
       end
-    elseif event.canceled and idx > default then
-      -- if the listener is canceled, run on-cancel callbacks
+    elseif event.defaultPrevented and idx > default then
+      -- if the default listeners are prevented, run on-cancel callbacks
       listener.onCancel(self, event, listener)
     end
   end

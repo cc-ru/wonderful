@@ -131,11 +131,11 @@ function LeafElement:get(clazz, default)
   end
 end
 
-function LeafElement:getCapturingParent()
+function LeafElement:getParentEventTarget()
   return self.parentNode
 end
 
-function LeafElement:getBubblingChildren()
+function LeafElement:getChildEventTargets()
   return {}
 end
 
@@ -225,7 +225,7 @@ function Element:__new__()
   self.layout:optimize()
 end
 
-function Element:getBubblingChildren()
+function Element:getChildEventTargets()
   return self.childNodes
 end
 

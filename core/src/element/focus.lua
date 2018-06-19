@@ -17,6 +17,8 @@
 
 local class = require("lua-objects")
 
+local Event = require("wonderful.event").Event
+
 --- The focus-in event.
 local FocusIn = class(Event, {name = "wonderful.element.focus.FocusIn"})
 

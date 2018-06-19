@@ -218,13 +218,13 @@ function Wonderful:run()
         if screen then
           for _, document in ipairs(self.documents) do
             if document.display.screen == screen then
-              document:dispatchEvent(inst)
+              document:dispatchEvent(inst, true)
             end
           end
         end
       else
         for _, document in ipairs(self.documents) do
-          document:dispatchEvent(inst)
+          document:dispatchEvent(inst, true)
         end
       end
 
