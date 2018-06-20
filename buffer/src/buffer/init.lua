@@ -552,18 +552,70 @@ function Buffer:copyFrom(src, sx, sy, sw, sh, dx, dy)
     end
   end
 
+  local lx, ly, rx, ry, char, fg, bg
+
   for x = ix0, ix1, ixd do
     for y = iy0, iy1, iyd do
-      local lx = x0 + x - 1
-      local ly = y0 + y - 1
-      local rx = sx0 + x - 1
-      local ry = sy0 + y - 1
+      lx = x0 + x - 1
+      ly = y0 + y - 1
+      rx = sx0 + x - 1
+      ry = sy0 + y - 1
 
-      local char, fg, bg = src:get(rx, ry)
+      char, fg, bg = src:get(rx, ry)
 
       self:_set(lx, ly, fg, bg, 1, char)
     end
   end
+end
+
+--- Create a new buffer, and copy an area from self onto it.
+-- @tparam[opt=1] int x0 the source area's top-left block column number
+-- @tparam[opt=1] int y0 the source area's top-left block row number
+-- @tparam int w the source area width
+-- @tparam int h the source area height
+-- @treturn[1] Buffer the cloned buffer
+-- @treturn[2] nil width or height is less than 1
+function Buffer:clone(x0, y0, w, h)
+  if not (x0 and y0 and w and h) then
+    -- 0 arguments
+    x0, y0, w, h = 1, 1, self.w, self.h
+  elseif x0 and y0 and not w and not h then
+    -- 2 arguments
+    x0, y0, w, h = 1, 1, x0, y0
+
+    if self.debug then
+      checkArg(1, w, "number")
+      checkArg(2, h, "number")
+    end
+  elseif self.debug then
+    checkArg(1, x0, "number")
+    checkArg(2, y0, "number")
+    checkArg(3, w, "number")
+    checkArg(4, h, "number")
+  end
+
+  x0 = math.max(1, x0)
+  y0 = math.max(1, y0)
+  local x1 = math.min(x0 + self.w - 1, w)
+  local y1 = math.min(y0 + self.h - 1, h)
+  w = x1 - x0 + 1
+  h = y1 - y0 + 1
+
+  if w < 1 or h < 1 then
+    return
+  end
+
+  local new = Buffer {w = w, h = h, depth = self.depth}
+  local char, fg, bg
+
+  for y = y0, y1, 1 do
+    for x = x0, x1, 1 do
+      char, fg, bg = self:get(x, y)
+      new:_set(x, y, fg, bg, 1, char)
+    end
+  end
+
+  return new
 end
 
 function Buffer:mergeDiff(x, y)
@@ -1184,6 +1236,15 @@ end
 -- @tparam int dy the row at which to paste the area's top-left cell
 -- @function Framebuffer:copyFrom
 
+--- Create a new buffer, and copy an area from self onto it.
+-- @tparam[opt=1] int x0 the source area's top-left block column number
+-- @tparam[opt=1] int y0 the source area's top-left block row number
+-- @tparam int w the source area width
+-- @tparam int h the source area height
+-- @treturn[1] Buffer the cloned buffer
+-- @treturn[2] nil width or height is less than 1
+-- @function Framebuffer:clone
+
 ---
 -- @section end
 
@@ -1383,6 +1444,15 @@ end
 -- @tparam int dx the column at which to paste the area's top-left cell
 -- @tparam int dy the row at which to paste the area's top-left cell
 -- @function BufferView:copyFrom
+
+--- Create a new buffer, and copy an area from self onto it.
+-- @tparam[opt=1] int x0 the source area's top-left block column number
+-- @tparam[opt=1] int y0 the source area's top-left block row number
+-- @tparam int w the source area width
+-- @tparam int h the source area height
+-- @treturn[1] Buffer the cloned buffer
+-- @treturn[2] nil width or height is less than 1
+-- @function BufferView:clone
 
 function BufferView.__getters:depth()
   return self.buf.depth
