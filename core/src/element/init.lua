@@ -51,8 +51,11 @@ local LeafElement = class(
 --- Whether the element is a leaf node.
 -- @field LeafElement.isLeaf
 
---- Whether static positioning is used.
--- @field LeafElement.isStaticPositioned
+--- Whether the element is part of the container's element flow (has the
+-- @{wonderful.element.attribute.Position|Position} attribute set to either
+-- `"static"` or `"relative"`).
+--
+-- @field LeafElement.isFlowElement
 
 --- The viewport (the shown area when the container is scrolled).
 -- @field LeafElement.viewport
@@ -170,6 +173,15 @@ end
 --- Set a new calculated box.
 -- @tparam wonderful.geometry.Box new the new box
 function LeafElement:boxCalculated(new)
+  local position = self:get(attribute.Position, true)
+  local bbox
+
+  if position.value == "relative" then
+    bbox = self:get(attribute.BoundingBox, true)
+    new.x = new.x + (bbox.left or 0)
+    new.y = new.y + (bbox.top or 0)
+  end
+
   self.calculatedBox = new
 end
 
@@ -185,8 +197,8 @@ function LeafElement.__getters:isLeaf()
   return true
 end
 
-function LeafElement.__getters:isStaticPositioned()
-  return self:get(attribute.Position, true):isStatic()
+function LeafElement.__getters:isFlowElement()
+  return self:get(attribute.Position, true):isFlowElement()
 end
 
 function LeafElement.__getters:viewport()
@@ -230,7 +242,13 @@ function Element:getChildEventTargets()
 end
 
 function Element:getLayoutItems()
-  return self.childNodes
+  return coroutine.wrap(function()
+    for _, element in ipairs(self.childNodes) do
+      if element.isFlowElement then
+        coroutine.yield(element)
+      end
+    end
+  end)
 end
 
 function Element:getLayoutPadding()
@@ -300,6 +318,33 @@ function Element:recompose()
   end
 
   self.layout:recompose(self)
+
+  local bbox, x, y, w, h
+  local layoutBox = self:getLayoutBox()
+  local calcBox = self.calculatedBox
+
+  for _, element in ipairs(self.childNodes) do
+    local position = element:get(attribute.Position, true)
+
+    if not position:isFlowElement() then
+      bbox = element:get(attribute.BoundingBox)
+
+      if position.value == "absolute" then
+        x, y = layoutBox.x, layoutBox.y
+      elseif position.value == "fixed" then
+        x, y = calcBox.x, calcBox.y
+      end
+
+      w, h = element:sizeHint()
+
+      element:boxCalculated(geometry.Box(
+        x + (bbox.left or 0),
+        y + (bbox.top or 0),
+        bbox.width or w,
+        bbox.height or h
+      ))
+    end
+  end
 
   for _, element in pairs(self.childNodes) do
     if element:isa(Element) then

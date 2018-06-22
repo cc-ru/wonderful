@@ -85,14 +85,36 @@ function Position:__new__(value)
   end
 end
 
---- Checks if the value is set to "static".
+--- Checks if the value is set to `"static"` or `"relative"`.
 -- @treturn boolean
-function Position:isStatic()
-  return self.value == "static"
+function Position:isFlowElement()
+  return self.value == "static" or self.value == "relative"
 end
 
----
--- @section end
+--- @section end
+
+--- The bounding box attribute.
+local BoundingBox = class(
+  Attribute,
+  {name = "wonderful.element.attribute.BoundingBox"}
+)
+
+--- The bounding box attribute.
+-- @type BoundingBox
+
+--- Construct a new instance.
+-- @tparam[opt] int l the left offset
+-- @tparam[opt] int t the top offset
+-- @tparam[opt] int w the width
+-- @tparam[opt] int h the height
+function BoundingBox:__init__(l, t, w, h)
+  self.left = l
+  self.top = t
+  self.width = w
+  self.height = h
+end
+
+--- @section end
 
 --- The margin attribute.
 -- @see wonderful.geometry.Margin
@@ -294,6 +316,7 @@ end
 return {
   Attribute = Attribute,
   Position = Position,
+  BoundingBox = BoundingBox,
   Margin = Margin,
   Padding = Padding,
   Focus = Focus,

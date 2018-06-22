@@ -87,7 +87,7 @@ local LayoutContainer = class(nil, {name = "wonderful.layout.LayoutContainer"})
 -- @type LayoutContainer
 
 --- An abstract method to get the layout items.
--- @treturn {wonderful.layout.LayoutItem,...} a table of the layout items
+-- @treturn function an iterator function over the layout items
 function LayoutContainer:getLayoutItems()
   error("unimplemented abstract method LayoutContainer:getLayoutItems")
 end

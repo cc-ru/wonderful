@@ -63,7 +63,7 @@ function BoxLayout:recompose(el)
   local reversed = self.direction == Direction.RightToLeft
                 or self.direction == Direction.BottomToTop
 
-  for _, child in ipairs(el:getLayoutItems()) do
+  for child in el:getLayoutItems() do
     if child:getStretch() == 0 then
       local w, h = child:sizeHint()
       local margin = child:getMargin()
@@ -191,7 +191,7 @@ function BoxLayout:sizeHint(el)
   local vertical = self.direction == Direction.TopToBottom or
                    self.direction == Direction.BottomToTop
 
-  for _, child in ipairs(el:getLayoutItems()) do
+  for child in el:getLayoutItems() do
     local hw, hh = child:sizeHint()
     local margin = child:getMargin()
 
