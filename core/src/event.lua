@@ -144,6 +144,20 @@ function EventListener:remove()
   self.target:_removeEventListener(self)
 end
 
+function EventListener:__tostring__()
+  return ("%s {target = <%s>, event = <%s>, handler = %s, default = %s, " ..
+          "before = %s, onCancel = %s, capture = %s"):format(
+    self.NAME,
+    tostring(self.target),
+    tostring(self.event),
+    tostring(self.handler),
+    tostring(self.default),
+    tostring(self.before),
+    tostring(self.onCancel),
+    tostring(self.capture)
+  )
+end
+
 function EventListener.__getters:onCancel()
   return self._onCancel
 end
@@ -285,16 +299,14 @@ end
 
 --- Dispatch an event at this event target.
 --
--- Flood dispatch means that the event propagates to the element's children,
--- but does not bubble back, effectively leaving capturing phase only.
--- Canceling such an event only stops the event from propagating down the target
--- at which the element is stopped; siblings and parent targets are not
--- affected.
+-- Flood dispatch means that the event propagates to the entire element tree:
+-- depth-first, pre-order, left-to-right when capturing, and depth-first,
+-- post-order, right-to-left when bubbling. If the event is canceled, the
+-- propagation stops at that element.
 --
 -- @param event the event to dispatch
 -- @tparam boolean flood whether to use flood dispatch
--- @treturn[1] boolean usual dispatch: whether the propagation was stopped
--- @treturn[2] nil flood dispatch
+-- @treturn boolean whether the propagation was stopped
 function EventTarget:dispatchEvent(event, flood)
   event.phase = EventPhase.None
 
@@ -324,13 +336,11 @@ function EventTarget:dispatchEvent(event, flood)
 
         path[i]:_dispatchEvent(event)
 
-        if event.propagationStopped then
+        if event.canceled then
           return true
         end
       end
     end
-
-    event.phase = EventPhase.AtTarget
 
     if event.bubblable then
       event.phase = EventPhase.Bubbling
@@ -341,7 +351,7 @@ function EventTarget:dispatchEvent(event, flood)
 
         path[i]:_dispatchEvent(event)
 
-        if event.propagationStopped then
+        if event.canceled then
           return true
         end
       end
@@ -350,24 +360,52 @@ function EventTarget:dispatchEvent(event, flood)
     return false
   else
     -- flood dispatch
-    if event.capturable then
-      local function dispatch(element)
-        event.canceled = false
-        event.target = element
-        event.defaultPrevented = false
+    local function dispatchCapture(element)
+      event.target = element
+      event.defaultPrevented = false
 
-        element:_dispatchEvent(event)
+      element:_dispatchEvent(event)
 
-        if not event.canceled then
-          for _, child in ipairs(element:getChildEventTargets()) do
-            dispatch(child)
-          end
+      for _, child in ipairs(element:getChildEventTargets()) do
+        if event.canceled then
+          return true
+        end
+
+        dispatchCapture(child)
+      end
+    end
+
+    local function dispatchBubbling(element)
+      event.target = element
+      event.defaultPrevented = false
+
+      local children = element:getChildEventTargets()
+
+      for i = #children, 1, -1 do
+        dispatchBubbling(children[i])
+
+        if event.canceled then
+          return true
         end
       end
 
+      element:_dispatchEvent(event)
+    end
+
+    if event.capturable then
       event.phase = EventPhase.Capturing
 
-      dispatch(self)
+      if dispatchCapture(self) then
+        return true
+      end
+    end
+
+    if event.bubblable then
+      event.phase = EventPhase.Bubbling
+
+      if dispatchBubbling(self) then
+        return true
+      end
     end
   end
 end
@@ -393,7 +431,7 @@ function EventTarget:_dispatchEvent(event)
   local queue = {}
   local before, user, default = 1, 1, 1
 
-  for _, listener in ipairs(self.eventListeners) do
+  for _, listener in ipairs(self.eventListeners[event.class]) do
     if event.phase == EventPhase.Capturing and listener.capture or
         event.phase == EventPhase.Bubbling and not listener.capture then
       if not listener.default then
