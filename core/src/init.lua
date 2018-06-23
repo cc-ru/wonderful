@@ -139,7 +139,7 @@ function Wonderful:render()
   for _, document in ipairs(self.documents) do
     local buf = document.display.fb
 
-    document:nlrWalk(function(node)
+    document:nlrWalk(function(el)
       if el.calculatedBox then
         local coordBox = el.calculatedBox
         local viewport = el.viewport
@@ -169,23 +169,21 @@ end
 -- @tparam number y a row number
 -- @return an element
 function Wonderful:hit(screen, x, y)
+  local hit
+
   for _, document in ipairs(self.documents) do
     if document.display.screen == screen and
        document.display.box:has(x, y) then
-
-      local hit
 
       document:nlrWalk(function(element)
         if element.calculatedBox:has(x, y) then
           hit = element
         end
       end)
-
-      if hit then
-        return hit
-      end
     end
   end
+
+  return hit
 end
 
 --- Add a new signal to dispatch.
@@ -198,6 +196,8 @@ end
 --- Run the event loop.
 function Wonderful:run()
   self.running = true
+
+  self:render()
 
   while self.running do
     local pulled = {event.pull()}
@@ -213,7 +213,7 @@ function Wonderful:run()
           hit:dispatchEvent(inst)
         end
       elseif signal.KEYBOARD_SIGNALS[name] then
-        local screen = self.keyboards[screen]
+        local screen = self.keyboards[inst.keyboard]
 
         if screen then
           for _, document in ipairs(self.documents) do
@@ -236,6 +236,7 @@ end
 --- Stop the event loop.
 function Wonderful:stop()
   self.running = false
+  event.push("[" .. tostring(self) .. "] stop")
 end
 
 --- Destroy an instance of the main class.

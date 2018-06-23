@@ -216,7 +216,7 @@ end
 -- @see wonderful.element.LeafElement
 -- @see wonderful.element.node.ParentNode
 -- @see wonderful.layout.LayoutContainer
-local Element = class({LeafElement, node.ParentNode, layout.LayoutContainer},
+local Element = class({node.ParentNode, LeafElement, layout.LayoutContainer},
                       {name = "wonderful.element.Element"})
 
 --- A non-leaf element class.
@@ -311,7 +311,7 @@ function Element:sizeHint()
          height + padding.t + padding.b
 end
 
---- Recompose the element, calculating boxes for its children.
+--- Recompose the element: calculate boxes for its children.
 function Element:recompose()
   if self.isFreeTree then
     return
