@@ -91,6 +91,18 @@ function Position:isFlowElement()
   return self.value == "static" or self.value == "relative"
 end
 
+function Position:onSet(element, previous)
+  if element.parentNode then
+    element.parentNode:recompose()
+  end
+end
+
+function Position:onUnset(element, new)
+  if element.parentNode and not new then
+    element.parentNode:recompose()
+  end
+end
+
 --- @section end
 
 --- The bounding box attribute.
@@ -103,15 +115,27 @@ local BoundingBox = class(
 -- @type BoundingBox
 
 --- Construct a new instance.
--- @tparam[opt] int l the left offset
--- @tparam[opt] int t the top offset
--- @tparam[opt] int w the width
--- @tparam[opt] int h the height
-function BoundingBox:__init__(l, t, w, h)
+-- @tparam ?int l the left offset
+-- @tparam ?int t the top offset
+-- @tparam ?int w the width
+-- @tparam ?int h the height
+function BoundingBox:__new__(l, t, w, h)
   self.left = l
   self.top = t
   self.width = w
   self.height = h
+end
+
+function BoundingBox:onSet(element, previous)
+  if element.parentNode then
+    element.parentNode:recompose()
+  end
+end
+
+function BoundingBox:onUnset(element, new)
+  if element.parentNode and not new then
+    element.parentNode:recompose()
+  end
 end
 
 --- @section end
@@ -135,6 +159,18 @@ function Margin:__new__(...)
   self:superCall(geometry.Margin, "__new__", ...)
 end
 
+function Margin:onSet(element, previous)
+  if element.parentNode then
+    element.parentNode:recompose()
+  end
+end
+
+function Margin:onUnset(element, new)
+  if element.parentNode and not new then
+    element.parentNode:recompose()
+  end
+end
+
 ---
 -- @section end
 
@@ -155,6 +191,18 @@ local Padding = class(
 -- @tparam ?int b the bottom padding
 function Padding:__new__(...)
   self:superCall(geometry.Padding, "__new__", ...)
+end
+
+function Padding:onSet(element, previous)
+  if element.parentNode then
+    element.parentNode:recompose()
+  end
+end
+
+function Padding:onUnset(element, new)
+  if element.parentNode and not new then
+    element.parentNode:recompose()
+  end
 end
 
 ---
@@ -278,6 +326,18 @@ function Stretch:__new__(stretch)
   end
 end
 
+function Stretch:onSet(element, previous)
+  if element.parentNode then
+    element.parentNode:recompose()
+  end
+end
+
+function Stretch:onUnset(element, new)
+  if element.parentNode and not new then
+    element.parentNode:recompose()
+  end
+end
+
 ---
 -- @section end
 
@@ -305,7 +365,9 @@ function ScrollBox:onSet(element, previous)
 end
 
 function ScrollBox:onUnset(element, new)
-  element:recompose()
+  if not new then
+    element:recompose()
+  end
 end
 
 ---
