@@ -100,7 +100,7 @@ while true do
       element = level1
     end
 
-    local scrollBox = element:get(attribute.ScrollBox)
+    local scrollBox = element:get(ScrollBox)
 
     if e[4] == 208 then -- arrow down
       element:set(ScrollBox(scrollBox.x, scrollBox.y + 1,

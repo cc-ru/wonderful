@@ -174,12 +174,13 @@ end
 -- @tparam wonderful.geometry.Box new the new box
 function LeafElement:boxCalculated(new)
   local position = self:get(attribute.Position, true)
-  local bbox
+
+  local x, y = new.x, new.y
 
   if position.value == "relative" then
-    bbox = self:get(attribute.BoundingBox, true)
-    new.x = new.x + (bbox.left or 0)
-    new.y = new.y + (bbox.top or 0)
+    local bbox = self:get(attribute.BoundingBox)
+    new.x = new.x + (bbox and bbox.left or 0)
+    new.y = new.y + (bbox and bbox.top or 0)
   end
 
   self.calculatedBox = new
