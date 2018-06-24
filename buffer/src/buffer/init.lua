@@ -374,8 +374,8 @@ function Buffer:_fill(x0, y0, x1, y1, fg, bg, alpha, char)
         end
       end
 
-      cfg = self.palette:deflate(fg)
-      cbg = self.palette:deflate(bg)
+      cfg = self.palette:deflate(cfg)
+      cbg = self.palette:deflate(cbg)
 
       local new = fg * 0x100 + bg
 
@@ -896,8 +896,8 @@ function Framebuffer:_fill(x0, y0, x1, y1, fg, bg, alpha, char)
         end
       end
 
-      cfg = self.palette:deflate(fg)
-      cbg = self.palette:deflate(bg)
+      cfg = self.palette:deflate(cfg)
+      cbg = self.palette:deflate(cbg)
 
       local new = cfg * 0x100 + cbg
 
