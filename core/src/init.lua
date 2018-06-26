@@ -75,6 +75,8 @@ function Wonderful:__new__(args)
   self:addSignal("key_up", signal.KeyUp)
   self:addSignal("clipboard", signal.Clipboard)
 
+  self:addSignal("interrupted", signal.Interrupt)
+
   if not self.debug then
     self:optimize()
   end

@@ -506,8 +506,10 @@ function InventoryChanged:__new__(slot)
   self.slot = slot
 end
 
----
--- @section end
+--- @section end
+
+--- The `"interrupted"` signal.
+local Interrupt = class(Signal, {name = "wonderful.signal.Interrupt"})
 
 --- The screen signals.
 -- They are only sent to documents that are displayed on the screen that issued
@@ -547,6 +549,7 @@ return {
   Motion = Motion,
   ModemMessage = ModemMessage,
   InventoryChanged = InventoryChanged,
+  Interrupt = Interrupt,
 
   SCREEN_SIGNALS = SCREEN_SIGNALS,
   KEYBOARD_SIGNALS = KEYBOARD_SIGNALS,
