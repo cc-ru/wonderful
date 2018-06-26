@@ -29,9 +29,9 @@ function Rectangle:__new__(w, h, bg, name, alpha)
 end
 
 function Rectangle:render(view)
-  view:fill(1, 1, view.w, view.h, 0x000000, self.bg, self.alpha, " ")
-  view:set(2, 2, 0x000000, self.bg, self.alpha, self.name)
-  view:set(2, 3, 0x000000, self.bg, self.alpha, tostring(self.calculatedBox))
+  view:fill(1, 1, view.w, view.h, self.bg, self.bg, self.alpha, nil)
+  view:set(2, 2, 0x000000, nil, 1, self.name)
+  view:set(2, 3, 0x000000, nil, 1, tostring(self.calculatedBox))
 end
 
 function Rectangle:sizeHint()
@@ -128,6 +128,8 @@ root:addListener {
     end
   end,
 }
+
+local exitedWithError = false
 
 thread.waitForAny({
   thread.create(function()

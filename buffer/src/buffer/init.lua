@@ -180,18 +180,25 @@ function Buffer:_set(x, y, fg, bg, alpha, char)
   local old = diffColor or mainColor or self.defaultColor
 
   local oldBgIdx = old % 0x100
-  local oldFgIdx = old - oldBgIdx
+  local oldFgIdx = (old - oldBgIdx) / 0x100
 
   local oldBg = self.palette:inflate(oldBgIdx)
+  local oldFg = self.palette:inflate(oldFgIdx)
+
+  if not fg and oldBgIdx ~= oldFgIdx then
+    fg = oldFg
+  end
 
   if alpha == 0 then
     fg = oldBg
     bg = oldBg
   elseif alpha == 1 then
-    -- don't change colors
+    -- Don't change colors.
   else
-    if oldBg ~= fg and fg then
+    if char and oldBg ~= fg and fg then
       fg = self:alphaBlend(oldBg, fg, alpha)
+    elseif not char and oldFg ~= fg and fg then
+      fg = self:alphaBlend(oldFg, fg, alpha)
     end
 
     if oldBg ~= bg and bg then
@@ -366,24 +373,31 @@ function Buffer:_fill(x0, y0, x1, y1, fg, bg, alpha, char)
       local old = diffColor or mainColor or self.defaultColor
 
       local oldBgIdx = old % 0x100
-      local oldFgIdx = old - oldBgIdx
+      local oldFgIdx = (old - oldBgIdx) / 0x100
 
       local oldBg = self.palette:inflate(oldBgIdx)
+      local oldFg = self.palette:inflate(oldFgIdx)
 
       local cfg, cbg = fg, bg
+
+      if not fg and oldBgIdx ~= oldFgIdx then
+        cfg = oldFg
+      end
 
       if alpha == 0 then
         cfg = oldBg
         cbg = oldBg
       elseif alpha == 1 then
-        -- don't change colors
+        -- Don't change colors.
       else
-        if oldBg ~= fg and fg then
-          cfg = self:alphaBlend(oldBg, fg, alpha)
+        if char and oldBg ~= cfg and cfg then
+          cfg = self:alphaBlend(oldBg, cfg, alpha)
+        elseif not char and oldFg ~= cfg and cfg then
+          cfg = self:alphaBlend(oldFg, cfg, alpha)
         end
 
-        if oldBg ~= bg and bg then
-          cbg = self:alphaBlend(oldBg, bg, alpha)
+        if oldBg ~= cbg and cbg then
+          cbg = self:alphaBlend(oldBg, cbg, alpha)
         end
       end
 
@@ -743,22 +757,29 @@ function Framebuffer:_set(x, y, fg, bg, alpha, char)
 
     local old = diffColor or mainColor or self.defaultColor
 
-    local oldBgIdx = old % 100
-    local oldFgIdx = old - oldBgIdx
+    local oldBgIdx = old % 0x100
+    local oldFgIdx = (old - oldBgIdx) / 0x100
 
     local oldBg = self.palette:inflate(oldBgIdx)
+    local oldFg = self.palette:inflate(oldFgIdx)
+
+    if not fg and oldBgIdx ~= oldFgIdx then
+      fg = oldFg
+    end
 
     if alpha == 0 then
       fg = oldBg
       bg = oldBg
     elseif alpha == 1 then
-      -- don't change colors
+      -- Don't change colors.
     else
-      if oldBg ~= fg then
+      if char and oldBg ~= fg and fg then
         fg = self:alphaBlend(oldBg, fg, alpha)
+      elseif not char and oldFg ~= fg and fg then
+        fg = self:alphaBlend(oldFg, fg, alpha)
       end
 
-      if oldBg ~= bg then
+      if oldBg ~= bg and bg then
         bg = self:alphaBlend(oldBg, bg, alpha)
       end
     end
@@ -899,25 +920,32 @@ function Framebuffer:_fill(x0, y0, x1, y1, fg, bg, alpha, char)
 
       local old = diffColor or mainColor or self.defaultColor
 
-      local oldBgIdx = old % 100
-      local oldFgIdx = old - oldBgIdx
+      local oldBgIdx = old % 0x100
+      local oldFgIdx = (old - oldBgIdx) / 0x100
 
       local oldBg = self.palette:inflate(oldBgIdx)
+      local oldFg = self.palette:inflate(oldFgIdx)
 
       local cfg, cbg = fg, bg
+
+      if not fg and oldBgIdx ~= oldFgIdx then
+        cfg = oldFg
+      end
 
       if alpha == 0 then
         cfg = oldBg
         cbg = oldBg
       elseif alpha == 1 then
-        -- don't change colors
+        -- Don't change colors.
       else
-        if oldBg ~= fg and fg then
-          cfg = self:alphaBlend(oldBg, fg, alpha)
+        if char and oldBg ~= cfg and cfg then
+          cfg = self:alphaBlend(oldBg, cfg, alpha)
+        elseif not char and oldFg ~= cfg and cfg then
+          cfg = self:alphaBlend(oldFg, cfg, alpha)
         end
 
-        if oldBg ~= bg and bg then
-          cbg = self:alphaBlend(oldBg, bg, alpha)
+        if oldBg ~= cbg and cbg then
+          cbg = self:alphaBlend(oldBg, cbg, alpha)
         end
       end
 
