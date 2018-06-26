@@ -163,10 +163,10 @@ end
 --
 -- @tparam int x a column number
 -- @tparam int y a row number
--- @tparam int fg a foreground color
--- @tparam int bg a background color
+-- @tparam int ?fg a foreground color
+-- @tparam int ?bg a background color
 -- @tparam number alpha an opacity (an alpha value ∈ [0; 1])
--- @tparam string char a character
+-- @tparam string ?char a character
 -- @see wonderful.buffer.Buffer:set
 function Buffer:_set(x, y, fg, bg, alpha, char)
   local storage = self.storage
@@ -179,7 +179,10 @@ function Buffer:_set(x, y, fg, bg, alpha, char)
 
   local old = diffColor or mainColor or self.defaultColor
 
-  local oldBg = self.palette:inflate(old % 0x100)
+  local oldBgIdx = old % 0x100
+  local oldFgIdx = old - oldBgIdx
+
+  local oldBg = self.palette:inflate(oldBgIdx)
 
   if alpha == 0 then
     fg = oldBg
@@ -187,17 +190,17 @@ function Buffer:_set(x, y, fg, bg, alpha, char)
   elseif alpha == 1 then
     -- don't change colors
   else
-    if oldBg ~= fg then
+    if oldBg ~= fg and fg then
       fg = self:alphaBlend(oldBg, fg, alpha)
     end
 
-    if oldBg ~= bg then
+    if oldBg ~= bg and bg then
       bg = self:alphaBlend(oldBg, bg, alpha)
     end
   end
 
-  fg = self.palette:deflate(fg)
-  bg = self.palette:deflate(bg)
+  fg = fg and self.palette:deflate(fg) or oldFgIdx
+  bg = bg and self.palette:deflate(bg) or oldBgIdx
 
   local new = fg * 0x100 + bg
 
@@ -205,49 +208,56 @@ function Buffer:_set(x, y, fg, bg, alpha, char)
     new = nil
   end
 
-  if char == mainChar or not mainChar and char == " " then
-    char = nil
-  end
-
-  storage.data[id][jd] = char
   storage.data[id][jd + 1] = new
+
+  if char then
+    if char == mainChar or not mainChar and char == " " then
+      char = nil
+    end
+
+    storage.data[id][jd] = char
+  end
 end
 
 --- Set a line of characters.
 -- @tparam int x0 a column number
 -- @tparam int y0 a row number
--- @tparam int fg a foreground color
--- @tparam int bg a background color
+-- @tparam ?int fg a foreground color
+-- @tparam ?int bg a background color
 -- @tparam number alpha an opacity (an alpha value ∈ [0; 1])
--- @tparam string line a text line
+-- @tparam ?string line a text line
 -- @tparam[opt=false] boolean vertical if true, set a vertical line
 -- @see wonderful.buffer.Buffer:_set
 function Buffer:set(x0, y0, fg, bg, alpha, line, vertical)
   if self.debug then
     checkArg(1, x0, "number")
     checkArg(2, y0, "number")
-    checkArg(3, fg, "number")
-    checkArg(4, bg, "number")
+    checkArg(3, fg, "number", "nil")
+    checkArg(4, bg, "number", "nil")
     checkArg(5, alpha, "number")
-    checkArg(6, line, "string")
+    checkArg(6, line, "string", "nil")
   end
 
-  for i = 1, unicode.len(line), 1 do
-    local x, y
+  if line then
+    for i = 1, unicode.len(line), 1 do
+      local x, y
 
-    if not vertical then
-      x = x0 + i - 1
-      y = y0
-    else
-      x = x0
-      y = y0 + i - 1
+      if not vertical then
+        x = x0 + i - 1
+        y = y0
+      else
+        x = x0
+        y = y0 + i - 1
+      end
+
+      if not self:inRange(x, y) then
+        return
+      end
+
+      self:_set(x, y, fg, bg, alpha, unicode.sub(line, i, i))
     end
-
-    if not self:inRange(x, y) then
-      return
-    end
-
-    self:_set(x, y, fg, bg, alpha, unicode.sub(line, i, i))
+  else
+    self:_set(x, y, fg, bg, alpha, nil)
   end
 end
 
@@ -338,10 +348,10 @@ end
 -- @tparam int y0 a top-left cell row number
 -- @tparam int x1 a bottom-right cell column number
 -- @tparam int y1 a bottom-right cell row number
--- @tparam int fg a foreground color
--- @tparam int bg a background color
+-- @tparam ?int fg a foreground color
+-- @tparam ?int bg a background color
 -- @tparam number alpha an opacity (an alpha value ∈ [0; 1])
--- @tparam string char a character
+-- @tparam ?string char a character
 -- @see wonderful.buffer.Buffer:fill
 function Buffer:_fill(x0, y0, x1, y1, fg, bg, alpha, char)
   for x = x0, x1, 1 do
@@ -355,7 +365,10 @@ function Buffer:_fill(x0, y0, x1, y1, fg, bg, alpha, char)
 
       local old = diffColor or mainColor or self.defaultColor
 
-      local oldBg = self.palette:inflate(old % 0x100)
+      local oldBgIdx = old % 0x100
+      local oldFgIdx = old - oldBgIdx
+
+      local oldBg = self.palette:inflate(oldBgIdx)
 
       local cfg, cbg = fg, bg
 
@@ -365,32 +378,35 @@ function Buffer:_fill(x0, y0, x1, y1, fg, bg, alpha, char)
       elseif alpha == 1 then
         -- don't change colors
       else
-        if oldBg ~= fg then
+        if oldBg ~= fg and fg then
           cfg = self:alphaBlend(oldBg, fg, alpha)
         end
 
-        if oldBg ~= bg then
+        if oldBg ~= bg and bg then
           cbg = self:alphaBlend(oldBg, bg, alpha)
         end
       end
 
-      cfg = self.palette:deflate(cfg)
-      cbg = self.palette:deflate(cbg)
+      cfg = cfg and self.palette:deflate(cfg) or oldFgIdx
+      cbg = cbg and self.palette:deflate(cbg) or oldBgIdx
 
-      local new = fg * 0x100 + bg
+      local new = cfg * 0x100 + cbg
 
       if new == mainColor or not mainColor and new == self.defaultColor then
         new = nil
       end
 
-      local cchar = char
-
-      if cchar == mainChar or not mainChar and cchar == " " then
-        cchar = nil
-      end
-
-      self.storage.data[id][jd] = cchar
       self.storage.data[id][jd + 1] = new
+
+      if char then
+        local cchar = char
+
+        if cchar == mainChar or not mainChar and cchar == " " then
+          cchar = nil
+        end
+
+        self.storage.data[id][jd] = cchar
+      end
     end
   end
 end
@@ -403,10 +419,10 @@ end
 -- @tparam int y0 a top-left cell row number
 -- @tparam int w an area width
 -- @tparam int h an area width
--- @tparam int fg a foreground color
--- @tparam int bg a background color
+-- @tparam ?int fg a foreground color
+-- @tparam ?int bg a background color
 -- @tparam number alpha an opacity (an alpha value ∈ [0; 1])
--- @tparam string char a character
+-- @tparam ?string char a character
 -- @see wonderful.buffer.Buffer:_fill
 function Buffer:fill(x0, y0, w, h, fg, bg, alpha, char)
   if self.debug then
@@ -414,10 +430,10 @@ function Buffer:fill(x0, y0, w, h, fg, bg, alpha, char)
     checkArg(2, y0, "number")
     checkArg(3, w, "number")
     checkArg(4, h, "number")
-    checkArg(5, fg, "number")
-    checkArg(6, bg, "number")
+    checkArg(5, fg, "number", "nil")
+    checkArg(6, bg, "number", "nil")
     checkArg(7, alpha, "number")
-    checkArg(8, char, "string")
+    checkArg(8, char, "string", "nil")
   end
 
   local x0, y0, x1, y1 = self:intersection(x0, y0, w, h)
@@ -426,7 +442,7 @@ function Buffer:fill(x0, y0, w, h, fg, bg, alpha, char)
     return
   end
 
-  char = unicode.sub(char, 1, 1)
+  char = char and unicode.sub(char, 1, 1) or nil
 
   self:_fill(x0, y0, x1, y1, fg, bg, alpha, char)
 end
@@ -707,10 +723,10 @@ end
 --
 -- @tparam int x a column number
 -- @tparam int y a row number
--- @tparam int fg a foreground color
--- @tparam int bg a background color
+-- @tparam ?int fg a foreground color
+-- @tparam ?int bg a background color
 -- @tparam number alpha an opacity (an alpha value ∈ [0; 1])
--- @tparam string char a character
+-- @tparam ?string char a character
 -- @see wonderful.buffer.Framebuffer:set
 function Framebuffer:_set(x, y, fg, bg, alpha, char)
   local diff
@@ -727,7 +743,10 @@ function Framebuffer:_set(x, y, fg, bg, alpha, char)
 
     local old = diffColor or mainColor or self.defaultColor
 
-    local oldBg = self.palette:inflate(old % 0x100)
+    local oldBgIdx = old % 100
+    local oldFgIdx = old - oldBgIdx
+
+    local oldBg = self.palette:inflate(oldBgIdx)
 
     if alpha == 0 then
       fg = oldBg
@@ -744,8 +763,8 @@ function Framebuffer:_set(x, y, fg, bg, alpha, char)
       end
     end
 
-    fg = self.palette:deflate(fg)
-    bg = self.palette:deflate(bg)
+    fg = fg and self.palette:deflate(fg) or oldFgIdx
+    bg = bg and self.palette:deflate(bg) or oldBgIdx
 
     local new = fg * 0x100 + bg
 
@@ -753,12 +772,15 @@ function Framebuffer:_set(x, y, fg, bg, alpha, char)
       new = nil
     end
 
+    self.storage.data[id][jd + 1] = new
+
+    char = char or diffChar or mainChar or " "
+
     if char == mainChar or not mainChar and char == " " then
       char = nil
     end
 
     self.storage.data[id][jd] = char
-    self.storage.data[id][jd + 1] = new
 
     if (diffChar or diffColor) and not (new or char) then
       -- Dirty block is made clean
@@ -789,10 +811,10 @@ end
 --- Set a line of characters.
 -- @tparam int x0 a column number
 -- @tparam int y0 a row number
--- @tparam int fg a foreground color
--- @tparam int bg a background color
+-- @tparam ?int fg a foreground color
+-- @tparam ?int bg a background color
 -- @tparam number alpha an opacity (an alpha value ∈ [0; 1])
--- @tparam string line a text line
+-- @tparam ?string line a text line
 -- @tparam[opt=false] boolean vertical if true, set a vertical line
 -- @see wonderful.buffer.Framebuffer:_set
 -- @see wonderful.buffer.Buffer:_set
@@ -843,10 +865,10 @@ end
 -- @tparam int y0 a top-left cell row number
 -- @tparam int x1 a bottom-right cell column number
 -- @tparam int y1 a bottom-right cell row number
--- @tparam int fg a foreground color
--- @tparam int bg a background color
+-- @tparam ?int fg a foreground color
+-- @tparam ?int bg a background color
 -- @tparam number alpha an opacity (an alpha value ∈ [0; 1])
--- @tparam string char a character
+-- @tparam ?string char a character
 -- @see wonderful.buffer.Buffer:fill
 function Framebuffer:_fill(x0, y0, x1, y1, fg, bg, alpha, char)
   local blockX = (x0 - 1) / self.blockSize
@@ -877,7 +899,10 @@ function Framebuffer:_fill(x0, y0, x1, y1, fg, bg, alpha, char)
 
       local old = diffColor or mainColor or self.defaultColor
 
-      local oldBg = self.palette:inflate(old % 0x100)
+      local oldBgIdx = old % 100
+      local oldFgIdx = old - oldBgIdx
+
+      local oldBg = self.palette:inflate(oldBgIdx)
 
       local cfg, cbg = fg, bg
 
@@ -887,17 +912,17 @@ function Framebuffer:_fill(x0, y0, x1, y1, fg, bg, alpha, char)
       elseif alpha == 1 then
         -- don't change colors
       else
-        if oldBg ~= fg then
+        if oldBg ~= fg and fg then
           cfg = self:alphaBlend(oldBg, fg, alpha)
         end
 
-        if oldBg ~= bg then
+        if oldBg ~= bg and bg then
           cbg = self:alphaBlend(oldBg, bg, alpha)
         end
       end
 
-      cfg = self.palette:deflate(cfg)
-      cbg = self.palette:deflate(cbg)
+      cfg = cfg and self.palette:deflate(cfg) or oldFgIdx
+      cbg = cbg and self.palette:deflate(cbg) or oldBgIdx
 
       local new = cfg * 0x100 + cbg
 
@@ -905,7 +930,7 @@ function Framebuffer:_fill(x0, y0, x1, y1, fg, bg, alpha, char)
         new = nil
       end
 
-      local cchar = char
+      local cchar = char or diffChar or mainChar or " "
 
       if cchar == mainChar or not mainChar and cchar == " " then
         cchar = nil
@@ -940,10 +965,10 @@ end
 -- @tparam int y0 a top-left cell row number
 -- @tparam int w an area width
 -- @tparam int h an area width
--- @tparam int fg a foreground color
--- @tparam int bg a background color
+-- @tparam ?int fg a foreground color
+-- @tparam ?int bg a background color
 -- @tparam number alpha an opacity (an alpha value ∈ [0; 1])
--- @tparam string char a character
+-- @tparam ?string char a character
 -- @see wonderful.buffer.Framebuffer:_fill
 -- @see wonderful.buffer.Buffer:fill
 -- @function Framebuffer:fill
@@ -1327,10 +1352,10 @@ end
 --- Proxy @{wonderful.buffer.Buffer:_set} to the buffer.
 -- @tparam int x a view-relative cell column number
 -- @tparam int y a view-relative cell row number
--- @tparam int fg a foreground color
--- @tparam int bg a background color
+-- @tparam ?int fg a foreground color
+-- @tparam ?int bg a background color
 -- @tparam number alpha an opacity (an alpha value ∈ [0; 1])
--- @tparam string char a character
+-- @tparam ?string char a character
 -- @see wonderful.buffer.Buffer:_set
 function BufferView:_set(x, y, fg, bg, alpha, char)
   x, y = self:absCoords(x, y)
@@ -1342,10 +1367,10 @@ end
 -- @tparam int y0 a view-relative top-left cell row number
 -- @tparam int x1 a view-relative bottom-right cell column number
 -- @tparam int y1 a view-relative bottom-right cell row number
--- @tparam int fg a foreground color
--- @tparam int bg a background color
+-- @tparam ?int fg a foreground color
+-- @tparam ?int bg a background color
 -- @tparam number alpha an opacity (an alpha value ∈ [0; 1])
--- @tparam string char a character
+-- @tparam ?string char a character
 -- @see wonderful.buffer.Buffer:_fill
 function BufferView:_fill(x0, y0, x1, y1, fg, bg, alpha, char)
   self.buf:_fill(x0, y0, x1, y1, fg, bg, alpha, char)
