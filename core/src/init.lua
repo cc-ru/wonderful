@@ -197,42 +197,69 @@ end
 
 --- Run the event loop.
 function Wonderful:run()
-  self.running = true
+  local success, traceback = xpcall(function()
+    self.running = true
 
-  self:render()
+    self:render()
 
-  while self.running do
-    local pulled = {event.pull()}
-    local name = table.remove(pulled, 1)
+    while self.running do
+      local pulled = {event.pull()}
+      local name = table.remove(pulled, 1)
 
-    if name and self.signals[name] then
-      local inst = self.signals[name](table.unpack(pulled))
+      if name and self.signals[name] then
+        local inst = self.signals[name](table.unpack(pulled))
 
-      if signal.SCREEN_SIGNALS[name] then
-        local hit = self:hit(inst.screen, inst.x, inst.y)
+        if signal.SCREEN_SIGNALS[name] then
+          local hit = self:hit(inst.screen, inst.x, inst.y)
 
-        if hit then
-          hit:dispatchEvent(inst)
-        end
-      elseif signal.KEYBOARD_SIGNALS[name] then
-        local screen = self.keyboards[inst.keyboard]
+          if hit then
+            hit:dispatchEvent(inst)
+          end
+        elseif signal.KEYBOARD_SIGNALS[name] then
+          local screen = self.keyboards[inst.keyboard]
 
-        if screen then
-          for _, document in ipairs(self.documents) do
-            if document.display.screen == screen then
-              document:dispatchEvent(inst, true)
+          if screen then
+            for _, document in ipairs(self.documents) do
+              if document.display.screen == screen then
+                document:dispatchEvent(inst, true)
+              end
             end
           end
+        else
+          for _, document in ipairs(self.documents) do
+            document:dispatchEvent(inst, true)
+          end
         end
-      else
-        for _, document in ipairs(self.documents) do
-          document:dispatchEvent(inst, true)
-        end
-      end
 
-      self:render()
+        self:render()
+      end
     end
+  end, debug.traceback)
+
+  self:__destroy__()
+
+  if not success then
+    local message = ("Wonderful event loop crashed while running. Error:\n" ..
+                     traceback)
+
+    if thread.current() then
+      -- threads don't print errors to screen
+      io.stderr:write(message .. "\n")
+    end
+
+    error(message, 2)
   end
+end
+
+--- Create an event loop thread, and start the loop.
+--
+-- Requires the `thread` library, available in OpenOS 1.6.4 and higher.
+--
+-- @return the thread handle
+function Wonderful:runThreaded()
+  local thread = require("thread")
+
+  return thread.create(self.run, self)
 end
 
 --- Stop the event loop.
