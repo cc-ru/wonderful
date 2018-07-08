@@ -137,6 +137,7 @@ function Wonderful:addDocument(args)
   return document
 end
 
+--- Render the documents.
 function Wonderful:render()
   for _, document in ipairs(self.documents) do
     local buf = document.display.fb
@@ -162,6 +163,13 @@ function Wonderful:render()
 
   for _, display in ipairs(self.displayManager.displays) do
     display:flush()
+  end
+end
+
+--- Recompose all documents.
+function Wonderful:recomposeAll()
+  for _, document in ipairs(self.documents) do
+    document:recompose()
   end
 end
 
@@ -200,6 +208,7 @@ function Wonderful:run()
   local success, traceback = xpcall(function()
     self.running = true
 
+    self:recomposeAll()
     self:render()
 
     while self.running do
@@ -231,6 +240,7 @@ function Wonderful:run()
           end
         end
 
+        self:recomposeAll()
         self:render()
       end
     end

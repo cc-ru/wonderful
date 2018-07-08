@@ -236,6 +236,9 @@ function Element:__new__()
 
   self.layout = VBoxLayout()
   self.layout:optimize()
+
+  self.markedToRecompose = true
+  self.hasMarkedDescendant = true
 end
 
 function Element:getChildEventTargets()
@@ -287,10 +290,10 @@ end
 function Element:insertChild(index, child)
   self:superCall(node.ParentNode, "insertChild", index, child)
 
-  self:recompose()
+  self:recompose(true)
 end
 
---- Removes a child at a given index.
+--- Remove a child at a given index.
 -- @tparam int index the index
 -- @return `false` or the removed element
 function Element:removeChild(index)
@@ -300,7 +303,7 @@ function Element:removeChild(index)
     return false
   end
 
-  self:recompose()
+  self:recompose(true)
 
   return child
 end
@@ -312,45 +315,83 @@ function Element:sizeHint()
          height + padding.t + padding.b
 end
 
+--- Mark the element to be recomposed when `recompose` is called for it or
+-- one of its ascendants.
+--
+-- @see wonderful.element.Element:recompose
+function Element:markToRecompose()
+  self.markedToRecompose = true
+  self:_markParent()
+end
+
 --- Recompose the element: calculate boxes for its children.
-function Element:recompose()
+--
+-- **Does not** recompose self if not marked, unless forced.
+--
+-- @tparam[opt=false] boolean force whether to force recomposing
+-- @see wonderful.element.Element:markToRecompose
+function Element:recompose(force)
   if self.isFreeTree then
     return
   end
 
-  self.layout:recompose(self)
+  if force then
+    self.markedToRecompose = true
+  end
 
-  local bbox, x, y, w, h
-  local layoutBox = self:getLayoutBox()
-  local calcBox = self.calculatedBox
+  if self.markedToRecompose then
+    self.layout:recompose(self)
 
-  for _, element in ipairs(self.childNodes) do
-    local position = element:get(attribute.Position, true)
+    local bbox, x, y, w, h
+    local layoutBox = self:getLayoutBox()
+    local calcBox = self.calculatedBox
 
-    if not position:isFlowElement() then
-      bbox = element:get(attribute.BoundingBox)
+    for _, element in ipairs(self.childNodes) do
+      local position = element:get(attribute.Position, true)
 
-      if position.value == "absolute" then
-        x, y = layoutBox.x, layoutBox.y
-      elseif position.value == "fixed" then
-        x, y = calcBox.x, calcBox.y
+      if not position:isFlowElement() then
+        bbox = element:get(attribute.BoundingBox)
+
+        if position.value == "absolute" then
+          x, y = layoutBox.x, layoutBox.y
+        elseif position.value == "fixed" then
+          x, y = calcBox.x, calcBox.y
+        end
+
+        w, h = element:sizeHint()
+
+        element:boxCalculated(geometry.Box(
+          x + (bbox.left or 0),
+          y + (bbox.top or 0),
+          bbox.width or w,
+          bbox.height or h
+        ))
       end
-
-      w, h = element:sizeHint()
-
-      element:boxCalculated(geometry.Box(
-        x + (bbox.left or 0),
-        y + (bbox.top or 0),
-        bbox.width or w,
-        bbox.height or h
-      ))
     end
   end
 
-  for _, element in pairs(self.childNodes) do
-    if element:isa(Element) then
-      element:recompose()
+  if self.hasMarkedDescendant or self.markedToRecompose then
+    for _, element in pairs(self.childNodes) do
+      if element:isa(Element) then
+        if self.markedToRecompose then
+          element.markedToRecompose = true
+        end
+
+        if element.markedToRecompose or element.hasMarkedDescendant then
+          element:recompose()
+        end
+      end
     end
+  end
+
+  self.hasMarkedDescendant = false
+  self.markedToRecompose = false
+end
+
+function Element:_markParent()
+  if self.parentNode then
+    self.parentNode.hasMarkedDescendant = true
+    self.parentNode:_markParent()
   end
 end
 

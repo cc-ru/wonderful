@@ -93,13 +93,13 @@ end
 
 function Position:onSet(element, previous)
   if element.parentNode then
-    element.parentNode:recompose()
+    element.parentNode:markToRecompose()
   end
 end
 
 function Position:onUnset(element, new)
   if element.parentNode and not new then
-    element.parentNode:recompose()
+    element.parentNode:markToRecompose()
   end
 end
 
@@ -128,13 +128,13 @@ end
 
 function BoundingBox:onSet(element, previous)
   if element.parentNode then
-    element.parentNode:recompose()
+    element.parentNode:markToRecompose()
   end
 end
 
 function BoundingBox:onUnset(element, new)
   if element.parentNode and not new then
-    element.parentNode:recompose()
+    element.parentNode:markToRecompose()
   end
 end
 
@@ -161,13 +161,13 @@ end
 
 function Margin:onSet(element, previous)
   if element.parentNode then
-    element.parentNode:recompose()
+    element.parentNode:markToRecompose()
   end
 end
 
 function Margin:onUnset(element, new)
   if element.parentNode and not new then
-    element.parentNode:recompose()
+    element.parentNode:markToRecompose()
   end
 end
 
@@ -195,13 +195,13 @@ end
 
 function Padding:onSet(element, previous)
   if element.parentNode then
-    element.parentNode:recompose()
+    element.parentNode:markToRecompose()
   end
 end
 
 function Padding:onUnset(element, new)
   if element.parentNode and not new then
-    element.parentNode:recompose()
+    element.parentNode:markToRecompose()
   end
 end
 
@@ -328,13 +328,13 @@ end
 
 function Stretch:onSet(element, previous)
   if element.parentNode then
-    element.parentNode:recompose()
+    element.parentNode:markToRecompose()
   end
 end
 
 function Stretch:onUnset(element, new)
   if element.parentNode and not new then
-    element.parentNode:recompose()
+    element.parentNode:markToRecompose()
   end
 end
 
@@ -361,12 +361,12 @@ function ScrollBox:__new__(x, y, w, h)
 end
 
 function ScrollBox:onSet(element, previous)
-  element:recompose()
+  element:markToRecompose()
 end
 
 function ScrollBox:onUnset(element, new)
   if not new then
-    element:recompose()
+    element:markToRecompose()
   end
 end
 

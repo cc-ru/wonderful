@@ -109,7 +109,9 @@ root:addListener {
         signum = -1
       end
 
-      for i, c in ipairs(root.childNodes) do
+      -- Only update the first five children of `root`.
+      for i = 1, 5, 1 do
+        local c = root.childNodes[i]
         c:set(BoundingBox(c:get(BoundingBox).left + (i - 1) * signum))
       end
     elseif e.code == kbd.keys.up or e.code == kbd.keys.down then
