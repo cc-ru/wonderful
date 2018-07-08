@@ -101,12 +101,12 @@ function BufferStorageT1:clear()
 end
 
 function BufferStorageT1:indexMain(x, y)
-  local i = 2 * ((y - 1) * self.w + x) - 1
+  local i = 2 * ((y - 1) * 50 + x) - 1
   return (i - i % 1024) / 1024 + 1, (i - 1) % 1024 + 1
 end
 
 function BufferStorageT1:indexDiff(x, y)
-  local i = 1599 + 2 * ((y - 1) * self.w + x)
+  local i = 1599 + 2 * ((y - 1) * 50 + x)
   return (i - i % 1024) / 1024 + 1, (i - 1) % 1024 + 1
 end
 
@@ -127,12 +127,12 @@ function BufferStorageT2:clear()
 end
 
 function BufferStorageT2:indexMain(x, y)
-  local i = 2 * ((y - 1) * self.w + x) - 1
+  local i = 2 * ((y - 1) * 80 + x) - 1
   return (i - i % 4096) / 4096 + 1, (i - 1) % 4096 + 1
 end
 
 function BufferStorageT2:indexDiff(x, y)
-  local i = 3999 + 2 * ((y - 1) * self.w + x)
+  local i = 3999 + 2 * ((y - 1) * 80 + x)
   return (i - i % 4096) / 4096 + 1, (i - 1) % 4096 + 1
 end
 
@@ -157,12 +157,12 @@ function BufferStorageT3:clear()
 end
 
 function BufferStorageT3:indexMain(x, y)
-  local i = 2 * ((y - 1) * self.w + x) - 1
+  local i = 2 * ((y - 1) * 160 + x) - 1
   return (i - i % 1024) / 1024 + 1, (i - 1) % 1024 + 1
 end
 
 function BufferStorageT3:indexDiff(x, y)
-  local i = 15999 + 2 * ((y - 1) * self.w + x)
+  local i = 15999 + 2 * ((y - 1) * 160 + x)
   return (i - i % 1024) / 1024 + 1, (i - 1) % 1024 + 1
 end
 

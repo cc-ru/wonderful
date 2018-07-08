@@ -182,8 +182,8 @@ function Buffer:_set(x, y, fg, bg, alpha, char)
   local oldBgIdx = old % 0x100
   local oldFgIdx = (old - oldBgIdx) / 0x100
 
-  local oldBg = self.palette:inflate(oldBgIdx)
-  local oldFg = self.palette:inflate(oldFgIdx)
+  local oldBg = self.palette[oldBgIdx + 1]
+  local oldFg = self.palette[oldFgIdx + 1]
 
   if not fg and oldBgIdx ~= oldFgIdx then
     fg = oldFg
@@ -375,8 +375,8 @@ function Buffer:_fill(x0, y0, x1, y1, fg, bg, alpha, char)
       local oldBgIdx = old % 0x100
       local oldFgIdx = (old - oldBgIdx) / 0x100
 
-      local oldBg = self.palette:inflate(oldBgIdx)
-      local oldFg = self.palette:inflate(oldFgIdx)
+      local oldBg = self.palette[oldBgIdx + 1]
+      local oldFg = self.palette[oldFgIdx + 1]
 
       local cfg, cbg = fg, bg
 
@@ -760,8 +760,8 @@ function Framebuffer:_set(x, y, fg, bg, alpha, char)
     local oldBgIdx = old % 0x100
     local oldFgIdx = (old - oldBgIdx) / 0x100
 
-    local oldBg = self.palette:inflate(oldBgIdx)
-    local oldFg = self.palette:inflate(oldFgIdx)
+    local oldBg = self.palette[oldBgIdx + 1]
+    local oldFg = self.palette[oldFgIdx + 1]
 
     if not fg and oldBgIdx ~= oldFgIdx then
       fg = oldFg
@@ -923,8 +923,8 @@ function Framebuffer:_fill(x0, y0, x1, y1, fg, bg, alpha, char)
       local oldBgIdx = old % 0x100
       local oldFgIdx = (old - oldBgIdx) / 0x100
 
-      local oldBg = self.palette:inflate(oldBgIdx)
-      local oldFg = self.palette:inflate(oldFgIdx)
+      local oldBg = self.palette[oldBgIdx + 1]
+      local oldFg = self.palette[oldFgIdx + 1]
 
       local cfg, cbg = fg, bg
 
