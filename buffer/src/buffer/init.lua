@@ -361,22 +361,29 @@ end
 -- @tparam ?string char a character
 -- @see wonderful.buffer.Buffer:fill
 function Buffer:_fill(x0, y0, x1, y1, fg, bg, alpha, char)
+  local storage = self.storage
+  local indexMain = storage.indexMain
+  local indexDiff = storage.indexDiff
+  local storageData = storage.data
+  local defaultColor = self.defaultColor
+  local palette = self.palette
+
   for x = x0, x1, 1 do
     for y = y0, y1, 1 do
-      local im, jm = self.storage:indexMain(x, y)
-      local id, jd = self.storage:indexDiff(x, y)
+      local im, jm = indexMain(storage, x, y)
+      local id, jd = indexDiff(storage, x, y)
 
-      local mainChar = self.storage.data[im][jm]
-      local mainColor = self.storage.data[im][jm + 1]
-      local diffColor = self.storage.data[id][jd + 1]
+      local mainChar = storageData[im][jm]
+      local mainColor = storageData[im][jm + 1]
+      local diffColor = storageData[id][jd + 1]
 
-      local old = diffColor or mainColor or self.defaultColor
+      local old = diffColor or mainColor or defaultColor
 
       local oldBgIdx = old % 0x100
       local oldFgIdx = (old - oldBgIdx) / 0x100
 
-      local oldBg = self.palette[oldBgIdx + 1]
-      local oldFg = self.palette[oldFgIdx + 1]
+      local oldBg = palette[oldBgIdx + 1]
+      local oldFg = palette[oldFgIdx + 1]
 
       local cfg, cbg = fg, bg
 
@@ -401,16 +408,16 @@ function Buffer:_fill(x0, y0, x1, y1, fg, bg, alpha, char)
         end
       end
 
-      cfg = cfg and self.palette:deflate(cfg) or oldFgIdx
-      cbg = cbg and self.palette:deflate(cbg) or oldBgIdx
+      cfg = cfg and palette:deflate(cfg) or oldFgIdx
+      cbg = cbg and palette:deflate(cbg) or oldBgIdx
 
       local new = cfg * 0x100 + cbg
 
-      if new == mainColor or not mainColor and new == self.defaultColor then
+      if new == mainColor or not mainColor and new == defaultColor then
         new = nil
       end
 
-      self.storage.data[id][jd + 1] = new
+      storageData[id][jd + 1] = new
 
       if char then
         local cchar = char
@@ -419,7 +426,7 @@ function Buffer:_fill(x0, y0, x1, y1, fg, bg, alpha, char)
           cchar = nil
         end
 
-        self.storage.data[id][jd] = cchar
+        storageData[id][jd] = cchar
       end
     end
   end
@@ -892,39 +899,52 @@ end
 -- @tparam ?string char a character
 -- @see wonderful.buffer.Buffer:fill
 function Framebuffer:_fill(x0, y0, x1, y1, fg, bg, alpha, char)
-  local blockX = (x0 - 1) / self.blockSize
+  local blockSize = self.blockSize
+  local storage = self.storage
+  local indexMain = storage.indexMain
+  local indexDiff = storage.indexDiff
+  local storageData = storage.data
+  local defaultColor = self.defaultColor
+  local palette = self.palette
+  local blocksW = self.blocksW
+  local dirty = self.dirty
+
+  local blockX = (x0 - 1) / blockSize
   blockX = blockX - blockX % 1
 
-  local blockY = (y0 - 1) / self.blockSize
+  local blockY = (y0 - 1) / blockSize
   blockY = blockY - blockY % 1
 
   for y = y0, y1, 1 do
-    if y ~= y0 and y % self.blockSize == 0 then
+    if y ~= y0 and y % blockSize == 0 then
       blockY = blockY + 1
     end
 
-    block = blockY * self.blocksW + blockX + 1
+    local block = blockY * blocksW + blockX + 1
+
+    local blockDirtiness = 0
 
     for x = x0, x1, 1 do
-      if x ~= x0 and (x - 1) % self.blockSize == 0 then
+      if x ~= x0 and (x - 1) % blockSize == 0 then
+        dirty[block] = blockDirtiness
         block = block + 1
       end
 
-      local im, jm = self.storage:indexMain(x, y)
-      local id, jd = self.storage:indexDiff(x, y)
+      local im, jm = indexMain(storage, x, y)
+      local id, jd = indexDiff(storage, x, y)
 
-      local mainChar = self.storage.data[im][jm]
-      local mainColor = self.storage.data[im][jm + 1]
-      local diffChar = self.storage.data[id][jd]
-      local diffColor = self.storage.data[id][jd + 1]
+      local mainChar = storageData[im][jm]
+      local mainColor = storageData[im][jm + 1]
+      local diffChar = storageData[id][jd]
+      local diffColor = storageData[id][jd + 1]
 
-      local old = diffColor or mainColor or self.defaultColor
+      local old = diffColor or mainColor or defaultColor
 
       local oldBgIdx = old % 0x100
-      local oldFgIdx = (old - oldBgIdx) / 0x100
+      local oldFgIdx = (old - oldBgIdx) * 0x100p-16
 
-      local oldBg = self.palette[oldBgIdx + 1]
-      local oldFg = self.palette[oldFgIdx + 1]
+      local oldBg = palette[oldBgIdx + 1]
+      local oldFg = palette[oldFgIdx + 1]
 
       local cfg, cbg = fg, bg
 
@@ -949,12 +969,12 @@ function Framebuffer:_fill(x0, y0, x1, y1, fg, bg, alpha, char)
         end
       end
 
-      cfg = cfg and self.palette:deflate(cfg) or oldFgIdx
-      cbg = cbg and self.palette:deflate(cbg) or oldBgIdx
+      cfg = cfg and palette:deflate(cfg) or oldFgIdx
+      cbg = cbg and palette:deflate(cbg) or oldBgIdx
 
       local new = cfg * 0x100 + cbg
 
-      if new == mainColor or not mainColor and new == self.defaultColor then
+      if new == mainColor or not mainColor and new == defaultColor then
         new = nil
       end
 
@@ -964,8 +984,8 @@ function Framebuffer:_fill(x0, y0, x1, y1, fg, bg, alpha, char)
         cchar = nil
       end
 
-      self.storage.data[id][jd] = cchar
-      self.storage.data[id][jd + 1] = new
+      storageData[id][jd] = cchar
+      storageData[id][jd + 1] = new
 
       local diff
 
@@ -983,8 +1003,10 @@ function Framebuffer:_fill(x0, y0, x1, y1, fg, bg, alpha, char)
         diff = 1
       end
 
-      self.dirty[block] = (self.dirty[block] or 0) + diff
+      blockDirtiness = blockDirtiness + diff
     end
+
+    dirty[block] = blockDirtiness
   end
 end
 

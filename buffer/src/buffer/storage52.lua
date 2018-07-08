@@ -102,12 +102,12 @@ end
 
 function BufferStorageT1:indexMain(x, y)
   local i = 2 * ((y - 1) * 50 + x) - 1
-  return (i - i % 1024) / 1024 + 1, (i - 1) % 1024 + 1
+  return (i - i % 1024) * 0x400p-20 + 1, (i - 1) % 1024 + 1
 end
 
 function BufferStorageT1:indexDiff(x, y)
   local i = 1599 + 2 * ((y - 1) * 50 + x)
-  return (i - i % 1024) / 1024 + 1, (i - 1) % 1024 + 1
+  return (i - i % 1024) * 0x400p-20 + 1, (i - 1) % 1024 + 1
 end
 
 --- The T2 buffer storage class.
@@ -128,12 +128,12 @@ end
 
 function BufferStorageT2:indexMain(x, y)
   local i = 2 * ((y - 1) * 80 + x) - 1
-  return (i - i % 4096) / 4096 + 1, (i - 1) % 4096 + 1
+  return (i - i % 4096) * 0x1000p-24 + 1, (i - 1) % 4096 + 1
 end
 
 function BufferStorageT2:indexDiff(x, y)
   local i = 3999 + 2 * ((y - 1) * 80 + x)
-  return (i - i % 4096) / 4096 + 1, (i - 1) % 4096 + 1
+  return (i - i % 4096) * 0x1000p-24 + 1, (i - 1) % 4096 + 1
 end
 
 --- The T3 buffer storage class.
@@ -158,12 +158,12 @@ end
 
 function BufferStorageT3:indexMain(x, y)
   local i = 2 * ((y - 1) * 160 + x) - 1
-  return (i - i % 1024) / 1024 + 1, (i - 1) % 1024 + 1
+  return (i - i % 1024) * 0x400p-20 + 1, (i - 1) % 1024 + 1
 end
 
 function BufferStorageT3:indexDiff(x, y)
   local i = 15999 + 2 * ((y - 1) * 160 + x)
-  return (i - i % 1024) / 1024 + 1, (i - 1) % 1024 + 1
+  return (i - i % 1024) * 0x400p-20 + 1, (i - 1) % 1024 + 1
 end
 
 ---

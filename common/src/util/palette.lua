@@ -52,9 +52,9 @@ local function delta(color1, color2)
   local dg = g1 - g2
   local db = b1 - b2
 
-  return (0.2126 * dr^2 +
-          0.7152 * dg^2 +
-          0.0722 * db^2)
+  return (0.2126 * dr * dr +
+          0.7152 * dg * dg +
+          0.0722 * db * db)
 end
 
 --- The T1 palette.
@@ -90,9 +90,9 @@ local function t1deflate(palette, color)
     local dg = g1 - g2
     local db = b1 - b2
 
-    local d = (0.2126 * dr^2 +
-               0.7152 * dg^2 +
-               0.0722 * db^2)
+    local d = (0.2126 * dr * dr +
+               0.7152 * dg * dg +
+               0.0722 * db * db)
 
     if not minDelta or d < minDelta then
       idx, minDelta = i, d
@@ -219,9 +219,9 @@ local function t3deflate(palette, color)
       local dg = g1 - g2
       local db = b1 - b2
 
-      local d = (0.2126 * dr^2 +
-                 0.7152 * dg^2 +
-                 0.0722 * db^2)
+      local d = (0.2126 * dr * dr +
+                 0.7152 * dg * dg +
+                 0.0722 * db * db)
 
       if not minDelta or d < minDelta then
         paletteIndex, minDelta = i, d
@@ -270,13 +270,13 @@ local function t3deflate(palette, color)
   local palDg = g1 - g3
   local palDb = b1 - b3
 
-  local calcDelta = (0.2126 * calcDr^2 +
-                     0.7152 * calcDg^2 +
-                     0.0722 * calcDb^2)
+  local calcDelta = (0.2126 * calcDr * calcDr +
+                     0.7152 * calcDg * calcDg +
+                     0.0722 * calcDb * calcDb)
 
-  local palDelta = (0.2126 * palDr^2 +
-                    0.7152 * palDg^2 +
-                    0.0722 * palDb^2)
+  local palDelta = (0.2126 * palDr * palDr +
+                    0.7152 * palDg * palDg +
+                    0.0722 * palDb * palDb)
 
   if calcDelta < palDelta then
     return deflated
