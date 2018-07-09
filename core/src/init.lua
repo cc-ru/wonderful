@@ -244,7 +244,14 @@ function Wonderful:run(inThread)
         self:render()
       end
     end
-  end, debug.traceback)
+  end, function(msg)
+    if type(msg) == "table" and msg.reason then
+      -- `os.exit()` raises table errors
+      msg = msg.reason
+    end
+
+    return debug.traceback(msg)
+  end)
 
   self:__destroy__()
 

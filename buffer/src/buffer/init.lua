@@ -948,13 +948,13 @@ function Framebuffer:_fill(x0, y0, x1, y1, fg, bg, alpha, char)
     end
 
     local block = blockY * blocksW + blockX + 1
-
     local blockDirtiness = dirty[block] or 0
 
     for x = x0, x1, 1 do
       if x ~= x0 and (x - 1) % blockSize == 0 then
         dirty[block] = blockDirtiness
         block = block + 1
+        blockDirtiness = dirty[block] or 0
       end
 
       local im, jm = indexMain(storage, x, y)
@@ -1167,11 +1167,11 @@ function Framebuffer:flush(sx, sy, gpu)
     local blockW, blockH = self.blockSize, self.blockSize
 
     if blockX == lastBlockX then
-      blockW = self.w % self.blockSize
+      blockW = (self.w - 1) % self.blockSize + 1
     end
 
     if blockY == lastBlockY then
-      blockH = self.h % self.blockSize
+      blockH = (self.h - 1) % self.blockSize + 1
     end
 
     local dirtiness = self.dirty[blockI]

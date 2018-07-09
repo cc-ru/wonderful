@@ -131,15 +131,12 @@ root:addListener {
   end,
 }
 
-local exitedWithError = false
+local intThread = thread.create(function()
+  repeat until event.pull("interrupted")
 
-thread.waitForAll({
-  wmain:runThreaded(),
-  thread.create(function()
-    repeat until event.pull("interrupted")
+  wmain:stop()
+end)
 
-    wmain:stop()
-  end)
-})
+wmain:run()
 
 os.exit()
