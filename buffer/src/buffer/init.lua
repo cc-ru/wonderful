@@ -206,8 +206,17 @@ function Buffer:_set(x, y, fg, bg, alpha, char)
     end
   end
 
-  fg = fg and self.palette:deflate(fg) or oldFgIdx
-  bg = bg and self.palette:deflate(bg) or oldBgIdx
+  if not fg or fg == oldFg then
+    fg = oldFgIdx
+  else
+    fg = self.palette:deflate(fg)
+  end
+
+  if not bg or bg == oldBg then
+    bg = oldBgIdx
+  else
+    bg = self.palette:deflate(bg)
+  end
 
   local new = fg * 0x100 + bg
 
@@ -408,8 +417,17 @@ function Buffer:_fill(x0, y0, x1, y1, fg, bg, alpha, char)
         end
       end
 
-      cfg = cfg and palette:deflate(cfg) or oldFgIdx
-      cbg = cbg and palette:deflate(cbg) or oldBgIdx
+      if not cfg or cfg == oldFg then
+        cfg = oldFgIdx
+      else
+        cfg = palette:deflate(cfg)
+      end
+
+      if not cbg or cbg == oldBg then
+        cbg = oldBgIdx
+      else
+        cbg = palette:deflate(cbg)
+      end
 
       local new = cfg * 0x100 + cbg
 
@@ -714,7 +732,7 @@ function Framebuffer:__new__(args)
 
   self.dirty = {}
 
-  self.blockSize = 12
+  self.blockSize = 16
   self.blocksW = math.ceil(self.w / self.blockSize)
   self.blocksH = math.ceil(self.h / self.blockSize)
 
@@ -791,8 +809,17 @@ function Framebuffer:_set(x, y, fg, bg, alpha, char)
       end
     end
 
-    fg = fg and self.palette:deflate(fg) or oldFgIdx
-    bg = bg and self.palette:deflate(bg) or oldBgIdx
+    if not fg or fg == oldFg then
+      fg = oldFgIdx
+    else
+      fg = self.palette:deflate(fg)
+    end
+
+    if not bg or bg == oldBg then
+      bg = oldBgIdx
+    else
+      bg = self.palette:deflate(bg)
+    end
 
     local new = fg * 0x100 + bg
 
@@ -922,7 +949,7 @@ function Framebuffer:_fill(x0, y0, x1, y1, fg, bg, alpha, char)
 
     local block = blockY * blocksW + blockX + 1
 
-    local blockDirtiness = 0
+    local blockDirtiness = dirty[block] or 0
 
     for x = x0, x1, 1 do
       if x ~= x0 and (x - 1) % blockSize == 0 then
@@ -969,8 +996,17 @@ function Framebuffer:_fill(x0, y0, x1, y1, fg, bg, alpha, char)
         end
       end
 
-      cfg = cfg and palette:deflate(cfg) or oldFgIdx
-      cbg = cbg and palette:deflate(cbg) or oldBgIdx
+      if not cfg or cfg == oldFg then
+        cfg = oldFgIdx
+      else
+        cfg = palette:deflate(cfg)
+      end
+
+      if not cbg or cbg == oldBg then
+        cbg = oldBgIdx
+      else
+        cbg = palette:deflate(cbg)
+      end
 
       local new = cfg * 0x100 + cbg
 
@@ -989,16 +1025,16 @@ function Framebuffer:_fill(x0, y0, x1, y1, fg, bg, alpha, char)
 
       local diff
 
-      if (diffChar or diffColor) and not (new or char) then
+      if (diffChar or diffColor) and not (new or cchar) then
         -- Dirty block is made clean
         diff = -1
-      elseif (diffChar or diffColor) and (new or char) then
+      elseif (diffChar or diffColor) and (new or cchar) then
         -- Dirty block is made dirty
         diff = 0
-      elseif not (diffChar or diffColor) and not (new or char) then
+      elseif not (diffChar or diffColor) and not (new or cchar) then
         -- Clean block is made clean
         diff = 0
-      elseif not (diffChar or diffColor) and (new or char) then
+      elseif not (diffChar or diffColor) and (new or cchar) then
         -- Clean block is made dirty
         diff = 1
       end

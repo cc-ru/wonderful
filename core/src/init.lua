@@ -204,7 +204,7 @@ function Wonderful:addSignal(name, cls)
 end
 
 --- Run the event loop.
-function Wonderful:run()
+function Wonderful:run(inThread)
   local success, traceback = xpcall(function()
     self.running = true
 
@@ -252,7 +252,7 @@ function Wonderful:run()
     local message = ("Wonderful event loop crashed while running. Error:\n" ..
                      traceback)
 
-    if thread.current() then
+    if inThread then
       -- threads don't print errors to screen
       io.stderr:write(message .. "\n")
     end
@@ -269,7 +269,7 @@ end
 function Wonderful:runThreaded()
   local thread = require("thread")
 
-  return thread.create(self.run, self)
+  return thread.create(self.run, self, true)
 end
 
 --- Stop the event loop.
