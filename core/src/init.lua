@@ -138,7 +138,7 @@ function Wonderful:addDocument(args)
 end
 
 --- Render the documents.
-function Wonderful:render()
+function Wonderful:render(noFlush)
   for _, document in ipairs(self.documents) do
     local buf = document.display.fb
 
@@ -161,8 +161,10 @@ function Wonderful:render()
     end)
   end
 
-  for _, display in ipairs(self.displayManager.displays) do
-    display:flush()
+  if not noFlush then
+    for _, display in ipairs(self.displayManager.displays) do
+      display:flush()
+    end
   end
 end
 

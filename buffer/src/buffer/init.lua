@@ -96,8 +96,7 @@ function Buffer:__new__(args)
 
   self.storage:optimize()
 
-  self.defaultColor = self.palette:deflate(0xffffff) * 0x100 +
-                      self.palette:deflate(0x000000)
+  self.defaultColor = 0xffffff000000
 end
 
 --- Check if a cell belongs to the buffer.
@@ -179,13 +178,13 @@ function Buffer:_set(x, y, fg, bg, alpha, char)
 
   local old = diffColor or mainColor or self.defaultColor
 
-  local oldBgIdx = old % 0x100
-  local oldFgIdx = (old - oldBgIdx) / 0x100
+  -- we don't care about the 49th bit here
+  old = old % 0x1000000000000
 
-  local oldBg = self.palette[oldBgIdx + 1]
-  local oldFg = self.palette[oldFgIdx + 1]
+  local oldBg = old % 0x1000000
+  local oldFg = (old - oldBg) / 0x1000000
 
-  if not fg and oldBgIdx ~= oldFgIdx then
+  if not fg and oldBg ~= oldFg then
     fg = oldFg
   end
 
@@ -206,25 +205,19 @@ function Buffer:_set(x, y, fg, bg, alpha, char)
     end
   end
 
-  if not fg or fg == oldFg then
-    fg = oldFgIdx
-  else
-    fg = self.palette:deflate(fg)
-  end
+  fg = fg or oldFg
+  bg = bg or oldBg
 
-  if not bg or bg == oldBg then
-    bg = oldBgIdx
-  else
-    bg = self.palette:deflate(bg)
-  end
-
-  local new = fg * 0x100 + bg
+  -- set: bytes 4-6 = fg
+  --      bytes 1-3 = bg
+  local new = fg * 0x1000000 + bg
 
   if new == mainColor or not mainColor and new == self.defaultColor then
     new = nil
   end
 
-  storage.data[id][jd + 1] = new
+  -- set bit 49 (not reduced to palette)
+  storage.data[id][jd + 1] = new and (new + 0x1000000000000)
 
   if char then
     if char == mainChar or not mainChar and char == " " then
@@ -281,7 +274,7 @@ end
 --
 -- This is an internal method that **does not** perform sanity checks.
 -- Futhermore, unlike @{wonderful.buffer.Buffer:get}, this method returns
--- a packed and deflated color instead of foreground and background.
+-- a packed color instead of foreground and background.
 --
 -- @tparam int x a column number
 -- @tparam int y a row number
@@ -290,7 +283,24 @@ end
 -- @see wonderful.buffer.Buffer:get
 function Buffer:_get(x, y)
   local mainChar, mainColor = self.storage:getMain(x, y)
-  local diffChar, diffColor = self.storage:getDiff(x, y)
+  local id, jd = self.storage:indexDiff(x, y)
+  local diffChar = self.storage.data[id][jd]
+  local diffColor = self.storage.data[id][jd + 1]
+
+  -- reduce the color if the 49th bit is set
+  if diffColor and diffColor >= 0x1000000000000 then
+    diffColor = diffColor % 0x1000000000000
+    local bg = diffColor % 0x1000000
+    local fg = (diffColor - bg) / 0x1000000
+    diffColor = (self.palette[self.palette:deflate(fg) + 1] * 0x1000000 +
+                 self.palette[self.palette:deflate(bg) + 1])
+
+    if diffColor == (mainColor or self.defaultColor) then
+      diffColor = nil
+    end
+
+    self.storage.data[id][jd + 1] = diffColor
+  end
 
   return diffChar or mainChar or " ",
          diffColor or mainColor or self.defaultColor
@@ -314,10 +324,10 @@ function Buffer:get(x, y)
   end
 
   local char, color = self:_get(x, y)
+  local bg = color % 0x1000000
+  local fg = (color - bg) / 0x1000000
 
-  return char,
-         self.palette:inflate((color - color % 0x100) / 0x100),
-         self.palette:inflate(color % 0x100)
+  return char, fg, bg
 end
 
 --- Get an intersection of the buffer and a given sub-box.
@@ -375,7 +385,6 @@ function Buffer:_fill(x0, y0, x1, y1, fg, bg, alpha, char)
   local indexDiff = storage.indexDiff
   local storageData = storage.data
   local defaultColor = self.defaultColor
-  local palette = self.palette
 
   for x = x0, x1, 1 do
     for y = y0, y1, 1 do
@@ -388,15 +397,15 @@ function Buffer:_fill(x0, y0, x1, y1, fg, bg, alpha, char)
 
       local old = diffColor or mainColor or defaultColor
 
-      local oldBgIdx = old % 0x100
-      local oldFgIdx = (old - oldBgIdx) / 0x100
+      -- we don't care about the 49th bit here
+      old = old % 0x1000000000000
 
-      local oldBg = palette[oldBgIdx + 1]
-      local oldFg = palette[oldFgIdx + 1]
+      local oldBg = old % 0x1000000
+      local oldFg = (old - oldBg) / 0x1000000
 
       local cfg, cbg = fg, bg
 
-      if not fg and oldBgIdx ~= oldFgIdx then
+      if not fg and oldBg ~= oldFg then
         cfg = oldFg
       end
 
@@ -417,25 +426,19 @@ function Buffer:_fill(x0, y0, x1, y1, fg, bg, alpha, char)
         end
       end
 
-      if not cfg or cfg == oldFg then
-        cfg = oldFgIdx
-      else
-        cfg = palette:deflate(cfg)
-      end
+      cfg = cfg or oldFg
+      cbg = cbg or oldBg
 
-      if not cbg or cbg == oldBg then
-        cbg = oldBgIdx
-      else
-        cbg = palette:deflate(cbg)
-      end
-
-      local new = cfg * 0x100 + cbg
+      -- set: bytes 4-6 = fg
+      --      bytes 1-3 = bg
+      local new = cfg * 0x1000000 + cbg
 
       if new == mainColor or not mainColor and new == defaultColor then
         new = nil
       end
 
-      storageData[id][jd + 1] = new
+      -- set bit 49 (not reduced to palette)
+      storageData[id][jd + 1] = new and (new + 0x1000000000000)
 
       if char then
         local cchar = char
@@ -689,6 +692,14 @@ function Buffer:mergeDiff(x, y)
   end
 
   if color then
+    if color >= 0x1000000000000 then
+      color = color % 0x1000000000000
+      local bg = color % 0x1000000
+      local fg = (color - bg) / 0x1000000
+      color = (self.palette[self.palette:deflate(fg) + 1] * 0x1000000 +
+               self.palette[self.palette:deflate(bg) + 1])
+    end
+
     if color == self.defaultColor then
       color = nil
     end
@@ -782,13 +793,13 @@ function Framebuffer:_set(x, y, fg, bg, alpha, char)
 
     local old = diffColor or mainColor or self.defaultColor
 
-    local oldBgIdx = old % 0x100
-    local oldFgIdx = (old - oldBgIdx) / 0x100
+    -- we don't care about the 49th bit here
+    old = old % 0x1000000000000
 
-    local oldBg = self.palette[oldBgIdx + 1]
-    local oldFg = self.palette[oldFgIdx + 1]
+    local oldBg = old % 0x1000000
+    local oldFg = (old - oldBg) / 0x1000000
 
-    if not fg and oldBgIdx ~= oldFgIdx then
+    if not fg and oldBg ~= oldFg then
       fg = oldFg
     end
 
@@ -809,25 +820,19 @@ function Framebuffer:_set(x, y, fg, bg, alpha, char)
       end
     end
 
-    if not fg or fg == oldFg then
-      fg = oldFgIdx
-    else
-      fg = self.palette:deflate(fg)
-    end
+    fg = fg or oldFg
+    bg = bg or oldBg
 
-    if not bg or bg == oldBg then
-      bg = oldBgIdx
-    else
-      bg = self.palette:deflate(bg)
-    end
-
-    local new = fg * 0x100 + bg
+    -- set: bytes 4-6 = fg
+    --      bytes 1-3 = bg
+    local new = fg * 0x1000000 + bg
 
     if new == mainColor or not mainColor and new == self.defaultColor then
       new = nil
     end
 
-    self.storage.data[id][jd + 1] = new
+    -- set bit 49 (not reduced to palette)
+    self.storage.data[id][jd + 1] = new and (new + 0x1000000000000)
 
     char = char or diffChar or mainChar or " "
 
@@ -887,7 +892,46 @@ end
 -- @treturn int a cell's packed and deflated color
 -- @see wonderful.buffer.Framebuffer:get
 -- @see wonderful.buffer.Buffer:_get
--- @function Framebuffer:_get
+function Framebuffer:_get(x, y)
+  local mainChar, mainColor = self.storage:getMain(x, y)
+  local id, jd = self.storage:indexDiff(x, y)
+  local diffChar = self.storage.data[id][jd]
+  local diffColor = self.storage.data[id][jd + 1]
+
+  -- reduce the color if the 49th bit is set
+  if diffColor and diffColor >= 0x1000000000000 then
+    diffColor = diffColor % 0x1000000000000
+    local bg = diffColor % 0x1000000
+    local fg = (diffColor - bg) / 0x1000000
+    diffColor = (self.palette[self.palette:deflate(fg) + 1] * 0x1000000 +
+                 self.palette[self.palette:deflate(bg) + 1])
+
+    if diffColor == (mainColor or self.defaultColor) then
+      diffColor = nil
+
+      if not diffChar then
+        -- the cell is clean now, decrement dirtiness
+
+        local blockX = (x - 1) / self.blockSize
+        blockX = blockX - blockX % 1
+
+        local blockY = (y - 1) / self.blockSize
+        blockY = blockY - blockY % 1
+
+        local block = blockY * self.blocksW + blockX + 1
+
+        -- this cannot be `nil`
+        --                 \_________________
+        self.dirty[block] = self.dirty[block] - 1
+      end
+    end
+
+    self.storage.data[id][jd + 1] = diffColor
+  end
+
+  return diffChar or mainChar or " ",
+         diffColor or mainColor or self.defaultColor
+end
 
 --- Retrieve a cell from the storage.
 -- @tparam int x a column number
@@ -932,7 +976,6 @@ function Framebuffer:_fill(x0, y0, x1, y1, fg, bg, alpha, char)
   local indexDiff = storage.indexDiff
   local storageData = storage.data
   local defaultColor = self.defaultColor
-  local palette = self.palette
   local blocksW = self.blocksW
   local dirty = self.dirty
 
@@ -967,15 +1010,15 @@ function Framebuffer:_fill(x0, y0, x1, y1, fg, bg, alpha, char)
 
       local old = diffColor or mainColor or defaultColor
 
-      local oldBgIdx = old % 0x100
-      local oldFgIdx = (old - oldBgIdx) * 0x100p-16
+      -- we don't care about the 49th bit here
+      old = old % 0x1000000000000
 
-      local oldBg = palette[oldBgIdx + 1]
-      local oldFg = palette[oldFgIdx + 1]
+      local oldBg = old % 0x1000000
+      local oldFg = (old - oldBg) / 0x1000000
 
       local cfg, cbg = fg, bg
 
-      if not fg and oldBgIdx ~= oldFgIdx then
+      if not fg and oldBg ~= oldFg then
         cfg = oldFg
       end
 
@@ -996,23 +1039,19 @@ function Framebuffer:_fill(x0, y0, x1, y1, fg, bg, alpha, char)
         end
       end
 
-      if not cfg or cfg == oldFg then
-        cfg = oldFgIdx
-      else
-        cfg = palette:deflate(cfg)
-      end
+      cfg = cfg or oldFg
+      cbg = cbg or oldBg
 
-      if not cbg or cbg == oldBg then
-        cbg = oldBgIdx
-      else
-        cbg = palette:deflate(cbg)
-      end
-
-      local new = cfg * 0x100 + cbg
+      -- set: bytes 4-6 = fg
+      --      bytes 1-3 = bg
+      local new = cfg * 0x1000000 + cbg
 
       if new == mainColor or not mainColor and new == defaultColor then
         new = nil
       end
+
+      -- set bit 49 (not reduced to palette)
+      storageData[id][jd + 1] = new and (new + 0x1000000000000)
 
       local cchar = char or diffChar or mainChar or " "
 
@@ -1021,7 +1060,6 @@ function Framebuffer:_fill(x0, y0, x1, y1, fg, bg, alpha, char)
       end
 
       storageData[id][jd] = cchar
-      storageData[id][jd + 1] = new
 
       local diff
 
@@ -1075,7 +1113,8 @@ end
 
 local function writeFillInstruction(instructions, textData, fills, x, y,
                                     char, color)
-  local fg, bg = (color - color % 0x100) / 0x100, color % 0x100
+  local bg = color % 0x1000000
+  local fg = (color - bg) / 0x1000000
 
   if not instructions[bg] then
     instructions[bg] = {}
@@ -1103,7 +1142,8 @@ end
 
 local function writeLineInstruction(instructions, textData, lines,
                                     x, y, line, color)
-  local fg, bg = (color - color % 0x100) / 0x100, color % 0x100
+  local bg = color % 0x1000000
+  local fg = (color - bg) / 0x1000000
 
   if not instructions[bg] then
     instructions[bg] = {}
@@ -1116,7 +1156,7 @@ local function writeLineInstruction(instructions, textData, lines,
   end
 
   local yx = y * 0x100 + x
-  local bgfg = bg * 0x100 + fg
+  local bgfg = bg * 0x1000000 + fg
   local len = unicode.wlen(line)
 
   if lines[yx] and lines[yx][1] == bgfg then
@@ -1181,7 +1221,19 @@ function Framebuffer:flush(sx, sy, gpu)
     end
 
     do
-      local rectChar, rectColor = storage:getDiff(blockX + 1, blockY + 1)
+      local id, jd = storage:indexDiff(blockX + 1, blockY + 1)
+      local rectChar = storage.data[id][jd]
+      local rectColor = storage.data[id][jd + 1]
+
+      -- reduce the color if the 49th bit is set
+      if rectColor and rectColor >= 0x1000000000000 then
+        rectColor = rectColor % 0x1000000000000
+        local bg = rectColor % 0x1000000
+        local fg = (rectColor - bg) / 0x1000000
+        rectColor = (self.palette[self.palette:deflate(fg) + 1] * 0x1000000 +
+                     self.palette[self.palette:deflate(bg) + 1])
+        storage.data[id][jd + 1] = rectColor
+      end
 
       if not rectChar and not rectColor then
         goto notrect
@@ -1190,22 +1242,37 @@ function Framebuffer:flush(sx, sy, gpu)
       if not rectChar or not rectColor then
         local i, j = storage:indexMain(blockX + 1, blockY + 1)
         rectChar = rectChar or data[i][j] or " "
-        rectColor = rectColor or data[i][j + 1] or
-                    self.defaultColor
+        rectColor = rectColor or data[i][j + 1] or self.defaultColor
       end
 
       for x = blockX + 1, blockX + blockW do
         for y = blockY + 1, blockY + blockH do
-          local char, color = storage:getDiff(x, y)
+          local id, jd = storage:indexDiff(x, y)
+          local im, jm = storage:indexMain(x, y)
+          local char = storage.data[id][jd]
+          local color = storage.data[id][jd + 1]
+
+          if color and color >= 0x1000000000000 then
+            color = color % 0x1000000000000
+            local bg = color % 0x1000000
+            local fg = (color - bg) / 0x1000000
+            color = (self.palette[self.palette:deflate(fg) + 1] * 0x1000000 +
+                     self.palette[self.palette:deflate(bg) + 1])
+
+            if color == (storage.data[im][jd + 1] or self.defaultColor) then
+              color = nil
+            end
+
+            storage.data[id][jd + 1] = color
+          end
 
           if not char and not color and dirtiness ~= math.huge then
             goto notrect
           end
 
           if not char or not color then
-            local i, j = storage:indexMain(blockX + 1, blockY + 1)
-            char = char or data[i][j] or " "
-            color = color or data[i][j + 1] or self.defaultColor
+            char = char or data[im][jm] or " "
+            color = color or data[im][jm + 1] or self.defaultColor
           end
 
           if char ~= rectChar or color ~= rectColor then
@@ -1235,7 +1302,25 @@ function Framebuffer:flush(sx, sy, gpu)
         local lineColor, lineBg
 
         for x = blockX + 1, blockX + blockW do
-          local char, color = storage:getDiff(x, y)
+          local id, jd = storage:indexDiff(x, y)
+          local im, jm = storage:indexMain(x, y)
+
+          local char = storage.data[id][jd]
+          local color = storage.data[id][jd + 1]
+
+          if color and color >= 0x1000000000000 then
+            color = color % 0x1000000000000
+            local bg = color % 0x1000000
+            local fg = (color - bg) / 0x1000000
+            color = (self.palette[self.palette:deflate(fg) + 1] * 0x1000000 +
+                     self.palette[self.palette:deflate(bg) + 1])
+
+            if color == (storage.data[im][jm + 1] or self.defaultColor) then
+              color = nil
+            end
+
+            storage.data[id][jd + 1] = color
+          end
 
           if not char and not color and dirtiness ~= math.huge then
             if #line > 0 then
@@ -1245,19 +1330,17 @@ function Framebuffer:flush(sx, sy, gpu)
             end
           else
             if not char or not color then
-              local i, j = storage:indexMain(x, y)
-              char = char or data[i][j] or " "
-              color = color or data[i][j + 1] or
-                      self.defaultColor
+              char = char or data[im][jm] or " "
+              color = color or data[im][jm + 1] or self.defaultColor
             end
 
             if #line == 0 then
               lineColor = color
-              lineBg = lineColor % 0x100
+              lineBg = lineColor % 0x1000000
               lineX = x
             end
 
-            local bg = color % 0x100
+            local bg = color % 0x1000000
 
             if color == lineColor or (char == " " and bg == lineBg) then
               table.insert(line, char)
