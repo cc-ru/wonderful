@@ -16,6 +16,39 @@
 -- @see 205-Buffer.md
 -- @module wonderful.buffer
 
+-- The code isn't quite readable here. Well, once upon the time it was, only to
+-- have disappointing perfomance. You can observe the same thing in
+-- `wonderful.buffer.storage5x` modules as well as in `wonderful.util.palette`.
+--
+-- Remember, we're trying to build a **fast** library to replace direct GPU
+-- calls. What's out goal? A fill on a T3 setup, which has the call budget of
+-- 1.5, takes 1/128 of the budget. If my math is correct, this means we can
+-- issue up to 192 fiils a tick. So the fill methods should take up to
+-- 260.4166667 microseconds (a millionth of a second) to run.
+--
+-- Similarly, a set call should run in 130.2083333 µs or less — twice as fast.
+--
+-- Is that possible? Am I serious? The answer is "not really" — to the both
+-- questions. But we can try.
+--
+-- What should we look at when we're trying to optimize the code running in OC?
+-- There's common sense that tells us not to do anything stupid. But it's
+-- not enough. We need to optimize it even further.
+--
+-- Calls are expensive. Usually they aren't unless you make a few thousand
+-- calls. But a whole-screen fill should run some code for 160 × 50 = 8000
+-- cells, so we should avoid redundant calls there. We can *inline* functions:
+-- bascially, copy-paste and fix variable names. A caveat is that maintaining
+-- such code is very hard: if we fix a bug in a function, we also have to fix
+-- it wherever it's inlined.
+--
+-- It's also important to note that in OC before 1.7.3, the checkDeadline hook
+-- is run every 100 Lua VM instructions. Hooks are highly expensive. We don't
+-- want them to be run.
+--
+-- And there are other expensive things we try to avoid. The resulting code is
+-- messy, unreadable, hardly maintainable. We know that. And we're sorry.
+
 local unicode = require("unicode")
 
 local class = require("lua-objects")
@@ -979,6 +1012,9 @@ function Framebuffer:_fill(x0, y0, x1, y1, fg, bg, alpha, char)
   local blocksW = self.blocksW
   local dirty = self.dirty
 
+  local sdMain, sdDiff
+  local oim, oid
+
   local blockX = (x0 - 1) / blockSize
   blockX = blockX - blockX % 1
 
@@ -986,7 +1022,8 @@ function Framebuffer:_fill(x0, y0, x1, y1, fg, bg, alpha, char)
   blockY = blockY - blockY % 1
 
   for y = y0, y1, 1 do
-    if y ~= y0 and y % blockSize == 0 then
+    if y ~= y0 and y % blockSize == 1 then
+      -- crossed the chunk border
       blockY = blockY + 1
     end
 
@@ -994,7 +1031,8 @@ function Framebuffer:_fill(x0, y0, x1, y1, fg, bg, alpha, char)
     local blockDirtiness = dirty[block] or 0
 
     for x = x0, x1, 1 do
-      if x ~= x0 and (x - 1) % blockSize == 0 then
+      if x ~= x0 and x % blockSize == 1 then
+        -- crossed the chunk border
         dirty[block] = blockDirtiness
         block = block + 1
         blockDirtiness = dirty[block] or 0
@@ -1003,10 +1041,20 @@ function Framebuffer:_fill(x0, y0, x1, y1, fg, bg, alpha, char)
       local im, jm = indexMain(storage, x, y)
       local id, jd = indexDiff(storage, x, y)
 
-      local mainChar = storageData[im][jm]
-      local mainColor = storageData[im][jm + 1]
-      local diffChar = storageData[id][jd]
-      local diffColor = storageData[id][jd + 1]
+      if oim ~= im then
+        sdMain = storageData[im]
+        oim = im
+      end
+
+      if oid ~= id then
+        sdDiff = storageData[id]
+        oid = id
+      end
+
+      local mainChar = sdMain[jm]
+      local mainColor = sdMain[jm + 1]
+      local diffChar = sdDiff[jd]
+      local diffColor = sdDiff[jd + 1]
 
       local old = diffColor or mainColor or defaultColor
 
@@ -1025,9 +1073,8 @@ function Framebuffer:_fill(x0, y0, x1, y1, fg, bg, alpha, char)
       if alpha == 0 then
         cfg = oldBg
         cbg = oldBg
-      elseif alpha == 1 then
-        -- Don't change colors.
-      else
+      elseif alpha < 1 then
+        -- Don't change colors if alpha == 1
         if char and oldBg ~= cfg and cfg then
           cfg = self:alphaBlend(oldBg, cfg, alpha)
         elseif not char and oldFg ~= cfg and cfg then
@@ -1046,38 +1093,32 @@ function Framebuffer:_fill(x0, y0, x1, y1, fg, bg, alpha, char)
       --      bytes 1-3 = bg
       local new = cfg * 0x1000000 + cbg
 
-      if new == mainColor or not mainColor and new == defaultColor then
+      if new == (mainColor or defaultColor) then
         new = nil
       end
 
       -- set bit 49 (not reduced to palette)
-      storageData[id][jd + 1] = new and (new + 0x1000000000000)
+      sdDiff[jd + 1] = new and (new + 0x1000000000000)
 
       local cchar = char or diffChar or mainChar or " "
 
-      if cchar == mainChar or not mainChar and cchar == " " then
+      if cchar == (mainChar or " ") then
         cchar = nil
       end
 
-      storageData[id][jd] = cchar
+      sdDiff[jd] = cchar
 
-      local diff
-
-      if (diffChar or diffColor) and not (new or cchar) then
-        -- Dirty block is made clean
-        diff = -1
-      elseif (diffChar or diffColor) and (new or cchar) then
-        -- Dirty block is made dirty
-        diff = 0
-      elseif not (diffChar or diffColor) and not (new or cchar) then
-        -- Clean block is made clean
-        diff = 0
-      elseif not (diffChar or diffColor) and (new or cchar) then
-        -- Clean block is made dirty
-        diff = 1
+      if diffChar or diffColor then
+        if not (new or cchar) then
+          -- Dirty block is made clean
+          blockDirtiness = blockDirtiness - 1
+        end
+      else
+        if new or cchar then
+          -- Clean block is made dirty
+          blockDirtiness = blockDirtiness + 1
+        end
       end
-
-      blockDirtiness = blockDirtiness + diff
     end
 
     dirty[block] = blockDirtiness
