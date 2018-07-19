@@ -245,7 +245,7 @@ function Buffer:_set(x, y, fg, bg, alpha, char)
   --      bytes 1-3 = bg
   local new = fg * 0x1000000 + bg
 
-  if new == mainColor or not mainColor and new == self.defaultColor then
+  if new == (mainColor or self.defaultColor) then
     new = nil
   end
 
@@ -253,7 +253,7 @@ function Buffer:_set(x, y, fg, bg, alpha, char)
   storage.data[id][jd + 1] = new and (new + 0x1000000000000)
 
   if char then
-    if char == mainChar or not mainChar and char == " " then
+    if char == (mainChar or " ") then
       char = nil
     end
 
@@ -419,14 +419,27 @@ function Buffer:_fill(x0, y0, x1, y1, fg, bg, alpha, char)
   local storageData = storage.data
   local defaultColor = self.defaultColor
 
+  local sdMain, sdDiff
+  local oim, oid
+
   for x = x0, x1, 1 do
     for y = y0, y1, 1 do
       local im, jm = indexMain(storage, x, y)
       local id, jd = indexDiff(storage, x, y)
 
-      local mainChar = storageData[im][jm]
-      local mainColor = storageData[im][jm + 1]
-      local diffColor = storageData[id][jd + 1]
+      if oim ~= im then
+        sdMain = storageData[im]
+        oim = im
+      end
+
+      if oid ~= id then
+        sdDiff = storageData[id]
+        oid = id
+      end
+
+      local mainChar = sdMain[jm]
+      local mainColor = sdMain[jm + 1]
+      local diffColor = sdDiff[jd + 1]
 
       local old = diffColor or mainColor or defaultColor
 
@@ -445,9 +458,8 @@ function Buffer:_fill(x0, y0, x1, y1, fg, bg, alpha, char)
       if alpha == 0 then
         cfg = oldBg
         cbg = oldBg
-      elseif alpha == 1 then
-        -- Don't change colors.
-      else
+      elseif alpha < 1 then
+        -- Don't change colors if alpha == 1
         if char and oldBg ~= cfg and cfg then
           cfg = self:alphaBlend(oldBg, cfg, alpha)
         elseif not char and oldFg ~= cfg and cfg then
@@ -466,21 +478,21 @@ function Buffer:_fill(x0, y0, x1, y1, fg, bg, alpha, char)
       --      bytes 1-3 = bg
       local new = cfg * 0x1000000 + cbg
 
-      if new == mainColor or not mainColor and new == defaultColor then
+      if new == (mainColor or defaultColor) then
         new = nil
       end
 
       -- set bit 49 (not reduced to palette)
-      storageData[id][jd + 1] = new and (new + 0x1000000000000)
+      sdDiff[jd + 1] = new and (new + 0x1000000000000)
 
       if char then
         local cchar = char
 
-        if cchar == mainChar or not mainChar and cchar == " " then
+        if cchar == (mainChar or " ") then
           cchar = nil
         end
 
-        storageData[id][jd] = cchar
+        sdDiff[jd] = cchar
       end
     end
   end
@@ -812,7 +824,7 @@ end
 -- @tparam ?string char a character
 -- @see wonderful.buffer.Framebuffer:set
 function Framebuffer:_set(x, y, fg, bg, alpha, char)
-  local diff
+  local diff = 0
 
   do
     -- Copypasted from parent to avoid search costs
@@ -860,7 +872,7 @@ function Framebuffer:_set(x, y, fg, bg, alpha, char)
     --      bytes 1-3 = bg
     local new = fg * 0x1000000 + bg
 
-    if new == mainColor or not mainColor and new == self.defaultColor then
+    if new == (mainColor or self.defaultColor) then
       new = nil
     end
 
@@ -869,24 +881,22 @@ function Framebuffer:_set(x, y, fg, bg, alpha, char)
 
     char = char or diffChar or mainChar or " "
 
-    if char == mainChar or not mainChar and char == " " then
+    if char == (mainChar or " ") then
       char = nil
     end
 
     self.storage.data[id][jd] = char
 
-    if (diffChar or diffColor) and not (new or char) then
-      -- Dirty block is made clean
-      diff = -1
-    elseif (diffChar or diffColor) and (new or char) then
-      -- Dirty block is made dirty
-      diff = 0
-    elseif not (diffChar or diffColor) and not (new or char) then
-      -- Clean block is made clean
-      diff = 0
-    elseif not (diffChar or diffColor) and (new or char) then
-      -- Clean block is made dirty
-      diff = 1
+    if diffChar or diffColor then
+      if not (new or cchar) then
+        -- Dirty block is made clean
+        diff = -1
+      end
+    else
+      if new or cchar then
+        -- Clean block is made dirty
+        diff = 1
+      end
     end
   end
 
@@ -1420,10 +1430,10 @@ function Framebuffer:flush(sx, sy, gpu)
   end
 
   for background, foregrounds in pairs(instructions) do
-    gpu.setBackground(self.palette:inflate(background))
+    gpu.setBackground(background)
 
     for foreground, chain in pairs(foregrounds) do
-      gpu.setForeground(self.palette:inflate(foreground))
+      gpu.setForeground(foreground)
 
       for i, pos in ipairs(chain) do
         local text = textData[background][foreground][i]
