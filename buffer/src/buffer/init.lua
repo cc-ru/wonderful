@@ -56,12 +56,12 @@ local class = require("lua-objects")
 local geometry = require("wonderful.geometry")
 local palette = require("wonderful.util.palette")
 
-local storage
+local storageMod
 
 if _VERSION == "Lua 5.3" then
-  storage = require("wonderful.buffer.storage53")
+  storageMod = require("wonderful.buffer.storage53")
 else
-  storage = require("wonderful.buffer.storage52")
+  storageMod = require("wonderful.buffer.storage52")
 end
 
 --- A non-renderable buffer.
@@ -118,11 +118,11 @@ function Buffer:__new__(args)
   local cells = self.w * self.h
 
   if cells <= 25 * 16 then
-    self.storage = storage.BufferStorageT1(self.w, self.h)
+    self.storage = storageMod.BufferStorageT1(self.w, self.h)
   elseif cells <= 50 * 25 then
-    self.storage = storage.BufferStorageT2(self.w, self.h)
+    self.storage = storageMod.BufferStorageT2(self.w, self.h)
   elseif cells <= 160 * 50 then
-    self.storage = storage.BufferStorageT3(self.w, self.h)
+    self.storage = storageMod.BufferStorageT3(self.w, self.h)
   else
     error(("Unsupported resolution: %d×%d"):format(self.w, self.h))
   end
@@ -1248,21 +1248,29 @@ function Framebuffer:flush(sx, sy, gpu)
   local blockX, blockY = 0, 0
   local blockI = 1
 
-  local lastBlockX = (self.blocksW - 1) * self.blockSize
-  local lastBlockY = (self.blocksH - 1) * self.blockSize
+  local blockSize = self.blockSize
+
+  local lastBlockX = (self.blocksW - 1) * blockSize
+  local lastBlockY = (self.blocksH - 1) * blockSize
 
   local storage = self.storage
-  local data = self.storage.data
+  local data = storage.data
+  local indexMain = storage.indexMain
+  local indexDiff = storage.indexDiff
+
+  local palette = self.palette
+  local mergeDiff = self.mergeDiff
 
   while true do
-    local blockW, blockH = self.blockSize, self.blockSize
+    local blockW = blockSize
+    local blockH = blockW  -- blocks are square
 
     if blockX == lastBlockX then
-      blockW = (self.w - 1) % self.blockSize + 1
+      blockW = (self.w - 1) % blockSize + 1
     end
 
     if blockY == lastBlockY then
-      blockH = (self.h - 1) % self.blockSize + 1
+      blockH = (self.h - 1) % blockSize + 1
     end
 
     local dirtiness = self.dirty[blockI]
@@ -1271,19 +1279,21 @@ function Framebuffer:flush(sx, sy, gpu)
       goto continue
     end
 
+    local noForceProceed = dirtiness ~= math.huge
+
     do
-      local id, jd = storage:indexDiff(blockX + 1, blockY + 1)
-      local rectChar = storage.data[id][jd]
-      local rectColor = storage.data[id][jd + 1]
+      local id, jd = indexDiff(storage, blockX + 1, blockY + 1)
+      local rectChar = data[id][jd]
+      local rectColor = data[id][jd + 1]
 
       -- reduce the color if the 49th bit is set
       if rectColor and rectColor >= 0x1000000000000 then
         rectColor = rectColor % 0x1000000000000
         local bg = rectColor % 0x1000000
         local fg = (rectColor - bg) / 0x1000000
-        rectColor = (self.palette[self.palette:deflate(fg) + 1] * 0x1000000 +
-                     self.palette[self.palette:deflate(bg) + 1])
-        storage.data[id][jd + 1] = rectColor
+        rectColor = (palette[palette:deflate(fg) + 1] * 0x1000000 +
+                     palette[palette:deflate(bg) + 1])
+        data[id][jd + 1] = rectColor
       end
 
       if not rectChar and not rectColor then
@@ -1291,33 +1301,33 @@ function Framebuffer:flush(sx, sy, gpu)
       end
 
       if not rectChar or not rectColor then
-        local i, j = storage:indexMain(blockX + 1, blockY + 1)
+        local i, j = indexMain(storage, blockX + 1, blockY + 1)
         rectChar = rectChar or data[i][j] or " "
         rectColor = rectColor or data[i][j + 1] or self.defaultColor
       end
 
       for x = blockX + 1, blockX + blockW do
         for y = blockY + 1, blockY + blockH do
-          local id, jd = storage:indexDiff(x, y)
-          local im, jm = storage:indexMain(x, y)
-          local char = storage.data[id][jd]
-          local color = storage.data[id][jd + 1]
+          local id, jd = indexDiff(storage, x, y)
+          local im, jm = indexMain(storage, x, y)
+          local char = data[id][jd]
+          local color = data[id][jd + 1]
 
           if color and color >= 0x1000000000000 then
             color = color % 0x1000000000000
             local bg = color % 0x1000000
             local fg = (color - bg) / 0x1000000
-            color = (self.palette[self.palette:deflate(fg) + 1] * 0x1000000 +
-                     self.palette[self.palette:deflate(bg) + 1])
+            color = (palette[palette:deflate(fg) + 1] * 0x1000000 +
+                     palette[palette:deflate(bg) + 1])
 
-            if color == (storage.data[im][jd + 1] or self.defaultColor) then
+            if color == (data[im][jd + 1] or self.defaultColor) then
               color = nil
             end
 
             storage.data[id][jd + 1] = color
           end
 
-          if not char and not color and dirtiness ~= math.huge then
+          if not (char or color) and noForceProceed then
             goto notrect
           end
 
@@ -1338,7 +1348,7 @@ function Framebuffer:flush(sx, sy, gpu)
 
         for x = blockX + 1, blockX + blockW do
           for y = blockY + 1, blockY + blockH do
-            self:mergeDiff(x, y)
+            mergeDiff(self, x, y)
           end
         end
 
@@ -1353,27 +1363,27 @@ function Framebuffer:flush(sx, sy, gpu)
         local lineColor, lineBg
 
         for x = blockX + 1, blockX + blockW do
-          local id, jd = storage:indexDiff(x, y)
-          local im, jm = storage:indexMain(x, y)
+          local id, jd = indexDiff(storage, x, y)
+          local im, jm = indexMain(storage, x, y)
 
-          local char = storage.data[id][jd]
-          local color = storage.data[id][jd + 1]
+          local char = data[id][jd]
+          local color = data[id][jd + 1]
 
           if color and color >= 0x1000000000000 then
             color = color % 0x1000000000000
             local bg = color % 0x1000000
             local fg = (color - bg) / 0x1000000
-            color = (self.palette[self.palette:deflate(fg) + 1] * 0x1000000 +
-                     self.palette[self.palette:deflate(bg) + 1])
+            color = (palette[palette:deflate(fg) + 1] * 0x1000000 +
+                     palette[palette:deflate(bg) + 1])
 
-            if color == (storage.data[im][jm + 1] or self.defaultColor) then
+            if color == (data[im][jm + 1] or self.defaultColor) then
               color = nil
             end
 
             storage.data[id][jd + 1] = color
           end
 
-          if not char and not color and dirtiness ~= math.huge then
+          if not char and not color and noForceProceed then
             if #line > 0 then
               writeLineInstruction(instructions, textData, lines, lineX - 1,
                                    y - 1, table.concat(line), lineColor)
@@ -1402,7 +1412,7 @@ function Framebuffer:flush(sx, sy, gpu)
               lineX, lineColor, lineBg, line = x, color, bg, {char}
             end
 
-            self:mergeDiff(x, y)
+            mergeDiff(self, x, y)
           end
         end
 
@@ -1416,14 +1426,14 @@ function Framebuffer:flush(sx, sy, gpu)
 
     ::continue::
 
-    blockX = blockX + self.blockSize
+    blockX = blockX + blockSize
     blockI = blockI + 1
 
-    if blockX == self.blocksW * self.blockSize then
+    if blockX == self.blocksW * blockSize then
       blockX = 0
-      blockY = blockY + self.blockSize
+      blockY = blockY + blockSize
 
-      if blockY == self.blocksH * self.blockSize then
+      if blockY == self.blocksH * blockSize then
         break
       end
     end
@@ -1442,8 +1452,8 @@ function Framebuffer:flush(sx, sy, gpu)
 
         if fills[background] and fills[background][foreground] and
             fills[background][foreground][i] then
-          local width = math.min(self.blockSize, self.w - x)
-          local height = math.min(self.blockSize, self.h - y)
+          local width = math.min(blockSize, self.w - x)
+          local height = math.min(blockSize, self.h - y)
           gpu.fill(sx + x + 1, sy + y + 1, width, height, text)
         else
           gpu.set(sx + x + 1, sy + y + 1, text)
