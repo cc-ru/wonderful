@@ -1279,9 +1279,9 @@ function Framebuffer:flush(sx, sy, gpu)
       goto continue
     end
 
-    local noForceProceed = dirtiness ~= math.huge
-
     do
+      local noForceProceed = dirtiness ~= math.huge
+
       local id, jd = indexDiff(storage, blockX + 1, blockY + 1)
       local rectChar = data[id][jd]
       local rectColor = data[id][jd + 1]
