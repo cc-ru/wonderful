@@ -64,6 +64,14 @@ else
   storageMod = require("wonderful.buffer.storage52")
 end
 
+--- An enum of flush instruction types.
+-- @field InstructionTypes.Set the set instruction
+-- @field InstructionTypes.Fill the fill instruction
+local InstructionTypes = {
+  Set = 0x000000000,
+  Fill = 0x100000000,
+}
+
 --- A non-renderable buffer.
 local Buffer = class(nil, {name = "wonderful.buffer.Buffer"})
 
@@ -792,6 +800,11 @@ function Framebuffer:__new__(args)
   self.blocksW = math.ceil(self.w / self.blockSize)
   self.blocksH = math.ceil(self.h / self.blockSize)
 
+  -- used when compiling flush instructions
+  self.instructions = {}
+  self.textData = {}
+  self.colorData = {}
+
   self:markForRedraw()
 end
 
@@ -1223,6 +1236,43 @@ local function writeLineInstruction(instructions, textData, lines,
   end
 end
 
+function Framebuffer:writeInstruction(itype, x, y, color, text)
+  local instructions = self.instructions
+  local textData = self.textData
+  local colorData = self.colorData
+
+  local instrIndex = #instructions + 1
+  local yx = y * 0x100 + x
+  local index = yx
+
+  if itype == InstructionTypes.Set then
+    if colorData[index] == color then
+      for i = #instructions, 1, -1 do
+        local instr = instructions[i]
+
+        if instr % 0x10000 == index then
+          instrIndex = i
+          yx = ((instr % 0x100000000) - index) / 0x10000
+          break
+        end
+      end
+
+      text = textData[index] .. text
+      textData[index] = nil
+      colorData[index] = nil
+      index = yx
+    end
+
+    index = index + unicode.wlen(text)
+  end
+
+  instructions[instrIndex] = (itype +
+                              yx * 0x10000 +
+                              index)
+  textData[index] = text
+  colorData[index] = color
+end
+
 --- Flush a buffer onto a GPU.
 -- @tparam int sx a top-left cell column number to draw buffer at
 -- @tparam int sy a top-left cell row number to draw buffer at
@@ -1240,11 +1290,6 @@ function Framebuffer:flush(sx, sy, gpu)
 
   sx, sy = sx - 1, sy - 1
 
-  local instructions = {}
-  local textData = {}
-  local fills = {}
-  local lines = {}
-
   local blockX, blockY = 0, 0
   local blockI = 1
 
@@ -1260,6 +1305,8 @@ function Framebuffer:flush(sx, sy, gpu)
 
   local palette = self.palette
   local mergeDiff = self.mergeDiff
+
+  local writeInstruction = self.writeInstruction
 
   while true do
     local blockW = blockSize
@@ -1343,8 +1390,8 @@ function Framebuffer:flush(sx, sy, gpu)
       end
 
       do
-        writeFillInstruction(instructions, textData, fills,
-                             blockX, blockY, rectChar, rectColor)
+        writeInstruction(self, InstructionTypes.Fill, blockX, blockY,
+                         rectColor, rectChar)
 
         for x = blockX + 1, blockX + blockW do
           for y = blockY + 1, blockY + blockH do
@@ -1385,8 +1432,8 @@ function Framebuffer:flush(sx, sy, gpu)
 
           if not char and not color and noForceProceed then
             if #line > 0 then
-              writeLineInstruction(instructions, textData, lines, lineX - 1,
-                                   y - 1, table.concat(line), lineColor)
+              writeInstruction(self, InstructionTypes.Set, lineX - 1, y - 1,
+                               lineColor, table.concat(line))
               line = {}
             end
           else
@@ -1406,8 +1453,8 @@ function Framebuffer:flush(sx, sy, gpu)
             if color == lineColor or (char == " " and bg == lineBg) then
               table.insert(line, char)
             else
-              writeLineInstruction(instructions, textData, lines, lineX - 1,
-                                   y - 1, table.concat(line), lineColor)
+              writeInstruction(self, InstructionTypes.Set, lineX - 1, y - 1,
+                               lineColor, table.concat(line))
 
               lineX, lineColor, lineBg, line = x, color, bg, {char}
             end
@@ -1417,8 +1464,8 @@ function Framebuffer:flush(sx, sy, gpu)
         end
 
         if #line > 0 then
-          writeLineInstruction(instructions, textData, lines, lineX - 1,
-                               y - 1, table.concat(line), lineColor)
+          writeInstruction(self, InstructionTypes.Set, lineX - 1, y - 1,
+                           lineColor, table.concat(line))
         end
 
       end
@@ -1439,29 +1486,52 @@ function Framebuffer:flush(sx, sy, gpu)
     end
   end
 
-  for background, foregrounds in pairs(instructions) do
-    gpu.setBackground(background)
+  local colorData = self.colorData
+  local textData = self.textData
 
-    for foreground, chain in pairs(foregrounds) do
-      gpu.setForeground(foreground)
+  table.sort(self.instructions, function(lhs, rhs)
+    return colorData[lhs % 0x10000] < colorData[rhs % 0x10000]
+  end)
 
-      for i, pos in ipairs(chain) do
-        local text = textData[background][foreground][i]
-        local y = pos % 0x100
-        local x = (pos - y) / 0x100
+  local gbg = gpu.getBackground()
+  local gfg = gpu.getForeground()
 
-        if fills[background] and fills[background][foreground] and
-            fills[background][foreground][i] then
-          local width = math.min(blockSize, self.w - x)
-          local height = math.min(blockSize, self.h - y)
-          gpu.fill(sx + x + 1, sy + y + 1, width, height, text)
-        else
-          gpu.set(sx + x + 1, sy + y + 1, text)
-        end
-      end
+  local index, yx, itype, x, y, color, fg, bg, text
+
+  for _, instruction in ipairs(self.instructions) do
+    index = instruction % 0x10000
+    yx = (instruction - index) % 0x100000000
+    itype = instruction - yx - index
+    yx = yx / 0x10000
+    x = yx % 0x100
+    y = (yx - x) / 0x100
+    color = colorData[index]
+    text = textData[index]
+    bg = color % 0x1000000
+    fg = (color - bg) / 0x1000000
+
+    if gbg ~= bg then
+      gpu.setBackground(bg)
+      gbg = bg
+    end
+
+    if gfg ~= fg then
+      gpu.setForeground(fg)
+      gfg = fg
+    end
+
+    if itype == InstructionTypes.Fill then
+      local width = math.min(blockSize, self.w - x)
+      local height = math.min(blockSize, self.h - y)
+      gpu.fill(sx + x + 1, sy + sy + 1, width, height, text)
+    elseif itype == InstructionTypes.Set then
+      gpu.set(sx + x + 1, sy + y + 1, text)
     end
   end
 
+  self.instructions = {}
+  self.textData = {}
+  self.colorData = {}
   self.dirty = {}
 end
 
