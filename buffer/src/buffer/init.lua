@@ -1175,67 +1175,6 @@ function Framebuffer:markForRedraw()
   end
 end
 
-local function writeFillInstruction(instructions, textData, fills, x, y,
-                                    char, color)
-  local bg = color % 0x1000000
-  local fg = (color - bg) / 0x1000000
-
-  if not instructions[bg] then
-    instructions[bg] = {}
-    textData[bg] = {}
-  end
-
-  if not instructions[bg][fg] then
-    instructions[bg][fg] = {}
-    textData[bg][fg] = {}
-  end
-
-  if not fills[bg] then
-    fills[bg] = {}
-  end
-
-  if not fills[bg][fg] then
-    fills[bg][fg] = {}
-  end
-
-  local i = #instructions[bg][fg] + 1
-  instructions[bg][fg][i] = x * 0x100 + y
-  textData[bg][fg][i] = char
-  fills[bg][fg][i] = true
-end
-
-local function writeLineInstruction(instructions, textData, lines,
-                                    x, y, line, color)
-  local bg = color % 0x1000000
-  local fg = (color - bg) / 0x1000000
-
-  if not instructions[bg] then
-    instructions[bg] = {}
-    textData[bg] = {}
-  end
-
-  if not instructions[bg][fg] then
-    instructions[bg][fg] = {}
-    textData[bg][fg] = {}
-  end
-
-  local yx = y * 0x100 + x
-  local bgfg = bg * 0x1000000 + fg
-  local len = unicode.wlen(line)
-
-  if lines[yx] and lines[yx][1] == bgfg then
-    local i = lines[yx][2]
-    textData[bg][fg][i] = textData[bg][fg][i] .. line
-    lines[yx] = nil
-    lines[yx + len] = {bgfg, i}
-  else
-    local i = #instructions[bg][fg] + 1
-    instructions[bg][fg][i] = x * 0x100 + y
-    textData[bg][fg][i] = line
-    lines[yx + len] = {bgfg, i}
-  end
-end
-
 function Framebuffer:writeInstruction(itype, x, y, color, text)
   local instructions = self.instructions
   local textData = self.textData
