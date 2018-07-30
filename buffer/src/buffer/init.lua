@@ -56,6 +56,8 @@ local class = require("lua-objects")
 local geometry = require("wonderful.geometry")
 local palette = require("wonderful.util.palette")
 
+local wlen = unicode.wlen
+
 local storageMod
 
 if _VERSION == "Lua 5.3" then
@@ -730,18 +732,21 @@ function Buffer:clone(x0, y0, w, h)
 end
 
 function Buffer:mergeDiff(x, y)
-  local im, jm = self.storage:indexMain(x, y)
-  local id, jd = self.storage:indexDiff(x, y)
-  local char = self.storage.data[id][jd]
-  local color = self.storage.data[id][jd + 1]
+  local storage = self.storage
+  local data = storage.data
+
+  local im, jm = storage:indexMain(x, y)
+  local id, jd = storage:indexDiff(x, y)
+  local char = data[id][jd]
+  local color = data[id][jd + 1]
 
   if char then
     if char == " " then
       char = nil
     end
 
-    self.storage.data[im][jm] = char
-    self.storage.data[id][jd] = nil
+    data[im][jm] = char
+    data[id][jd] = nil
   end
 
   if color then
@@ -757,8 +762,8 @@ function Buffer:mergeDiff(x, y)
       color = nil
     end
 
-    self.storage.data[im][jm + 1] = color
-    self.storage.data[id][jd + 1] = nil
+    data[im][jm + 1] = color
+    data[id][jd + 1] = nil
   end
 end
 
@@ -1211,7 +1216,7 @@ function Framebuffer:writeInstruction(itype, x, y, color, text)
       index = yx
     end
 
-    index = index + unicode.wlen(text)
+    index = index + wlen(text)
   end
 
   instructions[instrIndex] = (itype +
@@ -1256,16 +1261,23 @@ function Framebuffer:flush(sx, sy, gpu)
 
   local writeInstruction = self.writeInstruction
 
+  local tconcat = table.concat
+  local mhuge = math.huge
+  local min = math.min
+
+  local edgeBlockWidth = (self.w - 1) % blockSize + 1
+  local edgeBlockHeight = (self.h - 1) % blockSize + 1
+
   while true do
     local blockW = blockSize
     local blockH = blockW  -- blocks are square
 
     if blockX == lastBlockX then
-      blockW = (self.w - 1) % blockSize + 1
+      blockW = edgeBlockWidth
     end
 
     if blockY == lastBlockY then
-      blockH = (self.h - 1) % blockSize + 1
+      blockH = edgeBlockHeight
     end
 
     local dirtiness = self.dirty[blockI]
@@ -1275,7 +1287,7 @@ function Framebuffer:flush(sx, sy, gpu)
     end
 
     do
-      local noForceProceed = dirtiness ~= math.huge
+      local noForceProceed = dirtiness ~= mhuge
 
       local id, jd = indexDiff(storage, blockX + 1, blockY + 1)
       local rectChar = data[id][jd]
@@ -1392,13 +1404,17 @@ function Framebuffer:flush(sx, sy, gpu)
 
             if #line > 0 then
               writeInstruction(self, InstructionTypes.Set, lineX - 1, y - 1,
-                               lineColor, table.concat(line))
-              line = {}
+                               lineColor, tconcat(line))
+              -- preallocate array to 8 elements
+              line = {nil, nil, nil, nil, nil, nil, nil, nil}
             end
           else
-            if not char or not color then
-              char = char or data[im][jm] or " "
-              color = color or data[im][jm + 1] or self.defaultColor
+            if not char then
+              char = data[im][jm] or " "
+            end
+
+            if not color then
+              color = data[im][jm + 1] or self.defaultColor
             end
 
             -- if #line == 0, the line parameters aren't set yet
@@ -1412,13 +1428,14 @@ function Framebuffer:flush(sx, sy, gpu)
 
             if color == lineColor or (char == " " and bg == lineBg) then
               -- extend the line
-              table.insert(line, char)
+              line[#line + 1] = char
             else
               -- write the instruction, and start a new line
               writeInstruction(self, InstructionTypes.Set, lineX - 1, y - 1,
-                               lineColor, table.concat(line))
+                               lineColor, tconcat(line))
 
-              lineX, lineColor, lineBg, line = x, color, bg, {char}
+              lineX, lineColor, lineBg = x, color, bg
+              line = {char, nil, nil, nil, nil, nil, nil, nil}
             end
 
             mergeDiff(self, x, y)
@@ -1427,7 +1444,7 @@ function Framebuffer:flush(sx, sy, gpu)
 
         if #line > 0 then
           writeInstruction(self, InstructionTypes.Set, lineX - 1, y - 1,
-                           lineColor, table.concat(line))
+                           lineColor, tconcat(line))
         end
 
       end
@@ -1496,8 +1513,8 @@ function Framebuffer:flush(sx, sy, gpu)
     end
 
     if itype == InstructionTypes.Fill then
-      local width = math.min(blockSize, self.w - x)
-      local height = math.min(blockSize, self.h - y)
+      local width = min(blockSize, self.w - x)
+      local height = min(blockSize, self.h - y)
       gpu.fill(sx + x + 1, sy + sy + 1, width, height, text)
     elseif itype == InstructionTypes.Set then
       gpu.set(sx + x + 1, sy + y + 1, text)
