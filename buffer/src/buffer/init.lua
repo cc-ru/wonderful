@@ -1175,6 +1175,15 @@ function Framebuffer:markForRedraw()
   end
 end
 
+--- Write a render instruction.
+--
+-- Used by `flush` when compiling render instructions.
+--
+-- @param itype one of `InstructionTypes` variants
+-- @tparam int x a 0-based column number
+-- @tparam int y a 0-based row number
+-- @tparam int color a packed color (`(fg << 24) | bg`)
+-- @tparam string text a char for fills, or a line for sets
 function Framebuffer:writeInstruction(itype, x, y, color, text)
   local instructions = self.instructions
   local textData = self.textData
@@ -1283,15 +1292,18 @@ function Framebuffer:flush(sx, sy, gpu)
       end
 
       if not rectChar and not rectColor then
+        -- the cell was not changed
         goto notrect
       end
 
       if not rectChar or not rectColor then
+        -- fill in the missing data
         local i, j = indexMain(storage, blockX + 1, blockY + 1)
         rectChar = rectChar or data[i][j] or " "
         rectColor = rectColor or data[i][j + 1] or self.defaultColor
       end
 
+      -- if we can fill the whole block using a single fill instruction, do that
       for x = blockX + 1, blockX + blockW do
         for y = blockY + 1, blockY + blockH do
           local id, jd = indexDiff(storage, x, y)
@@ -1314,6 +1326,8 @@ function Framebuffer:flush(sx, sy, gpu)
           end
 
           if not (char or color) and noForceProceed then
+            -- the cell was not changed, nor was the block marked for
+            -- force-redraw
             goto notrect
           end
 
@@ -1329,6 +1343,8 @@ function Framebuffer:flush(sx, sy, gpu)
       end
 
       do
+        -- write the fill instruction, merge the block, and process the next one
+
         writeInstruction(self, InstructionTypes.Fill, blockX, blockY,
                          rectColor, rectChar)
 
@@ -1343,10 +1359,12 @@ function Framebuffer:flush(sx, sy, gpu)
 
       ::notrect::
 
+      -- use sets instead
+
       for y = blockY + 1, blockY + blockH do
-        local lineX
-        local line = {}
-        local lineColor, lineBg
+        local lineX  -- where the line starts
+        local line = {}  -- the line itself (a sequence of characters)
+        local lineColor, lineBg  -- the packed color and extracted background
 
         for x = blockX + 1, blockX + blockW do
           local id, jd = indexDiff(storage, x, y)
@@ -1370,6 +1388,8 @@ function Framebuffer:flush(sx, sy, gpu)
           end
 
           if not char and not color and noForceProceed then
+            -- the cell wasn't changed; write the line if it's non-empty
+
             if #line > 0 then
               writeInstruction(self, InstructionTypes.Set, lineX - 1, y - 1,
                                lineColor, table.concat(line))
@@ -1381,6 +1401,7 @@ function Framebuffer:flush(sx, sy, gpu)
               color = color or data[im][jm + 1] or self.defaultColor
             end
 
+            -- if #line == 0, the line parameters aren't set yet
             if #line == 0 then
               lineColor = color
               lineBg = lineColor % 0x1000000
@@ -1390,8 +1411,10 @@ function Framebuffer:flush(sx, sy, gpu)
             local bg = color % 0x1000000
 
             if color == lineColor or (char == " " and bg == lineBg) then
+              -- extend the line
               table.insert(line, char)
             else
+              -- write the instruction, and start a new line
               writeInstruction(self, InstructionTypes.Set, lineX - 1, y - 1,
                                lineColor, table.concat(line))
 
@@ -1412,6 +1435,8 @@ function Framebuffer:flush(sx, sy, gpu)
 
     ::continue::
 
+    -- prepare to process the next block: set the appropriate variables
+
     blockX = blockX + blockSize
     blockI = blockI + 1
 
@@ -1428,6 +1453,8 @@ function Framebuffer:flush(sx, sy, gpu)
   local colorData = self.colorData
   local textData = self.textData
 
+  -- group the instructions by the color to decrease the number of
+  -- gpu.setBackground calls
   table.sort(self.instructions, function(lhs, rhs)
     return colorData[lhs % 0x10000] < colorData[rhs % 0x10000]
   end)
@@ -1438,16 +1465,25 @@ function Framebuffer:flush(sx, sy, gpu)
   local index, yx, itype, x, y, color, fg, bg, text
 
   for _, instruction in ipairs(self.instructions) do
-    index = instruction % 0x10000
-    yx = (instruction - index) % 0x100000000
-    itype = instruction - yx - index
-    yx = yx / 0x10000
-    x = yx % 0x100
-    y = (yx - x) / 0x100
+    -- instruction = [type: 1 byte] [y: 1 byte] [x: 1 byte] [index: 2 bytes]
+    -- self.colorData[index] returns the color data ((fg << 24) | bg)
+    -- self.textData[index] returns the line (for set) or the char (for fill)
+    --
+    -- Also, keep in mind that x and y here are 0-based.
+    --
+    -- As we definitely don't want to use `bit32` here, we do a few %'s and /'s
+    -- instead.
+
+    index = instruction % 0x10000  -- instruction & 0xffff
+    yx = (instruction - index) % 0x100000000  -- instruction & 0xffff0000
+    itype = instruction - yx - index  -- instruction & 0xff00000000
+    yx = yx / 0x10000  -- yx >> 16
+    x = yx % 0x100  -- yx & 0xff
+    y = (yx - x) / 0x100  -- yx >> 16
     color = colorData[index]
     text = textData[index]
-    bg = color % 0x1000000
-    fg = (color - bg) / 0x1000000
+    bg = color % 0x1000000  -- color & 0xffffff
+    fg = (color - bg) / 0x1000000  -- color >> 24
 
     if gbg ~= bg then
       gpu.setBackground(bg)
