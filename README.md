@@ -1,5 +1,5 @@
-We're building a new GUI library for OpenComputers. Here's how it's going to be
-different from other libraries:
+For the half of the year of 2018, and the second half of December 2017, we've
+been building the ultimate, the **wonderful** GUI library. What's included?
 
 - **Multi-monitor setup support.** Any setup will be supported.
 - **Advanced event system.** Allows to implement and override behavior of any
@@ -12,7 +12,8 @@ different from other libraries:
 - **Buffered rendering.** The library only issues GPU calls for the parts that
   changed since the previous update, and packs them together beforehand.
 - **OOP.** I mean, proper OOP. Multi-inheritance, getters and setters, and
-  more—thanks to the lua-objects library.
+  more — thanks to the lua-objects library.
 
 The manual pages and API reference are available on
-[doc.fomalhaut.me](http://doc.fomalhaut.me/wonderful/).
+[doc.fomalhaut.me](http://doc.fomalhaut.me/wonderful/). Ignore the certificate
+problems: we couldn't make the hoster include the doc subdomain.
