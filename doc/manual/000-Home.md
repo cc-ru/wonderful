@@ -72,9 +72,9 @@ What about creating your own component? That's easy, too: You just need to exten
 The same goes with layouts, styles... Literally everything in the library.
 
 ## Get started
-Start from reading the [Quickstart](Quickstart) article if you're familiar with OpenComputers and non-OC GUI
+Start by reading the [Quickstart](Quickstart) article if you're familiar with OpenComputers and non-OC GUI
 libraries (Qt, GTK, etc.)—it shows how to build a simple GUI application. There's also the [Tutorial](Tutorial)
-that goes over the concepts thoroughly. Finally, use the [Reference](Reference) to find the documentation
+that goes over the concepts thoroughly. Finally, use the [API Reference](../) to find the documentation
 for the library contents.
 
 Have fun using the library!
