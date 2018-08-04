@@ -1230,7 +1230,7 @@ end
 -- @tparam int sx a top-left cell column number to draw buffer at
 -- @tparam int sy a top-left cell row number to draw buffer at
 -- @tparam table gpu GPU component proxy
-function Framebuffer:flush(sx, sy, gpu)
+function Framebuffer:flush(sx, sy, gpu, force)
   if self.debug then
     checkArg(1, sx, "number")
     checkArg(2, sy, "number")
@@ -1243,14 +1243,6 @@ function Framebuffer:flush(sx, sy, gpu)
 
   sx, sy = sx - 1, sy - 1
 
-  local blockX, blockY = 0, 0
-  local blockI = 1
-
-  local blockSize = self.blockSize
-
-  local lastBlockX = (self.blocksW - 1) * blockSize
-  local lastBlockY = (self.blocksH - 1) * blockSize
-
   local storage = self.storage
   local data = storage.data
   local indexMain = storage.indexMain
@@ -1262,208 +1254,81 @@ function Framebuffer:flush(sx, sy, gpu)
   local writeInstruction = self.writeInstruction
 
   local tconcat = table.concat
-  local mhuge = math.huge
-  local min = math.min
 
-  local edgeBlockWidth = (self.w - 1) % blockSize + 1
-  local edgeBlockHeight = (self.h - 1) % blockSize + 1
+  local noForceProceed = not force
 
-  while true do
-    local blockW = blockSize
-    local blockH = blockW  -- blocks are square
+  for y = 1, self.h, 1 do
+    local lineX  -- where the line starts
+    local line = {}  -- the line itself (a sequence of characters)
+    local lineColor, lineBg  -- the packed color and extracted background
 
-    if blockX == lastBlockX then
-      blockW = edgeBlockWidth
-    end
+    for x = 1, self.w, 1 do
+      local id, jd = indexDiff(storage, x, y)
+      local im, jm = indexMain(storage, x, y)
 
-    if blockY == lastBlockY then
-      blockH = edgeBlockHeight
-    end
+      local char = data[id][jd]
+      local color = data[id][jd + 1]
 
-    local dirtiness = self.dirty[blockI]
+      if color and color >= 0x1000000000000 then
+        color = color % 0x1000000000000
+        local bg = color % 0x1000000
+        local fg = (color - bg) / 0x1000000
+        color = (palette[palette:deflate(fg) + 1] * 0x1000000 +
+                 palette[palette:deflate(bg) + 1])
 
-    if not dirtiness or dirtiness == 0 then
-      goto continue
-    end
-
-    do
-      local noForceProceed = dirtiness ~= mhuge
-
-      local id, jd = indexDiff(storage, blockX + 1, blockY + 1)
-      local rectChar = data[id][jd]
-      local rectColor = data[id][jd + 1]
-
-      -- reduce the color if the 49th bit is set
-      if rectColor and rectColor >= 0x1000000000000 then
-        rectColor = rectColor % 0x1000000000000
-        local bg = rectColor % 0x1000000
-        local fg = (rectColor - bg) / 0x1000000
-        rectColor = (palette[palette:deflate(fg) + 1] * 0x1000000 +
-                     palette[palette:deflate(bg) + 1])
-        data[id][jd + 1] = rectColor
-      end
-
-      if not rectChar and not rectColor then
-        -- the cell was not changed
-        goto notrect
-      end
-
-      if not rectChar or not rectColor then
-        -- fill in the missing data
-        local i, j = indexMain(storage, blockX + 1, blockY + 1)
-        rectChar = rectChar or data[i][j] or " "
-        rectColor = rectColor or data[i][j + 1] or self.defaultColor
-      end
-
-      -- if we can fill the whole block using a single fill instruction, do that
-      for x = blockX + 1, blockX + blockW do
-        for y = blockY + 1, blockY + blockH do
-          local id, jd = indexDiff(storage, x, y)
-          local im, jm = indexMain(storage, x, y)
-          local char = data[id][jd]
-          local color = data[id][jd + 1]
-
-          if color and color >= 0x1000000000000 then
-            color = color % 0x1000000000000
-            local bg = color % 0x1000000
-            local fg = (color - bg) / 0x1000000
-            color = (palette[palette:deflate(fg) + 1] * 0x1000000 +
-                     palette[palette:deflate(bg) + 1])
-
-            if color == (data[im][jd + 1] or self.defaultColor) then
-              color = nil
-            end
-
-            storage.data[id][jd + 1] = color
-          end
-
-          if not (char or color) and noForceProceed then
-            -- the cell was not changed, nor was the block marked for
-            -- force-redraw
-            goto notrect
-          end
-
-          if not char or not color then
-            char = char or data[im][jm] or " "
-            color = color or data[im][jm + 1] or self.defaultColor
-          end
-
-          if char ~= rectChar or color ~= rectColor then
-            goto notrect
-          end
-        end
-      end
-
-      do
-        -- write the fill instruction, merge the block, and process the next one
-
-        writeInstruction(self, InstructionTypes.Fill, blockX, blockY,
-                         rectColor, rectChar)
-
-        for x = blockX + 1, blockX + blockW do
-          for y = blockY + 1, blockY + blockH do
-            mergeDiff(self, x, y)
-          end
+        if color == (data[im][jm + 1] or self.defaultColor) then
+          color = nil
         end
 
-        goto continue
+        storage.data[id][jd + 1] = color
       end
 
-      ::notrect::
-
-      -- use sets instead
-
-      for y = blockY + 1, blockY + blockH do
-        local lineX  -- where the line starts
-        local line = {}  -- the line itself (a sequence of characters)
-        local lineColor, lineBg  -- the packed color and extracted background
-
-        for x = blockX + 1, blockX + blockW do
-          local id, jd = indexDiff(storage, x, y)
-          local im, jm = indexMain(storage, x, y)
-
-          local char = data[id][jd]
-          local color = data[id][jd + 1]
-
-          if color and color >= 0x1000000000000 then
-            color = color % 0x1000000000000
-            local bg = color % 0x1000000
-            local fg = (color - bg) / 0x1000000
-            color = (palette[palette:deflate(fg) + 1] * 0x1000000 +
-                     palette[palette:deflate(bg) + 1])
-
-            if color == (data[im][jm + 1] or self.defaultColor) then
-              color = nil
-            end
-
-            storage.data[id][jd + 1] = color
-          end
-
-          if not char and not color and noForceProceed then
-            -- the cell wasn't changed; write the line if it's non-empty
-
-            if #line > 0 then
-              writeInstruction(self, InstructionTypes.Set, lineX - 1, y - 1,
-                               lineColor, tconcat(line))
-              -- preallocate array to 8 elements
-              line = {nil, nil, nil, nil, nil, nil, nil, nil}
-            end
-          else
-            if not char then
-              char = data[im][jm] or " "
-            end
-
-            if not color then
-              color = data[im][jm + 1] or self.defaultColor
-            end
-
-            -- if #line == 0, the line parameters aren't set yet
-            if #line == 0 then
-              lineColor = color
-              lineBg = lineColor % 0x1000000
-              lineX = x
-            end
-
-            local bg = color % 0x1000000
-
-            if color == lineColor or (char == " " and bg == lineBg) then
-              -- extend the line
-              line[#line + 1] = char
-            else
-              -- write the instruction, and start a new line
-              writeInstruction(self, InstructionTypes.Set, lineX - 1, y - 1,
-                               lineColor, tconcat(line))
-
-              lineX, lineColor, lineBg = x, color, bg
-              line = {char, nil, nil, nil, nil, nil, nil, nil}
-            end
-
-            mergeDiff(self, x, y)
-          end
-        end
+      if not char and not color and noForceProceed then
+        -- the cell wasn't changed; write the line if it's non-empty
 
         if #line > 0 then
           writeInstruction(self, InstructionTypes.Set, lineX - 1, y - 1,
                            lineColor, tconcat(line))
+          -- preallocate array to 8 elements
+          line = {nil, nil, nil, nil, nil, nil, nil, nil}
+        end
+      else
+        if not char then
+          char = data[im][jm] or " "
         end
 
+        if not color then
+          color = data[im][jm + 1] or self.defaultColor
+        end
+
+        -- if #line == 0, the line parameters aren't set yet
+        if #line == 0 then
+          lineColor = color
+          lineBg = lineColor % 0x1000000
+          lineX = x
+        end
+
+        local bg = color % 0x1000000
+
+        if color == lineColor or (char == " " and bg == lineBg) then
+          -- extend the line
+          line[#line + 1] = char
+        else
+          -- write the instruction, and start a new line
+          writeInstruction(self, InstructionTypes.Set, lineX - 1, y - 1,
+                           lineColor, tconcat(line))
+
+          lineX, lineColor, lineBg = x, color, bg
+          line = {char, nil, nil, nil, nil, nil, nil, nil}
+        end
+
+        mergeDiff(self, x, y)
       end
     end
 
-    ::continue::
-
-    -- prepare to process the next block: set the appropriate variables
-
-    blockX = blockX + blockSize
-    blockI = blockI + 1
-
-    if blockX == self.blocksW * blockSize then
-      blockX = 0
-      blockY = blockY + blockSize
-
-      if blockY == self.blocksH * blockSize then
-        break
-      end
+    if #line > 0 then
+      writeInstruction(self, InstructionTypes.Set, lineX - 1, y - 1,
+                       lineColor, tconcat(line))
     end
   end
 
@@ -1512,11 +1377,7 @@ function Framebuffer:flush(sx, sy, gpu)
       gfg = fg
     end
 
-    if itype == InstructionTypes.Fill then
-      local width = min(blockSize, self.w - x)
-      local height = min(blockSize, self.h - y)
-      gpu.fill(sx + x + 1, sy + sy + 1, width, height, text)
-    elseif itype == InstructionTypes.Set then
+    if itype == InstructionTypes.Set then
       gpu.set(sx + x + 1, sy + y + 1, text)
     end
   end
