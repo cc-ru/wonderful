@@ -1198,27 +1198,6 @@ function Framebuffer:writeInstruction(itype, x, y, color, text)
   local yx = y * 0x100 + x
   local index = yx
 
-  if itype == InstructionTypes.Set then
-    if colorData[index] == color then
-      for i = #instructions, 1, -1 do
-        local instr = instructions[i]
-
-        if instr % 0x10000 == index then
-          instrIndex = i
-          yx = ((instr % 0x100000000) - index) / 0x10000
-          break
-        end
-      end
-
-      text = textData[index] .. text
-      textData[index] = nil
-      colorData[index] = nil
-      index = yx
-    end
-
-    index = index + wlen(text)
-  end
-
   instructions[instrIndex] = (itype +
                               yx * 0x10000 +
                               index)
