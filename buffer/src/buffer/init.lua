@@ -805,8 +805,6 @@ function Framebuffer:__new__(args)
   self.instructions = {}
   self.textData = {}
   self.colorData = {}
-
-  self:markForRedraw()
 end
 
 --- Check if a cell belongs to the buffer.
@@ -1025,8 +1023,6 @@ end
 --- Reset all cells to default.
 function Framebuffer:clear()
   self:superCall("clear")
-
-  self:markForRedraw()
 end
 
 --- Write a render instruction.
