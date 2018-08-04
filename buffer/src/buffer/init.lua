@@ -1051,9 +1051,14 @@ function Framebuffer:writeInstruction(itype, x, y, color, text)
 end
 
 --- Flush a buffer onto a GPU.
+--
+-- The 4th argument, force, controls whether the buffer should also flush the
+-- cells unchanged since the last flush.
+--
 -- @tparam int sx a top-left cell column number to draw buffer at
 -- @tparam int sy a top-left cell row number to draw buffer at
 -- @tparam table gpu GPU component proxy
+-- @tparam[opt] boolean force whether to do force-redraw
 function Framebuffer:flush(sx, sy, gpu, force)
   if self.debug then
     checkArg(1, sx, "number")
