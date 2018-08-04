@@ -801,10 +801,6 @@ function Framebuffer:__new__(args)
 
   self.dirty = {}
 
-  self.blockSize = 16
-  self.blocksW = math.ceil(self.w / self.blockSize)
-  self.blocksH = math.ceil(self.h / self.blockSize)
-
   -- used when compiling flush instructions
   self.instructions = {}
   self.textData = {}
@@ -841,93 +837,7 @@ end
 -- @tparam number alpha an opacity (an alpha value ∈ [0; 1])
 -- @tparam ?string char a character
 -- @see wonderful.buffer.Framebuffer:set
-function Framebuffer:_set(x, y, fg, bg, alpha, char)
-  local diff = 0
-
-  do
-    -- Copypasted from parent to avoid search costs
-    local im, jm = self.storage:indexMain(x, y)
-    local id, jd = self.storage:indexDiff(x, y)
-
-    local mainChar = self.storage.data[im][jm]
-    local mainColor = self.storage.data[im][jm + 1]
-    local diffChar = self.storage.data[id][jd]
-    local diffColor = self.storage.data[id][jd + 1]
-
-    local old = diffColor or mainColor or self.defaultColor
-
-    -- we don't care about the 49th bit here
-    old = old % 0x1000000000000
-
-    local oldBg = old % 0x1000000
-    local oldFg = (old - oldBg) / 0x1000000
-
-    if not fg and oldBg ~= oldFg then
-      fg = oldFg
-    end
-
-    if alpha == 0 then
-      fg = oldBg
-      bg = oldBg
-    elseif alpha == 1 then
-      -- Don't change colors.
-    else
-      if char and oldBg ~= fg and fg then
-        fg = self:alphaBlend(oldBg, fg, alpha)
-      elseif not char and oldFg ~= fg and fg then
-        fg = self:alphaBlend(oldFg, fg, alpha)
-      end
-
-      if oldBg ~= bg and bg then
-        bg = self:alphaBlend(oldBg, bg, alpha)
-      end
-    end
-
-    fg = fg or oldFg
-    bg = bg or oldBg
-
-    -- set: bytes 4-6 = fg
-    --      bytes 1-3 = bg
-    local new = fg * 0x1000000 + bg
-
-    if new == (mainColor or self.defaultColor) then
-      new = nil
-    end
-
-    -- set bit 49 (not reduced to palette)
-    self.storage.data[id][jd + 1] = new and (new + 0x1000000000000)
-
-    char = char or diffChar or mainChar or " "
-
-    if char == (mainChar or " ") then
-      char = nil
-    end
-
-    self.storage.data[id][jd] = char
-
-    if diffChar or diffColor then
-      if not (new or cchar) then
-        -- Dirty block is made clean
-        diff = -1
-      end
-    else
-      if new or cchar then
-        -- Clean block is made dirty
-        diff = 1
-      end
-    end
-  end
-
-  local blockX = (x - 1) / self.blockSize
-  blockX = blockX - blockX % 1
-
-  local blockY = (y - 1) / self.blockSize
-  blockY = blockY - blockY % 1
-
-  local block = blockY * self.blocksW + blockX + 1
-
-  self.dirty[block] = (self.dirty[block] or 0) + diff
-end
+-- @function Framebuffer:_set
 
 --- Set a line of characters.
 -- @tparam int x0 a column number
@@ -969,22 +879,6 @@ function Framebuffer:_get(x, y)
 
     if diffColor == (mainColor or self.defaultColor) then
       diffColor = nil
-
-      if not diffChar then
-        -- the cell is clean now, decrement dirtiness
-
-        local blockX = (x - 1) / self.blockSize
-        blockX = blockX - blockX % 1
-
-        local blockY = (y - 1) / self.blockSize
-        blockY = blockY - blockY % 1
-
-        local block = blockY * self.blocksW + blockX + 1
-
-        -- this cannot be `nil`
-        --                 \_________________
-        self.dirty[block] = self.dirty[block] - 1
-      end
     end
 
     self.storage.data[id][jd + 1] = diffColor
@@ -1031,41 +925,17 @@ end
 -- @tparam ?string char a character
 -- @see wonderful.buffer.Buffer:fill
 function Framebuffer:_fill(x0, y0, x1, y1, fg, bg, alpha, char)
-  local blockSize = self.blockSize
   local storage = self.storage
   local indexMain = storage.indexMain
   local indexDiff = storage.indexDiff
   local storageData = storage.data
   local defaultColor = self.defaultColor
-  local blocksW = self.blocksW
-  local dirty = self.dirty
 
   local sdMain, sdDiff
   local oim, oid
 
-  local blockX = (x0 - 1) / blockSize
-  blockX = blockX - blockX % 1
-
-  local blockY = (y0 - 1) / blockSize
-  blockY = blockY - blockY % 1
-
   for y = y0, y1, 1 do
-    if y ~= y0 and y % blockSize == 1 then
-      -- crossed the chunk border
-      blockY = blockY + 1
-    end
-
-    local block = blockY * blocksW + blockX + 1
-    local blockDirtiness = dirty[block] or 0
-
     for x = x0, x1, 1 do
-      if x ~= x0 and x % blockSize == 1 then
-        -- crossed the chunk border
-        dirty[block] = blockDirtiness
-        block = block + 1
-        blockDirtiness = dirty[block] or 0
-      end
-
       local im, jm = indexMain(storage, x, y)
       local id, jd = indexDiff(storage, x, y)
 
@@ -1135,21 +1005,7 @@ function Framebuffer:_fill(x0, y0, x1, y1, fg, bg, alpha, char)
       end
 
       sdDiff[jd] = cchar
-
-      if diffChar or diffColor then
-        if not (new or cchar) then
-          -- Dirty block is made clean
-          blockDirtiness = blockDirtiness - 1
-        end
-      else
-        if new or cchar then
-          -- Clean block is made dirty
-          blockDirtiness = blockDirtiness + 1
-        end
-      end
     end
-
-    dirty[block] = blockDirtiness
   end
 end
 
@@ -1171,13 +1027,6 @@ function Framebuffer:clear()
   self:superCall("clear")
 
   self:markForRedraw()
-end
-
---- Redraw the whole buffer on next flush.
-function Framebuffer:markForRedraw()
-  for i = 1, self.blocksW * self.blocksH, 1 do
-    self.dirty[i] = math.huge
-  end
 end
 
 --- Write a render instruction.
@@ -1214,6 +1063,7 @@ function Framebuffer:flush(sx, sy, gpu, force)
     checkArg(1, sx, "number")
     checkArg(2, sy, "number")
     checkArg(3, gpu, "table")
+    checkArg(4, force, "boolean")
 
     if gpu.type ~= "gpu" then
       error("bad argument #3: gpu proxy expected", 1)
@@ -1364,7 +1214,6 @@ function Framebuffer:flush(sx, sy, gpu, force)
   self.instructions = {}
   self.textData = {}
   self.colorData = {}
-  self.dirty = {}
 end
 
 --- Create a buffer view.
