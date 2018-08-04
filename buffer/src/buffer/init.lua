@@ -1059,7 +1059,7 @@ function Framebuffer:flush(sx, sy, gpu, force)
     checkArg(1, sx, "number")
     checkArg(2, sy, "number")
     checkArg(3, gpu, "table")
-    checkArg(4, force, "boolean")
+    checkArg(4, force, "boolean", "nil")
 
     if gpu.type ~= "gpu" then
       error("bad argument #3: gpu proxy expected", 1)
