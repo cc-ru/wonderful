@@ -546,7 +546,9 @@ end
 
 --- Reset all cells to default.
 function Buffer:clear()
-  self.storage:clear()
+  local bg = self.defaultColor % 0x1000000
+  local fg = (self.defaultColor - bg) / 0x1000000
+  self.storage:_fill(1, 1, self.w, self.h, fg, bg, 1, " ")
 end
 
 --- Create a buffer view.
@@ -804,6 +806,13 @@ function Framebuffer:__new__(args)
   self.instructions = {}
   self.textData = {}
   self.colorData = {}
+
+  self.forceRedraw = true
+end
+
+--- Reset all cells to default.
+function Buffer:clear()
+  self:superCall("clear")
 end
 
 --- Write a render instruction.
@@ -866,7 +875,7 @@ function Framebuffer:flush(sx, sy, gpu, force)
 
   local tconcat = table.concat
 
-  local noForceProceed = not force
+  local noForceProceed = not (force or self.forceRedraw)
 
   for y = 1, self.h, 1 do
     local lineX  -- where the line starts
@@ -996,6 +1005,7 @@ function Framebuffer:flush(sx, sy, gpu, force)
   self.instructions = {}
   self.textData = {}
   self.colorData = {}
+  self.forceRedraw = false
 end
 
 --- @section end
