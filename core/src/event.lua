@@ -29,12 +29,9 @@ local tableUtil = require("wonderful.util.table")
 --
 -- Note that some phases may be skipped.
 local EventPhase = {
-  --- The default phase.
-  None = 0,
-  --- The event is descending the tree from its root to the target.
-  Capturing = 1,
-  --- The event is ascending the tree from the target to the root.
-  Bubbling = 2,
+  None = 0,  -- The default phase.
+  Capturing = 1,  -- The event is descending the tree from its root to the target.
+  Bubbling = 2,  -- The event is ascending the tree from the target to the root.
 }
 
 --- The base event class, which represents an event.
@@ -125,7 +122,7 @@ local EventListener = class(nil, {name = "wonderful.event.EventListener"})
 -- @param args.target a event target the listener is attached to
 -- @param args.event an `Event` subclass
 -- @tparam function(target,event,handler) args.handler a handler function
--- @tparam boolean whether this is a default listener
+-- @tparam boolean args.default whether this is a default listener
 -- @tparam[opt=false] boolean args.before whether to run it before the user listeners
 -- @tparam[optchain] function(target,event,handler) args.onCancel a function to run if the default action gets prevented
 -- @tparam[opt=false] boolean args.capture whether to run it at capturing phase

@@ -67,11 +67,8 @@ else
 end
 
 --- An enum of flush instruction types.
--- @field InstructionTypes.Set the set instruction
--- @field InstructionTypes.Fill the fill instruction
 local InstructionTypes = {
-  Set = 0x000000000,
-  Fill = 0x100000000,
+  Set = 0x000000000,  -- the set instruction
 }
 
 --- A non-renderable buffer.
@@ -769,7 +766,7 @@ function Buffer:mergeDiff(x, y)
   end
 end
 
---- @section end
+-- @section end
 
 --------------------------------------------------------------------------------
 
@@ -811,7 +808,7 @@ function Framebuffer:__new__(args)
 end
 
 --- Reset all cells to default.
-function Buffer:clear()
+function Framebuffer:clear()
   self:superCall("clear")
 end
 
@@ -1038,7 +1035,6 @@ BufferView = class(
 --
 -- This method **should not** be used directly.
 -- @see wonderful.buffer.Buffer:view
--- @see wonderful.buffer.Framebuffer:view
 -- @see wonderful.buffer.BufferView:view
 function BufferView:__new__(buf, coordBox, restrictBox, debug)
   self.buf = buf
