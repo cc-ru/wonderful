@@ -766,7 +766,7 @@ function Buffer:mergeDiff(x, y)
   end
 end
 
--- @section end
+--- @section end
 
 --------------------------------------------------------------------------------
 
@@ -775,18 +775,6 @@ local Framebuffer = class(Buffer, {name = "wonderful.buffer.Framebuffer"})
 
 --- A flushable buffer.
 -- @type Framebuffer
-
---- A buffer width.
--- @field Buffer.w
-
---- A buffer height.
--- @field Buffer.h
-
---- A palette the buffer uses.
--- @field Buffer.palette
-
---- A buffer depth.
--- @field Buffer.depth
 
 --- Construct a new framebuffer.
 -- @tparam table args a keyword argument table
@@ -1017,19 +1005,6 @@ BufferView = class(
 
 --- A view on some rectangular area within a buffer
 -- @type BufferView
--- @see Buffer:view
-
---- The buffer's depth.
--- @field BufferView.depth
-
---- The buffer's palette.
--- @field BufferView.palette
-
---- The view width.
--- @field BufferView.w
-
---- The view height
--- @field BufferView.h
 
 --- Construct a view.
 --
