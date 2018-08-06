@@ -21,7 +21,6 @@ local geometry = require("wonderful.geometry")
 local tableUtil = require("wonderful.util.table")
 
 local isin = tableUtil.isin
-local shallowcopy = tableUtil.shallowcopy
 
 --- The abstract atribute class.
 local Attribute = class(
@@ -246,7 +245,7 @@ function Classes:__new__(...)
 
   local values = {...}
 
-  for k, v in pairs(values) do
+  for _, v in pairs(values) do
     self:add(v)
   end
 end

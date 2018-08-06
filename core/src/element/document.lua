@@ -20,7 +20,6 @@ local class = require("lua-objects")
 local kbd = require("keyboard")
 
 local attribute = require("wonderful.element.attribute")
-local display = require("wonderful.display")
 local element = require("wonderful.element")
 local focus = require("wonderful.element.focus")
 local signal = require("wonderful.signal")
@@ -111,12 +110,12 @@ function Document:switchFocus(reversed)
 
   local found = not prev
 
-  local new = traversalFunc(self, function(element)
-    if found and element:get(attribute.Focus, true).enabled then
-      return element
+  local new = traversalFunc(self, function(node)
+    if found and node:get(attribute.Focus, true).enabled then
+      return node
     end
 
-    if prev == element then
+    if prev == node then
       found = true
     end
   end)

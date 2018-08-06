@@ -5,8 +5,6 @@
 
 local WonderfulStyle = require("wonderful.style").WonderfulStyle
 local interpreter = require("wonderful.style.interpreter")
-local node = require("wonderful.style.node")
-local lexer = require("wonderful.style.lexer")
 local Element = require("wonderful.element").Element
 local Classes = require("wonderful.element.attribute").Classes
 local class = require("lua-objects")

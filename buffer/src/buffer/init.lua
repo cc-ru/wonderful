@@ -54,9 +54,7 @@ local unicode = require("unicode")
 local class = require("lua-objects")
 
 local geometry = require("wonderful.geometry")
-local palette = require("wonderful.util.palette")
-
-local wlen = unicode.wlen
+local paletteUtil = require("wonderful.util.palette")
 
 local storageMod
 
@@ -115,11 +113,11 @@ function Buffer:__new__(args)
   self.box = geometry.Box(1, 1, self.w, self.h)
 
   if self.depth == 1 then
-    self.palette = palette.t1
+    self.palette = paletteUtil.t1
   elseif self.depth == 4 then
-    self.palette = palette.t2
+    self.palette = paletteUtil.t2
   elseif self.depth == 8 then
-    self.palette = palette.t3
+    self.palette = paletteUtil.t3
   end
 
   local cells = self.w * self.h
@@ -180,8 +178,8 @@ function Buffer:alphaBlend(color1, color2, alpha)
     return color2
   end
 
-  local r1, g1, b1 = palette.extract(color1)
-  local r2, g2, b2 = palette.extract(color2)
+  local r1, g1, b1 = paletteUtil.extract(color1)
+  local r2, g2, b2 = paletteUtil.extract(color2)
 
   local ialpha = 1 - alpha
 
@@ -231,9 +229,9 @@ function Buffer:_set(x, y, fg, bg, alpha, char)
   if alpha == 0 then
     fg = oldBg
     bg = oldBg
-  elseif alpha == 1 then
-    -- Don't change colors.
-  else
+  elseif alpha < 1 then
+    -- Don't change colors if alpha == 1.
+
     if char and oldBg ~= fg and fg then
       fg = self:alphaBlend(oldBg, fg, alpha)
     elseif not char and oldFg ~= fg and fg then
@@ -306,7 +304,7 @@ function Buffer:set(x0, y0, fg, bg, alpha, line, vertical)
       self:_set(x, y, fg, bg, alpha, unicode.sub(line, i, i))
     end
   else
-    self:_set(x, y, fg, bg, alpha, nil)
+    self:_set(x0, y0, fg, bg, alpha, nil)
   end
 end
 
@@ -530,7 +528,9 @@ function Buffer:fill(x0, y0, w, h, fg, bg, alpha, char)
     checkArg(8, char, "string", "nil")
   end
 
-  local x0, y0, x1, y1 = self:intersection(x0, y0, w, h)
+  local x1, y1
+
+  x0, y0, x1, y1 = self:intersection(x0, y0, w, h)
 
   if not x0 then
     return
@@ -1149,7 +1149,7 @@ function BufferView:view(x, y, w, h, sx, sy, sw, sh)
     checkArg(8, sh, "number")
   end
 
-  local x, y = self:absCoords(x, y)
+  x, y = self:absCoords(x, y)
 
   local coordBox = geometry.Box(x, y, w, h)
 

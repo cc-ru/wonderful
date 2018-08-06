@@ -35,7 +35,7 @@ end
 local function ipairsSorted(t, rev)
   local keys = {}
 
-  for k, v in pairs(t) do
+  for k in pairs(t) do
     table.insert(keys, k)
   end
 
@@ -74,24 +74,24 @@ end
 -- @usage chain(wrap(ipairs(a)), wrap(ipairs(b)))
 -- @see wonderful.util.iter.chain
 local function chain(...)
-  local chain = {...}
+  local chained = {...}
   local i = 1
 
   local function continue()
-    local o = {chain[i].iter(chain[i].state, chain[i].var)}
-    chain[i].var = o[1]
+    local o = table.pack(chained[i].iter(chained[i].state, chained[i].var))
+    chained[i].var = o[1]
 
     if o[1] == nil then
       i = i + 1
 
-      if not chain[i] then
+      if not chained[i] then
         return
       else
         return continue()
       end
     end
 
-    return table.unpack(o)
+    return table.unpack(o, 1, o.n)
   end
 
   return continue

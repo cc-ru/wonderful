@@ -1,6 +1,16 @@
 std = "lua53"
 color = true
 codes = true
+
+read_globals = {
+  "checkArg",
+  os = {
+    fields = {
+      "sleep"
+    }
+  }
+}
+
 include_files = {
   "common/src/**",
   "buffer/src/**",

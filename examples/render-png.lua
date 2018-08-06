@@ -21,9 +21,15 @@ os.sleep(0)
 
 for y = 1, 50, 1 do
   for x = 1, 160, 1 do
-    local ru, gu, bu, au = img:getPixel(x - 1, 2 * y - 2)
-    local rb, gb, bb, ab = img:getPixel(x - 1, 2 * y - 1)
-    fb:set(x, y, ru * 0x10000 + gu * 0x100 + bu, rb * 0x10000 + gb * 0x100 + bb, 1, "▀")
+    local ru, gu, bu = img:getPixel(x - 1, 2 * y - 2)
+    local rb, gb, bb = img:getPixel(x - 1, 2 * y - 1)
+    fb:set(x, y,
+           (ru * 0x10000 +
+            gu * 0x100 +
+            bu),
+           (rb * 0x10000 +
+            gb * 0x100 +
+            bb), 1, "▀")
   end
 
   os.sleep(0)

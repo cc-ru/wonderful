@@ -26,11 +26,12 @@ local event = require("event")
 
 local class = require("lua-objects")
 
-local document = require("wonderful.element.document")
-local display = require("wonderful.display")
 local geometry = require("wonderful.geometry")
 local signal = require("wonderful.signal")
 local tableUtil = require("wonderful.util.table")
+
+local DisplayManager = require("wonderful.display").DisplayManager
+local Document = require("wonderful.element.document").Document
 
 --- The main class of the library.
 local Wonderful = class(nil, {name = "wonderful.Wonderful"})
@@ -55,7 +56,7 @@ function Wonderful:__new__(args)
     end
   end
 
-  self.displayManager = display.DisplayManager()
+  self.displayManager = DisplayManager()
 
   if not self.debug then
     self.displayManager:optimize()
@@ -104,7 +105,7 @@ end
 -- @treturn wonderful.element.document.Document the document instance
 -- @see wonderful.element.document.Document:__new__
 function Wonderful:addDocument(args)
-  local args = args or {}
+  args = args or {}
 
   if args.x and args.y and args.w and args.h then
     args.box = geometry.Box(args.x, args.y, args.w, args.h)
@@ -124,7 +125,7 @@ function Wonderful:addDocument(args)
     display:optimize()
   end
 
-  local document = document.Document {
+  local document = Document {
     style = args.style,
     display = display
   }

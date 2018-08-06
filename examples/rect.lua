@@ -3,8 +3,6 @@
 --
 -- Uses: styles, tree, property references
 
-local com = require("component")
-
 local wonderful = require("wonderful")
 local wstyle = require("wonderful.style")
 
@@ -57,11 +55,11 @@ local dummy = Dummy()
 
 doc:appendChild(dummy)
 
-for i = 1, 25 do
+for _ = 1, 25 do
   dummy:appendChild(Rectangle())
 end
 
-for i = 1, 10 do
+for _ = 1, 10 do
   wmain:render()
   os.sleep(0.05)
 end

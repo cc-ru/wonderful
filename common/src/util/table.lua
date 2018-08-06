@@ -159,7 +159,7 @@ end
 local function nextEntry(tbl, key)
   local keys = {}
 
-  for k, v in pairs(tbl) do
+  for k in pairs(tbl) do
     if not key or k > key then
       keys[#keys + 1] = k
     end
@@ -180,7 +180,7 @@ end
 local function prevEntry(tbl, key)
   local keys = {}
 
-  for k, v in pairs(tbl) do
+  for k in pairs(tbl) do
     if not key or k < key then
       keys[#keys + 1] = k
     end

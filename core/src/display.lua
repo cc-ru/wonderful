@@ -15,7 +15,6 @@
 --- Display manager and GPU pool.
 -- @module wonderful.display
 
-local bit32 = require("bit32")
 local component = require("component")
 local computer = require("computer")
 
@@ -166,7 +165,7 @@ end
 -- @tparam string screen the screen address
 -- @treturn int the depth
 function DisplayManager:getScreenDepth(screen)
-  local screen = self.screens[screen]
+  screen = self.screens[screen]
 
   return math.min(
     screen.depth,
@@ -186,7 +185,7 @@ end
 -- @tparam[opt] boolean spec.debug whether the debug mode should be set
 -- @treturn wonderful.display.Display the display
 function DisplayManager:newDisplay(spec)
-  local spec = spec or {}
+  spec = spec or {}
 
   if spec.x and spec.y and spec.w and spec.h then
     spec.box = Box(spec.x, spec.y, spec.w, spec.h)

@@ -84,7 +84,7 @@ end
 --- Set an attribute.
 --
 -- If a class is passed (rather than its instance), the attribute is unset.
--- @tparam wonderful.element.attribute.Attribute attribute the attribute
+-- @tparam wonderful.element.attribute.Attribute attr the attribute
 -- @return self
 -- @see wonderful.element.LeafElement:get
 -- @usage
@@ -93,15 +93,15 @@ end
 --
 -- -- Unsets an attribute.
 -- element:set(Attribute)
-function LeafElement:set(attribute)
-  local previous = self.attributes[attribute.class]
-  local new = attribute
+function LeafElement:set(attr)
+  local previous = self.attributes[attr.class]
+  local new = attr
 
   if new.is_class then
     new = nil
   end
 
-  self.attributes[attribute.class] = new
+  self.attributes[attr.class] = new
 
   if previous then
     previous:onUnset(self, new)
@@ -174,8 +174,6 @@ end
 -- @tparam wonderful.geometry.Box new the new box
 function LeafElement:boxCalculated(new)
   local position = self:get(attribute.Position, true)
-
-  local x, y = new.x, new.y
 
   if position.value == "relative" then
     local bbox = self:get(attribute.BoundingBox)

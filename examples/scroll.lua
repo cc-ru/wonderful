@@ -1,4 +1,3 @@
-local com = require("component")
 local event = require("event")
 local kbd = require("keyboard")
 
@@ -78,7 +77,7 @@ level1:set(Margin(2, 4, 0, 0))
 level1:set(ScrollBox(0, 0))
 rootRect:appendChild(level1)
 
-for i = 1, 10, 1 do
+for _ = 1, 10, 1 do
   local level2 = Rectangle {w = 72, h = 7}
   level2:set(Classes("level-2"))
   level2:set(Margin(2, 4, 0, 0))

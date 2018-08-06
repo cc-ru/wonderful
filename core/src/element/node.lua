@@ -135,7 +135,7 @@ function ParentNode:lbfsWalk(func)
     end
 
     if node:isa(ParentNode) then
-      for i, child in ipairs(node.childNodes) do
+      for _, child in ipairs(node.childNodes) do
         table.insert(queue, child)
       end
     end
@@ -154,8 +154,8 @@ function ParentNode:nlrWalk(func)
     return result
   end
 
-  for i, child in ipairs(self.childNodes) do
-    local result = child:nlrWalk(func)
+  for _, child in ipairs(self.childNodes) do
+    result = child:nlrWalk(func)
 
     if result ~= nil then
       return result

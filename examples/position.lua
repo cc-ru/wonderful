@@ -131,7 +131,7 @@ root:addListener {
   end,
 }
 
-local intThread = thread.create(function()
+thread.create(function()
   repeat until event.pull("interrupted")
 
   wmain:stop()

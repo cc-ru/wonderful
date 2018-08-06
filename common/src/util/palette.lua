@@ -15,7 +15,6 @@
 --- GPU color palettes.
 -- @module wonderful.util.palette
 
-local funcUtil = require("wonderful.util.func")
 local tableUtil = require("wonderful.util.table")
 
 --- Extract RGB channel values from a color.

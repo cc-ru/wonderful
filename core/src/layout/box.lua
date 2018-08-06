@@ -19,7 +19,6 @@ local class = require("lua-objects")
 
 local Box = require("wonderful.geometry").Box
 local Layout = require("wonderful.layout").Layout
-local LayoutItem = require("wonderful.layout").LayoutItem
 
 --- The enum of directions in which children can be layed out.
 local Direction = {
@@ -46,8 +45,8 @@ function BoxLayout:__new__(direction)
 end
 
 --- Recompose the layout children.
--- @param el a container element
-function BoxLayout:recompose(el)
+-- @param element a container element
+function BoxLayout:recompose(element)
   -- Do not touch. For the sake of your own sanity.
   -- TODO: handle BTT and RTL directions
   -- TODO: refactor into smaller functions
@@ -63,7 +62,7 @@ function BoxLayout:recompose(el)
   local reversed = self.direction == Direction.RightToLeft
                 or self.direction == Direction.BottomToTop
 
-  for child in el:getLayoutItems() do
+  for child in element:getLayoutItems() do
     if child:getStretch() == 0 then
       local w, h = child:sizeHint()
       local margin = child:getMargin()
@@ -97,8 +96,8 @@ function BoxLayout:recompose(el)
     end
   end
 
-  local box = el:getLayoutBox()
-  local pad = el:getLayoutPadding()
+  local box = element:getLayoutBox()
+  local pad = element:getLayoutPadding()
 
   local full = vertical and
                (box.h - pad.t - pad.b) or
@@ -183,15 +182,16 @@ function BoxLayout:recompose(el)
 end
 
 --- Estimate a size of an element and its children.
+-- @param element the element
 -- @treturn number the width
 -- @treturn number the height
-function BoxLayout:sizeHint(el)
+function BoxLayout:sizeHint(element)
   local width, height = 0, 0
 
   local vertical = self.direction == Direction.TopToBottom or
                    self.direction == Direction.BottomToTop
 
-  for child in el:getLayoutItems() do
+  for child in element:getLayoutItems() do
     local hw, hh = child:sizeHint()
     local margin = child:getMargin()
 
