@@ -825,28 +825,13 @@ function Framebuffer:writeInstruction(itype, x, y, color, text)
   colorData[index] = color
 end
 
---- Flush a buffer onto a GPU.
+--- Compile GPU instructions to render the changes onto a GPU.
 --
--- The 4th argument, force, controls whether the buffer should also flush the
--- cells unchanged since the last flush.
+-- Used by `flush`.
 --
--- @tparam int sx a top-left cell column number to draw buffer at
--- @tparam int sy a top-left cell row number to draw buffer at
--- @tparam table gpu GPU component proxy
--- @tparam[opt] boolean force whether to do force-redraw
-function Framebuffer:flush(sx, sy, gpu, force)
-  if self.debug then
-    checkArg(1, sx, "number")
-    checkArg(2, sy, "number")
-    checkArg(3, gpu, "table")
-    checkArg(4, force, "boolean", "nil")
-
-    if gpu.type ~= "gpu" then
-      error("bad argument #3: gpu proxy expected", 1)
-    end
-  end
-
-  sx, sy = sx - 1, sy - 1
+-- @tparam boolean force whether to do force-redraw
+function Framebuffer:compileInstructions(force)
+  local noForceProceed = not force
 
   local storage = self.storage
   local data = storage.data
@@ -854,13 +839,14 @@ function Framebuffer:flush(sx, sy, gpu, force)
   local indexDiff = storage.indexDiff
 
   local palette = self.palette
-  local mergeDiff = self.mergeDiff
+  local deflate = self.palette.deflate
 
+  local mergeDiff = self.mergeDiff
   local writeInstruction = self.writeInstruction
 
   local tconcat = table.concat
 
-  local noForceProceed = not (force or self.forceRedraw)
+  local Set = InstructionTypes.Set
 
   for y = 1, self.h, 1 do
     local lineX  -- where the line starts
@@ -878,21 +864,21 @@ function Framebuffer:flush(sx, sy, gpu, force)
         color = color % 0x1000000000000
         local bg = color % 0x1000000
         local fg = (color - bg) / 0x1000000
-        color = (palette[palette:deflate(fg) + 1] * 0x1000000 +
-                 palette[palette:deflate(bg) + 1])
+        color = (palette[deflate(palette, fg) + 1] * 0x1000000 +
+                 palette[deflate(palette, bg) + 1])
 
         if color == (data[im][jm + 1] or self.defaultColor) then
           color = nil
         end
 
-        storage.data[id][jd + 1] = color
+        data[id][jd + 1] = color
       end
 
       if not char and not color and noForceProceed then
         -- the cell wasn't changed; write the line if it's non-empty
 
         if #line > 0 then
-          writeInstruction(self, InstructionTypes.Set, lineX - 1, y - 1,
+          writeInstruction(self, Set, lineX - 1, y - 1,
                            lineColor, tconcat(line))
           -- preallocate array to 8 elements
           line = {nil, nil, nil, nil, nil, nil, nil, nil}
@@ -920,7 +906,7 @@ function Framebuffer:flush(sx, sy, gpu, force)
           line[#line + 1] = char
         else
           -- write the instruction, and start a new line
-          writeInstruction(self, InstructionTypes.Set, lineX - 1, y - 1,
+          writeInstruction(self, Set, lineX - 1, y - 1,
                            lineColor, tconcat(line))
 
           lineX, lineColor, lineBg = x, color, bg
@@ -936,6 +922,32 @@ function Framebuffer:flush(sx, sy, gpu, force)
                        lineColor, tconcat(line))
     end
   end
+end
+
+--- Flush a buffer onto a GPU.
+--
+-- The 4th argument, force, controls whether the buffer should also flush the
+-- cells unchanged since the last flush.
+--
+-- @tparam int sx a top-left cell column number to draw buffer at
+-- @tparam int sy a top-left cell row number to draw buffer at
+-- @tparam table gpu GPU component proxy
+-- @tparam[opt] boolean force whether to do force-redraw
+function Framebuffer:flush(sx, sy, gpu, force)
+  if self.debug then
+    checkArg(1, sx, "number")
+    checkArg(2, sy, "number")
+    checkArg(3, gpu, "table")
+    checkArg(4, force, "boolean", "nil")
+
+    if gpu.type ~= "gpu" then
+      error("bad argument #3: gpu proxy expected", 1)
+    end
+  end
+
+  sx, sy = sx - 1, sy - 1
+
+  self:compileInstructions(force or self.forceRedraw)
 
   local colorData = self.colorData
   local textData = self.textData
