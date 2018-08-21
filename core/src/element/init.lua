@@ -73,12 +73,46 @@ function LeafElement:__new__()
   self:superCall(event.EventTarget, "__new__")
 
   self.calculatedBox = geometry.Box()
+  self:requestRender()
 end
 
---- Render the element.
+--- Abstract method to render the element.
+--
+-- If you're making your own element, provide an implementation for this method.
+--
+-- Calling this method on an element forcefully redraws it.
+-- Consider using `requestRender` instead.
+--
 -- @tparam wonderful.buffer.BufferView fbView a view on the framebuffer
+-- @see LeafElement:requestRender
+function LeafElement:_render(fbView)
+  error("Abstract method LeafElement:_render not implemented")
+end
+
+--- Flag the element so that it's rendered the next time `Wonderful:render`
+-- is called.
+function LeafElement:requestRender()
+  self.shouldRedraw = true
+
+  self:_notifyParentsOfRenderRequest()
+end
+
+--- Conditionally render the element.
+--
+-- This method does nothing if the element isn't flagged.
+--
+-- @tparam wonderful.buffer.BufferView fbView a view on the framebuffer
+-- @treturn boolean whether the element was actually rendered
+-- @see LeafElement:requestRender
 function LeafElement:render(fbView)
-  -- hint
+  if self.shouldRedraw then
+    self:_render(fbView)
+    self.shouldRedraw = false
+
+    return true
+  end
+
+  return false
 end
 
 --- Set an attribute.
@@ -182,6 +216,16 @@ function LeafElement:boxCalculated(new)
   end
 
   self.calculatedBox = new
+end
+
+function LeafElement:_notifyParentsOfRenderRequest()
+  local ascendant = self.parentNode
+
+  while ascendant do
+    ascendant.renderRequestedByChildren = true
+
+    ascendant = ascendant.parentNode
+  end
 end
 
 function LeafElement.__getters:style()
@@ -339,6 +383,7 @@ function Element:recompose(force)
 
   if self.markedToRecompose then
     self.layout:recompose(self)
+    self:requestRender()
 
     local bbox, x, y, w, h
     local layoutBox = self:getLayoutBox()

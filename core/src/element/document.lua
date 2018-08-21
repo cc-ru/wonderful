@@ -75,7 +75,7 @@ function Document:__new__(args)
   })
 end
 
-function Document:render(view)
+function Document:_render(view)
   view:fill(1, 1, view.w, view.h, 0xffffff, 0x000000, 1, " ")
 end
 

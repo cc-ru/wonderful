@@ -28,7 +28,7 @@ function Rectangle:__new__(w, h, bg, name, alpha)
   self.alpha = alpha or 1
 end
 
-function Rectangle:render(view)
+function Rectangle:_render(view)
   view:fill(1, 1, view.w, view.h, self.bg, self.bg, self.alpha, nil)
   view:set(2, 2, 0x000000, nil, 1, self.name)
   view:set(2, 3, 0x000000, nil, 1, tostring(self.calculatedBox))

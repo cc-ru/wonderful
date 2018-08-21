@@ -44,7 +44,7 @@ function Rectangle:__new__(args)
   i = i + 1
 end
 
-function Rectangle:render(view)
+function Rectangle:_render(view)
   view:fill(1, 1, view.w, view.h, 0x000000, self.bg:get():get(), 1, " ")
   view:set(1, 1, 0x000000, self.bg:get():get(), 1,
            "Rect #" .. self.i)

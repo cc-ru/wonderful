@@ -32,6 +32,7 @@ local tableUtil = require("wonderful.util.table")
 
 local DisplayManager = require("wonderful.display").DisplayManager
 local Document = require("wonderful.element.document").Document
+local Element = require("wonderful.element").Element
 
 --- The main class of the library.
 local Wonderful = class(nil, {name = "wonderful.Wonderful"})
@@ -140,26 +141,41 @@ end
 
 --- Render the documents.
 function Wonderful:render(noFlush)
+  local stack = {}
+
+  local function push(element, force)
+    if element:isa(Element) and element.renderRequestedByChildren or
+        element.shouldRedraw or force then
+      table.insert(stack, element)
+    end
+  end
+
   for _, document in ipairs(self.documents) do
-    local buf = document.display.fb
+    push(document)
 
-    document:nlrWalk(function(el)
-      if el.calculatedBox then
-        local coordBox = el.calculatedBox
-        local viewport = el.viewport
+    local buffer = document.display.fb
 
-        local view = buf:view(coordBox.x,
-                              coordBox.y,
-                              coordBox.w,
-                              coordBox.h,
-                              viewport.x,
-                              viewport.y,
-                              viewport.w,
-                              viewport.h)
+    while #stack > 0 do
+      local element = table.remove(stack, #stack)
 
-        el:render(view)
+      if element.shouldRedraw and element.calculatedBox then
+        local coordBox = element.calculatedBox
+        local viewport = element.viewport
+
+        local view = buffer:view(coordBox.x, coordBox.y, coordBox.w, coordBox.h,
+                                 viewport.x, viewport.y, viewport.w, viewport.h)
+
+        element:render(view)
       end
-    end)
+
+      if element:isa(Element) then
+        for i = #element.childNodes, 1, -1 do
+          push(element.childNodes[i], element.shouldRedraw)
+        end
+      end
+
+      element.renderRequestedByChildren = false
+    end
   end
 
   if not noFlush then

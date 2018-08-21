@@ -121,6 +121,7 @@ end
 --
 -- If the function returns a non-`nil` value, traversal is stopped, and the
 -- returned value is returned.
+--
 -- @tparam function(node) func the function to call for each node
 function ParentNode:lbfsWalk(func)
   local queue = {self}

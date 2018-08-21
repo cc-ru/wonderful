@@ -36,7 +36,7 @@ function Rectangle:__new__(args)
   i = i + 1
 end
 
-function Rectangle:render(view)
+function Rectangle:_render(view)
   view:fill(1, 1, view.w, view.h, self.color:get():get(), 0x000000, 1,
             math.random() > 0.5 and "#" or "X")
 end
