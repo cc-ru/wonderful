@@ -25,13 +25,14 @@ local FocusIn = class(Event, {name = "wonderful.element.focus.FocusIn"})
 --- The focus-in event.
 -- @type FocusIn
 
---- The previously focused element. May be `nil`.
--- @field FocusIn.previous
-
 --- Construct a new instance.
 -- @param[opt] previous the previously focused element
 function FocusIn:__new__(previous)
-  self.previous = previous
+  self._previous = previous
+end
+
+function FocusIn:getPreviouslyFocused()
+  return self._previous
 end
 
 --- @section end
@@ -42,13 +43,14 @@ local FocusOut = class(Event, {name = "wonderful.element.focus.FocusOut"})
 --- The focus-out event.
 -- @type FocusOut
 
---- The currently focused element. May be `nil`
--- @field FocusOut.new
-
 --- Construct a new instance.
 -- @param[opt] new the currently focused element
 function FocusOut:__new__(new)
-  self.new = new
+  self._new = new
+end
+
+function FocusOut:getCurrentlyFocused()
+  return self._new
 end
 
 --- @section end

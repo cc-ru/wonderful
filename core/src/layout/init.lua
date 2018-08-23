@@ -73,8 +73,8 @@ end
 
 --- An abstract method that sets the element's calculated box.
 -- @tparam wonderful.geometry.Box box the new calculated box
-function LayoutItem:boxCalculated(box)
-  error("unimplemented abstract method LayoutItem:boxCalculated")
+function LayoutItem:setCalculatedBox(box)
+  error("unimplemented abstract method LayoutItem:setCalculatedBox")
 end
 
 ---

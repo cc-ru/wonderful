@@ -31,14 +31,6 @@ local Attribute = class(
 --- The base atribute class.
 -- @type Attribute
 
---- The value of the attribute
--- @field Attribute.value
-
---- Construct a new attribute.
-function Attribute:__new__(value)
-  self.value = value
-end
-
 --- The on-set handler, called when the attribute is set.
 -- @param element the element the attribute is assigned to.
 -- @param[opt] previous the previous value, if any
@@ -78,28 +70,32 @@ Position.OPTIONS = {
 -- @tparam ?string value one of "static", "absolute", "relative", "fixed"
 function Position:__new__(value)
   if self.OPTIONS[value] then
-    self.value = value
+    self._value = value
   else
-    self.value = self.DEFAULT
+    self._value = self.DEFAULT
   end
 end
 
 --- Checks if the value is set to `"static"` or `"relative"`.
 -- @treturn boolean
 function Position:isFlowElement()
-  return self.value == "static" or self.value == "relative"
+  return self._value == "static" or self._value == "relative"
 end
 
 function Position:onSet(element, previous)
-  if element.parentNode then
-    element.parentNode:markToRecompose()
+  if element:getParent() then
+    element:getParent():markToRecompose()
   end
 end
 
 function Position:onUnset(element, new)
-  if element.parentNode and not new then
-    element.parentNode:markToRecompose()
+  if element:getParent() and not new then
+    element:getParent():markToRecompose()
   end
+end
+
+function Position:get()
+  return self._value
 end
 
 --- @section end
@@ -119,22 +115,38 @@ local BoundingBox = class(
 -- @tparam ?int w the width
 -- @tparam ?int h the height
 function BoundingBox:__new__(l, t, w, h)
-  self.left = l
-  self.top = t
-  self.width = w
-  self.height = h
+  self._left = l
+  self._top = t
+  self._width = w
+  self._height = h
 end
 
 function BoundingBox:onSet(element, previous)
-  if element.parentNode then
-    element.parentNode:markToRecompose()
+  if element:getParent() then
+    element:getParent():markToRecompose()
   end
 end
 
 function BoundingBox:onUnset(element, new)
-  if element.parentNode and not new then
-    element.parentNode:markToRecompose()
+  if element:getParent() and not new then
+    element:getParent():markToRecompose()
   end
+end
+
+function BoundingBox:getLeft()
+  return self._left
+end
+
+function BoundingBox:getTop()
+  return self._top
+end
+
+function BoundingBox:getWidth()
+  return self._width
+end
+
+function BoundingBox:getHeight()
+  return self._height
 end
 
 --- @section end
@@ -159,14 +171,14 @@ function Margin:__new__(...)
 end
 
 function Margin:onSet(element, previous)
-  if element.parentNode then
-    element.parentNode:markToRecompose()
+  if element:getParent() then
+    element:getParent():markToRecompose()
   end
 end
 
 function Margin:onUnset(element, new)
-  if element.parentNode and not new then
-    element.parentNode:markToRecompose()
+  if element:getParent() and not new then
+    element:getParent():markToRecompose()
   end
 end
 
@@ -193,14 +205,14 @@ function Padding:__new__(...)
 end
 
 function Padding:onSet(element, previous)
-  if element.parentNode then
-    element.parentNode:markToRecompose()
+  if element:getParent() then
+    element:getParent():markToRecompose()
   end
 end
 
 function Padding:onUnset(element, new)
-  if element.parentNode and not new then
-    element.parentNode:markToRecompose()
+  if element:getParent() and not new then
+    element:getParent():markToRecompose()
   end
 end
 
@@ -213,17 +225,18 @@ local Focus = class(Attribute, {name = "wonderful.element.attribute.Focus"})
 --- The focus attribute.
 -- @type Focus
 
---- Whether the element the attribute is applied to is permitted to get focus.
--- @field Focus.enabled
-
 --- Construct a new instance.
 -- @tparam[opt=true] boolean enable whether to enable focusing on an element
 function Focus:__new__(enable)
   if enable == nil then
-    self.enabled = true
+    self._enabled = true
   else
-    self.enabled = enable
+    self._enabled = not not enable
   end
+end
+
+function Focus:isEnabled()
+  return self._enabled
 end
 
 --- @section end
@@ -240,8 +253,8 @@ local Classes = class(
 --- Construct a new instance.
 -- @tparam string,... ... class names
 function Classes:__new__(...)
-  self.value = {}
-  self.classes = {}
+  self._value = {}
+  self._classes = {}
 
   local values = {...}
 
@@ -254,16 +267,16 @@ end
 -- @tparam string value the class name
 -- @treturn boolean
 function Classes:isSet(value)
-  return not not self.classes[value]
+  return not not self._classes[value]
 end
 
 --- Add a class name to the attribute.
 -- @tparam string value the class name
 -- @treturn boolean `true` if the class name was added
 function Classes:add(value)
-  if type(value) == "string" and value ~= "" and not self.classes[value] then
-    table.insert(self.value, value)
-    self.classes[value] = true
+  if type(value) == "string" and value ~= "" and not self._classes[value] then
+    table.insert(self._value, value)
+    self._classes[value] = true
     return true
   else
     return false
@@ -274,10 +287,10 @@ end
 -- @tparam string value the class name
 -- @treturn boolean `true` is the class was removed
 function Classes:remove(value)
-  if type(value) == "string" and self.classes[value] then
-    local _, k = isin(value, self.value)
-    table.remove(self.value, k)
-    self.classes[value] = nil
+  if type(value) == "string" and self._classes[value] then
+    local _, k = isin(value, self._value)
+    table.remove(self._value, k)
+    self._classes[value] = nil
     return true
   else
     return false
@@ -290,7 +303,7 @@ end
 -- @treturn boolean `true` if the class was toggled
 function Classes:toggle(value)
   if type(value) == "string" and value ~= "" then
-    if self.classes[value] then
+    if self._classes[value] then
       return self:remove(value)
     else
       return self:add(value)
@@ -319,22 +332,26 @@ function Stretch:__new__(stretch)
   stretch = tonumber(stretch)
 
   if stretch and stretch >= 0 then
-    self.value = stretch
+    self._value = stretch
   else
-    self.value = self.DEFAULT
+    self._value = self.DEFAULT
   end
 end
 
 function Stretch:onSet(element, previous)
-  if element.parentNode then
-    element.parentNode:markToRecompose()
+  if element:getParent() then
+    element:getParent():markToRecompose()
   end
 end
 
 function Stretch:onUnset(element, new)
-  if element.parentNode and not new then
-    element.parentNode:markToRecompose()
+  if element:getParent() and not new then
+    element:getParent():markToRecompose()
   end
+end
+
+function Stretch:get()
+  return self._value
 end
 
 ---

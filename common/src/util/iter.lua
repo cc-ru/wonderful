@@ -56,15 +56,18 @@ end
 --- Create a reversed iterator over a sequence.
 -- @tparam table table a sequence
 -- @treturn function an iterator
+-- @treturn table the table
+-- @treturn int the initial value
 local function ipairsRev(table)
-  local i = #table
+  return function(tbl, i)
+    local k = i - 1
 
-  return function()
-    if table[i] then
-      i = i - 1
-      return i + 1, table[i + 1]
+    if tbl[k] then
+      return k, tbl[k]
+    else
+      return
     end
-  end
+  end, table, #table + 1
 end
 
 --- Chain several wrapped iterators.

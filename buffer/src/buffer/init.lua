@@ -77,18 +77,6 @@ local BufferView
 --- A non-renderable buffer.
 -- @type Buffer
 
---- A buffer width.
--- @field Buffer.w
-
---- A buffer height.
--- @field Buffer.h
-
---- A palette the buffer uses.
--- @field Buffer.palette
-
---- A buffer depth.
--- @field Buffer.depth
-
 --- Construct a new buffer.
 --
 -- The debug mode introduces a few sanity checks. They allow to notice the
@@ -99,42 +87,61 @@ local BufferView
 -- @tparam int args.h a height of buffer
 -- @tparam int args.depth a color depth
 -- @tparam boolean args.debug whether the debug mode should be set
+-- @tparam[opt=0xffffff] int args.defaultFg the default foreground color
+-- @tparam[opt=0x000000] int args.defaultBg the default background color
 function Buffer:__new__(args)
-  self.w = args.w
-  self.h = args.h
-  self.depth = args.depth
+  self._w = args.w
+  self._h = args.h
+  self._depth = args.depth
 
   if args.debug == nil then
-    self.debug = true
+    self._debug = true
   else
-    self.debug = not not args.debug
+    self._debug = not not args.debug
   end
 
-  self.box = geometry.Box(1, 1, self.w, self.h)
+  self._box = geometry.Box(1, 1, self._w, self._h)
 
-  if self.depth == 1 then
-    self.palette = paletteUtil.t1
-  elseif self.depth == 4 then
-    self.palette = paletteUtil.t2
-  elseif self.depth == 8 then
-    self.palette = paletteUtil.t3
+  if self._depth == 1 then
+    self._palette = paletteUtil.t1
+  elseif self._depth == 4 then
+    self._palette = paletteUtil.t2
+  elseif self._depth == 8 then
+    self._palette = paletteUtil.t3
   end
 
-  local cells = self.w * self.h
+  local cells = self._w * self._h
 
   if cells <= 25 * 16 then
-    self.storage = storageMod.BufferStorageT1(self.w, self.h)
+    self._storage = storageMod.BufferStorageT1(self._w, self._h)
   elseif cells <= 50 * 25 then
-    self.storage = storageMod.BufferStorageT2(self.w, self.h)
+    self._storage = storageMod.BufferStorageT2(self._w, self._h)
   elseif cells <= 160 * 50 then
-    self.storage = storageMod.BufferStorageT3(self.w, self.h)
+    self._storage = storageMod.BufferStorageT3(self._w, self._h)
   else
-    error(("Unsupported resolution: %d×%d"):format(self.w, self.h))
+    error(("Unsupported resolution: %d×%d"):format(self._w, self._h))
   end
 
-  self.storage:optimize()
+  self._storage:optimize()
 
-  self.defaultColor = 0xffffff000000
+  self._defaultColor = (args.defaultFg or 0xffffff) * 0x1000000 +
+                       (args.defaultBg or 0x000000)
+end
+
+function Buffer:getWidth()
+  return self._w
+end
+
+function Buffer:getHeight()
+  return self._h
+end
+
+function Buffer:getDepth()
+  return self._depth
+end
+
+function Buffer:getPalette()
+  return self._palette
 end
 
 --- Check if a cell belongs to the buffer.
@@ -142,12 +149,12 @@ end
 -- @tparam int y a row number
 -- @treturn boolean
 function Buffer:inRange(x, y)
-  if self.debug then
+  if self._debug then
     checkArg(1, x, "number")
     checkArg(2, y, "number")
   end
 
-  return self.box:has(x, y)
+  return self._box:has(x, y)
 end
 
 --- Perform alpha blending of two colors.
@@ -156,7 +163,7 @@ end
 -- @tparam number alpha an opacity (an alpha value ∈ [0; 1])
 -- @treturn int the result of alpha blending
 function Buffer:alphaBlend(color1, color2, alpha)
-  if self.debug then
+  if self._debug then
     checkArg(1, color1, "number")
     checkArg(2, color2, "number")
     checkArg(3, alpha, "number")
@@ -206,7 +213,7 @@ end
 -- @tparam string ?char a character
 -- @see wonderful.buffer.Buffer:set
 function Buffer:_set(x, y, fg, bg, alpha, char)
-  local storage = self.storage
+  local storage = self._storage
   local im, jm = storage:indexMain(x, y)
   local id, jd = storage:indexDiff(x, y)
 
@@ -214,7 +221,7 @@ function Buffer:_set(x, y, fg, bg, alpha, char)
   local mainColor = storage.data[im][jm + 1]
   local diffColor = storage.data[id][jd + 1]
 
-  local old = diffColor or mainColor or self.defaultColor
+  local old = diffColor or mainColor or self._defaultColor
 
   -- we don't care about the 49th bit here
   old = old % 0x1000000000000
@@ -250,7 +257,7 @@ function Buffer:_set(x, y, fg, bg, alpha, char)
   --      bytes 1-3 = bg
   local new = fg * 0x1000000 + bg
 
-  if new == (mainColor or self.defaultColor) then
+  if new == (mainColor or self._defaultColor) then
     new = nil
   end
 
@@ -276,7 +283,7 @@ end
 -- @tparam[opt=false] boolean vertical if true, set a vertical line
 -- @see wonderful.buffer.Buffer:_set
 function Buffer:set(x0, y0, fg, bg, alpha, line, vertical)
-  if self.debug then
+  if self._debug then
     checkArg(1, x0, "number")
     checkArg(2, y0, "number")
     checkArg(3, fg, "number", "nil")
@@ -320,28 +327,28 @@ end
 -- @treturn int a cell's packed and deflated color
 -- @see wonderful.buffer.Buffer:get
 function Buffer:_get(x, y)
-  local mainChar, mainColor = self.storage:getMain(x, y)
-  local id, jd = self.storage:indexDiff(x, y)
-  local diffChar = self.storage.data[id][jd]
-  local diffColor = self.storage.data[id][jd + 1]
+  local mainChar, mainColor = self._storage:getMain(x, y)
+  local id, jd = self._storage:indexDiff(x, y)
+  local diffChar = self._storage.data[id][jd]
+  local diffColor = self._storage.data[id][jd + 1]
 
   -- reduce the color if the 49th bit is set
   if diffColor and diffColor >= 0x1000000000000 then
     diffColor = diffColor % 0x1000000000000
     local bg = diffColor % 0x1000000
     local fg = (diffColor - bg) / 0x1000000
-    diffColor = (self.palette[self.palette:deflate(fg) + 1] * 0x1000000 +
-                 self.palette[self.palette:deflate(bg) + 1])
+    diffColor = (self._palette[self._palette:deflate(fg) + 1] * 0x1000000 +
+                 self._palette[self._palette:deflate(bg) + 1])
 
-    if diffColor == (mainColor or self.defaultColor) then
+    if diffColor == (mainColor or self._defaultColor) then
       diffColor = nil
     end
 
-    self.storage.data[id][jd + 1] = diffColor
+    self._storage.data[id][jd + 1] = diffColor
   end
 
   return diffChar or mainChar or " ",
-         diffColor or mainColor or self.defaultColor
+         diffColor or mainColor or self._defaultColor
 end
 
 --- Retrieve a cell from the storage.
@@ -352,7 +359,7 @@ end
 -- @treturn int a cell's background color
 -- @see wonderful.buffer.Buffer:_get
 function Buffer:get(x, y)
-  if self.debug then
+  if self._debug then
     checkArg(1, x, "number")
     checkArg(2, y, "number")
   end
@@ -379,7 +386,7 @@ end
 -- @treturn[1] int an intersection's bottom-right cell row number
 -- @treturn[2] nil the intersection is empty
 function Buffer:intersection(x0, y0, w, h)
-  if self.debug then
+  if self._debug then
     checkArg(1, x0, "number")
     checkArg(2, y0, "number")
     checkArg(3, w, "number")
@@ -393,14 +400,14 @@ function Buffer:intersection(x0, y0, w, h)
   local x1 = x0 + w - 1
   local y1 = y0 + h - 1
 
-  if x1 < self.box.x or y1 < self.box.y then
+  if x1 < self._box.x or y1 < self._box.y then
     return
   end
 
-  x0 = math.max(x0, self.box.x)
-  y0 = math.max(y0, self.box.y)
-  x1 = math.min(x1, self.box.x1)
-  y1 = math.min(y1, self.box.y1)
+  x0 = math.max(x0, self._box.x)
+  y0 = math.max(y0, self._box.y)
+  x1 = math.min(x1, self._box.x1)
+  y1 = math.min(y1, self._box.y1)
 
   return x0, y0, x1, y1
 end
@@ -418,11 +425,11 @@ end
 -- @tparam ?string char a character
 -- @see wonderful.buffer.Buffer:fill
 function Buffer:_fill(x0, y0, x1, y1, fg, bg, alpha, char)
-  local storage = self.storage
+  local storage = self._storage
   local indexMain = storage.indexMain
   local indexDiff = storage.indexDiff
   local storageData = storage.data
-  local defaultColor = self.defaultColor
+  local defaultColor = self._defaultColor
 
   local sdMain, sdDiff
   local oim, oid
@@ -517,7 +524,7 @@ end
 -- @tparam ?string char a character
 -- @see wonderful.buffer.Buffer:_fill
 function Buffer:fill(x0, y0, w, h, fg, bg, alpha, char)
-  if self.debug then
+  if self._debug then
     checkArg(1, x0, "number")
     checkArg(2, y0, "number")
     checkArg(3, w, "number")
@@ -543,9 +550,9 @@ end
 
 --- Reset all cells to default.
 function Buffer:clear()
-  local bg = self.defaultColor % 0x1000000
-  local fg = (self.defaultColor - bg) / 0x1000000
-  self.storage:_fill(1, 1, self.w, self.h, fg, bg, 1, " ")
+  local bg = self._defaultColor % 0x1000000
+  local fg = (self._defaultColor - bg) / 0x1000000
+  self._storage:_fill(1, 1, self._w, self._h, fg, bg, 1, " ")
 end
 
 --- Create a buffer view.
@@ -559,7 +566,7 @@ end
 -- @tparam number sh a restricting box's height
 -- @treturn wonderful.buffer.BufferView
 function Buffer:view(x, y, w, h, sx, sy, sw, sh)
-  if self.debug then
+  if self._debug then
     checkArg(1, x, "number")
     checkArg(2, y, "number")
     checkArg(3, w, "number")
@@ -577,12 +584,12 @@ function Buffer:view(x, y, w, h, sx, sy, sw, sh)
   local restrictBox = geometry.Box(sx, sy, sw, sh)
 
   -- don't allow to write outside the buffer
-  restrictBox = restrictBox:intersection(self.box)
+  restrictBox = restrictBox:intersection(self._box)
 
   -- don't allow to write outside the coordinate box
   restrictBox = restrictBox:intersection(coordBox)
 
-  local view = BufferView(self, coordBox, restrictBox, self.debug)
+  local view = BufferView(self, coordBox, restrictBox, self._debug)
   view:optimize()
 
   return view
@@ -600,7 +607,7 @@ end
 -- @tparam int dx the column at which to paste the area's top-left cell
 -- @tparam int dy the row at which to paste the area's top-left cell
 function Buffer:copyFrom(src, sx, sy, sw, sh, dx, dy)
-  if self.debug then
+  if self._debug then
     if type(src) ~= "table" or not src.isa or not src:isa(Buffer) then
       error(1, "bad argument #1: a buffer is expected")
     end
@@ -616,7 +623,7 @@ function Buffer:copyFrom(src, sx, sy, sw, sh, dx, dy)
     sh = src.bow.h
   end
 
-  if self.debug then
+  if self._debug then
     checkArg(2, sx, "number")
     checkArg(3, sy, "number")
     checkArg(4, sw, "number")
@@ -690,16 +697,16 @@ end
 function Buffer:clone(x0, y0, w, h)
   if not (x0 and y0 and w and h) then
     -- 0 arguments
-    x0, y0, w, h = 1, 1, self.w, self.h
+    x0, y0, w, h = 1, 1, self._w, self._h
   elseif x0 and y0 and not w and not h then
     -- 2 arguments
     x0, y0, w, h = 1, 1, x0, y0
 
-    if self.debug then
+    if self._debug then
       checkArg(1, w, "number")
       checkArg(2, h, "number")
     end
-  elseif self.debug then
+  elseif self._debug then
     checkArg(1, x0, "number")
     checkArg(2, y0, "number")
     checkArg(3, w, "number")
@@ -708,8 +715,8 @@ function Buffer:clone(x0, y0, w, h)
 
   x0 = math.max(1, x0)
   y0 = math.max(1, y0)
-  local x1 = math.min(x0 + self.w - 1, w)
-  local y1 = math.min(y0 + self.h - 1, h)
+  local x1 = math.min(x0 + self._w - 1, w)
+  local y1 = math.min(y0 + self._h - 1, h)
   w = x1 - x0 + 1
   h = y1 - y0 + 1
 
@@ -717,7 +724,7 @@ function Buffer:clone(x0, y0, w, h)
     return
   end
 
-  local new = Buffer {w = w, h = h, depth = self.depth}
+  local new = Buffer {w = w, h = h, depth = self._depth}
   local char, fg, bg
 
   for y = y0, y1, 1 do
@@ -731,7 +738,7 @@ function Buffer:clone(x0, y0, w, h)
 end
 
 function Buffer:mergeDiff(x, y)
-  local storage = self.storage
+  local storage = self._storage
   local data = storage.data
 
   local im, jm = storage:indexMain(x, y)
@@ -753,11 +760,11 @@ function Buffer:mergeDiff(x, y)
       color = color % 0x1000000000000
       local bg = color % 0x1000000
       local fg = (color - bg) / 0x1000000
-      color = (self.palette[self.palette:deflate(fg) + 1] * 0x1000000 +
-               self.palette[self.palette:deflate(bg) + 1])
+      color = (self._palette[self._palette:deflate(fg) + 1] * 0x1000000 +
+               self._palette[self._palette:deflate(bg) + 1])
     end
 
-    if color == self.defaultColor then
+    if color == self._defaultColor then
       color = nil
     end
 
@@ -785,19 +792,14 @@ local Framebuffer = class(Buffer, {name = "wonderful.buffer.Framebuffer"})
 function Framebuffer:__new__(args)
   self:superCall("__new__", args)
 
-  self.dirty = {}
+  self._dirty = {}
 
   -- used when compiling flush instructions
-  self.instructions = {}
-  self.textData = {}
-  self.colorData = {}
+  self._instructions = {}
+  self._textData = {}
+  self._colorData = {}
 
-  self.forceRedraw = true
-end
-
---- Reset all cells to default.
-function Framebuffer:clear()
-  self:superCall("clear")
+  self._forceRedraw = true
 end
 
 --- Write a render instruction.
@@ -810,9 +812,9 @@ end
 -- @tparam int color a packed color (`(fg << 24) | bg`)
 -- @tparam string text a char for fills, or a line for sets
 function Framebuffer:writeInstruction(itype, x, y, color, text)
-  local instructions = self.instructions
-  local textData = self.textData
-  local colorData = self.colorData
+  local instructions = self._instructions
+  local textData = self._textData
+  local colorData = self._colorData
 
   local instrIndex = #instructions + 1
   local yx = y * 0x100 + x
@@ -833,27 +835,27 @@ end
 function Framebuffer:compileInstructions(force)
   local noForceProceed = not force
 
-  local storage = self.storage
+  local storage = self._storage
   local data = storage.data
   local indexMain = storage.indexMain
   local indexDiff = storage.indexDiff
 
-  local palette = self.palette
-  local deflate = self.palette.deflate
+  local palette = self._palette
+  local deflate = self._palette.deflate
 
-  local mergeDiff = self.mergeDiff
-  local writeInstruction = self.writeInstruction
+  local mergeDiff = self._mergeDiff
+  local writeInstruction = self._writeInstruction
 
   local tconcat = table.concat
 
   local Set = InstructionTypes.Set
 
-  for y = 1, self.h, 1 do
+  for y = 1, self._h, 1 do
     local lineX  -- where the line starts
     local line = {}  -- the line itself (a sequence of characters)
     local lineColor, lineBg  -- the packed color and extracted background
 
-    for x = 1, self.w, 1 do
+    for x = 1, self._w, 1 do
       local id, jd = indexDiff(storage, x, y)
       local im, jm = indexMain(storage, x, y)
 
@@ -867,7 +869,7 @@ function Framebuffer:compileInstructions(force)
         color = (palette[deflate(palette, fg) + 1] * 0x1000000 +
                  palette[deflate(palette, bg) + 1])
 
-        if color == (data[im][jm + 1] or self.defaultColor) then
+        if color == (data[im][jm + 1] or self._defaultColor) then
           color = nil
         end
 
@@ -889,7 +891,7 @@ function Framebuffer:compileInstructions(force)
         end
 
         if not color then
-          color = data[im][jm + 1] or self.defaultColor
+          color = data[im][jm + 1] or self._defaultColor
         end
 
         -- if #line == 0, the line parameters aren't set yet
@@ -934,7 +936,7 @@ end
 -- @tparam table gpu GPU component proxy
 -- @tparam[opt] boolean force whether to do force-redraw
 function Framebuffer:flush(sx, sy, gpu, force)
-  if self.debug then
+  if self._debug then
     checkArg(1, sx, "number")
     checkArg(2, sy, "number")
     checkArg(3, gpu, "table")
@@ -947,14 +949,14 @@ function Framebuffer:flush(sx, sy, gpu, force)
 
   sx, sy = sx - 1, sy - 1
 
-  self:compileInstructions(force or self.forceRedraw)
+  self:compileInstructions(force or self._forceRedraw)
 
-  local colorData = self.colorData
-  local textData = self.textData
+  local colorData = self._colorData
+  local textData = self._textData
 
   -- group the instructions by the color to decrease the number of
   -- gpu.setBackground calls
-  table.sort(self.instructions, function(lhs, rhs)
+  table.sort(self._instructions, function(lhs, rhs)
     return colorData[lhs % 0x10000] < colorData[rhs % 0x10000]
   end)
 
@@ -963,10 +965,10 @@ function Framebuffer:flush(sx, sy, gpu, force)
 
   local index, yx, itype, x, y, color, fg, bg, text
 
-  for _, instruction in ipairs(self.instructions) do
+  for _, instruction in ipairs(self._instructions) do
     -- instruction = [type: 1 byte] [y: 1 byte] [x: 1 byte] [index: 2 bytes]
-    -- self.colorData[index] returns the color data ((fg << 24) | bg)
-    -- self.textData[index] returns the line (for set) or the char (for fill)
+    -- self._colorData[index] returns the color data ((fg << 24) | bg)
+    -- self._textData[index] returns the line (for set) or the char (for fill)
     --
     -- Also, keep in mind that x and y here are 0-based.
     --
@@ -999,10 +1001,10 @@ function Framebuffer:flush(sx, sy, gpu, force)
     end
   end
 
-  self.instructions = {}
-  self.textData = {}
-  self.colorData = {}
-  self.forceRedraw = false
+  self._instructions = {}
+  self._textData = {}
+  self._colorData = {}
+  self._forceRedraw = false
 end
 
 --- @section end
@@ -1024,11 +1026,11 @@ BufferView = class(
 -- @see wonderful.buffer.Buffer:view
 -- @see wonderful.buffer.BufferView:view
 function BufferView:__new__(buf, coordBox, restrictBox, debug)
-  self.buf = buf
+  self._buf = buf
 
-  self.coordBox = coordBox
-  self.box = restrictBox
-  self.debug = debug
+  self._coordBox = coordBox
+  self._box = restrictBox
+  self._debug = debug
 end
 
 --- Convert view-relative coordinates to buffer-relative coordinates.
@@ -1037,13 +1039,13 @@ end
 -- @treturn int a buffer-relative cell column number
 -- @treturn int a buffer-relative cell row number
 function BufferView:absCoords(x, y)
-  if self.debug then
+  if self._debug then
     checkArg(1, x, "number")
     checkArg(2, y, "number")
   end
 
-  return x + self.coordBox.x - 1,
-         y + self.coordBox.y - 1
+  return x + self._coordBox.x - 1,
+         y + self._coordBox.y - 1
 end
 
 --- Convert buffer-relative coordinates to view-relative coordinates.
@@ -1052,12 +1054,12 @@ end
 -- @treturn int x a view-relative cell column number
 -- @treturn int y a view-relative cell row number
 function BufferView:relCoords(x, y)
-  if self.debug then
+  if self._debug then
     checkArg(1, x, "number")
     checkArg(2, y, "number")
   end
-  return x - self.coordBox.x + 1,
-         y - self.coordBox.y + 1
+  return x - self._coordBox.x + 1,
+         y - self._coordBox.y + 1
 end
 
 --- Check if a cell at given buffer-relative coordinates belongs to the view.
@@ -1066,7 +1068,7 @@ end
 function BufferView:inRange(x, y)
   x, y = self:absCoords(x, y)
 
-  return self.box:has(x, y)
+  return self._box:has(x, y)
 end
 
 --- Proxy @{wonderful.buffer.Buffer:_set} to the buffer.
@@ -1079,7 +1081,7 @@ end
 -- @see wonderful.buffer.Buffer:_set
 function BufferView:_set(x, y, fg, bg, alpha, char)
   x, y = self:absCoords(x, y)
-  self.buf:_set(x, y, fg, bg, alpha, char)
+  self._buf:_set(x, y, fg, bg, alpha, char)
 end
 
 --- Proxy @{wonderful.buffer.Buffer:_fill} to the buffer.
@@ -1093,7 +1095,7 @@ end
 -- @tparam ?string char a character
 -- @see wonderful.buffer.Buffer:_fill
 function BufferView:_fill(x0, y0, x1, y1, fg, bg, alpha, char)
-  self.buf:_fill(x0, y0, x1, y1, fg, bg, alpha, char)
+  self._buf:_fill(x0, y0, x1, y1, fg, bg, alpha, char)
 end
 
 --- Proxy @{wonderful.buffer.Buffer:_get} to the buffer.
@@ -1105,7 +1107,7 @@ end
 function BufferView:_get(x, y)
   x, y = self:absCoords(x, y)
 
-  return self.buf:_get(x, y)
+  return self._buf:_get(x, y)
 end
 
 --- Proxy @{wonderful.buffer.Buffer:intersection} to the buffer.
@@ -1120,7 +1122,7 @@ end
 -- @treturn[2] nil the intersection is empty
 -- @see wonderful.buffer.Buffer:intersection
 function BufferView:intersection(x0, y0, w, h)
-  if self.debug then
+  if self._debug then
     checkArg(1, x0, "number")
     checkArg(2, y0, "number")
     checkArg(3, w, "number")
@@ -1150,7 +1152,7 @@ end
 -- @treturn wonderful.buffer.BufferView
 -- @see wonderful.buffer.Buffer:view
 function BufferView:view(x, y, w, h, sx, sy, sw, sh)
-  if self.debug then
+  if self._debug then
     checkArg(1, x, "number")
     checkArg(2, y, "number")
     checkArg(3, w, "number")
@@ -1165,36 +1167,35 @@ function BufferView:view(x, y, w, h, sx, sy, sw, sh)
 
   local coordBox = geometry.Box(x, y, w, h)
 
-  local restrictBox = self.coordBox:relative(sx, sy, sw, sh)
-  restrictBox = restrictBox:intersection(self.box)
+  local restrictBox = self._coordBox:relative(sx, sy, sw, sh)
+  restrictBox = restrictBox:intersection(self._box)
   restrictBox = restrictBox:intersection(coordBox)
 
-  -- the `self.buf` here is why the method was copy-pasted from the parent:
+  -- the `self._buf` here is why the method was copy-pasted from the parent:
   -- we don't really want to abuse recursion
-  local view = BufferView(self.buf, coordBox, restrictBox)
+  local view = BufferView(self._buf, coordBox, restrictBox)
   view:optimize()
 
   return view
 end
 
-function BufferView.__getters:depth()
-  return self.buf.depth
+function BufferView:getDepth()
+  return self._buf:getDepth()
 end
 
-function BufferView.__getters:palette()
-  return self.buf.palette
+function BufferView:getPalette()
+  return self._buf:getPalette()
 end
 
-function BufferView.__getters:w()
-  return self.coordBox.w
+function BufferView:getWidth()
+  return self._coordBox:getWidth()
 end
 
-function BufferView.__getters:h()
-  return self.coordBox.h
+function BufferView:getHeight()
+  return self._coordBox:getHeight()
 end
 
----
--- @export
+--- @export
 return {
   Buffer = Buffer,
   Framebuffer = Framebuffer,

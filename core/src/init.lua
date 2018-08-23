@@ -33,6 +33,7 @@ local tableUtil = require("wonderful.util.table")
 local DisplayManager = require("wonderful.display").DisplayManager
 local Document = require("wonderful.element.document").Document
 local Element = require("wonderful.element").Element
+local ipairsRev = tableUtil.ipairsRev
 
 --- The main class of the library.
 local Wonderful = class(nil, {name = "wonderful.Wonderful"})
@@ -40,32 +41,31 @@ local Wonderful = class(nil, {name = "wonderful.Wonderful"})
 --- The main class of the library.
 -- @type Wonderful
 
---- Whether the event loop is running.
--- @field Wonderful.running
-
 --- Construct a new instance.
+--
 -- The debug mode introduces a few checks that allow to catch bugs and errors.
 -- It may slow down the program significantly, though.
+--
 -- @tparam[opt] table args a keyword arguments table
 -- @tparam[opt] boolean args.debug whether the debug mode should be set
 function Wonderful:__new__(args)
   if args then
     if args.debug == nil then
-      self.debug = true
+      self._debug = true
     else
-      self.debug = not not args.debug
+      self._debug = not not args.debug
     end
   end
 
-  self.displayManager = DisplayManager()
+  self._displayManager = DisplayManager()
 
-  if not self.debug then
-    self.displayManager:optimize()
+  if not self._debug then
+    self._displayManager:optimize()
   end
 
-  self.documents = {}
-  self.signals = {}
-  self.running = false
+  self._documents = {}
+  self._signals = {}
+  self._running = false
   self:updateKeyboards()
 
   self:addSignal("touch", signal.Touch)
@@ -79,18 +79,22 @@ function Wonderful:__new__(args)
 
   self:addSignal("interrupted", signal.Interrupt)
 
-  if not self.debug then
+  if not self._debug then
     self:optimize()
   end
 end
 
+function Wonderful:isRunning()
+  return self._running
+end
+
 --- Update the keyboard bind mappings.
 function Wonderful:updateKeyboards()
-  self.keyboards = {}
+  self._keyboards = {}
 
   for screen in component.list("screen", true) do
     for _, keyboard in ipairs(component.invoke(screen, "getKeyboards")) do
-      self.keyboards[keyboard] = screen
+      self._keyboards[keyboard] = screen
     end
   end
 end
@@ -111,18 +115,18 @@ function Wonderful:addDocument(args)
   if args.x and args.y and args.w and args.h then
     args.box = geometry.Box(args.x, args.y, args.w, args.h)
 
-    if not self.debug then
+    if not self._debug then
       args.box:optimize()
     end
   end
 
-  local display = self.displayManager:newDisplay {
+  local display = self._displayManager:newDisplay {
     box = args.box,
     screen = args.screen,
-    debug = self.debug
+    debug = self._debug
   }
 
-  if not self.debug then
+  if not self._debug then
     display:optimize()
   end
 
@@ -131,11 +135,11 @@ function Wonderful:addDocument(args)
     display = display
   }
 
-  if not self.debug then
+  if not self._debug then
     document:optimize()
   end
 
-  table.insert(self.documents, document)
+  table.insert(self._documents, document)
   return document
 end
 
@@ -144,42 +148,44 @@ function Wonderful:render(noFlush)
   local stack = {}
 
   local function push(element, force)
-    if element:isa(Element) and element.renderRequestedByChildren or
-        element.shouldRedraw or force then
+    if element:isa(Element) and element._renderRequestedByChildren or
+        element._shouldRedraw or force then
       table.insert(stack, element)
     end
   end
 
-  for _, document in ipairs(self.documents) do
+  for _, document in ipairs(self._documents) do
     push(document)
 
-    local buffer = document.display.fb
+    local buffer = document:getDisplay():getFramebuffer()
 
     while #stack > 0 do
       local element = table.remove(stack, #stack)
 
-      if element.shouldRedraw and element.calculatedBox then
-        local coordBox = element.calculatedBox
-        local viewport = element.viewport
+      if element._shouldRedraw and element:getCalculatedBox() then
+        local coordBox = element:getCalculatedBox()
+        local viewport = element:getViewport()
 
-        local view = buffer:view(coordBox.x, coordBox.y, coordBox.w, coordBox.h,
-                                 viewport.x, viewport.y, viewport.w, viewport.h)
+        local view = buffer:view(
+          coordBox:getX(), coordBox:getY(),
+          coordBox:getWidth(), coordBox:getHeight(),
+          viewport:unpack())
 
         element:render(view)
       end
 
       if element:isa(Element) then
-        for i = #element.childNodes, 1, -1 do
-          push(element.childNodes[i], element.shouldRedraw)
+        for _, child in ipairsRev(element:getChildren()) do
+          push(child, element._shouldRedraw)
         end
       end
 
-      element.renderRequestedByChildren = false
+      element._renderRequestedByChildren = false
     end
   end
 
   if not noFlush then
-    for _, display in ipairs(self.displayManager.displays) do
+    for _, display in ipairs(self._displayManager:getDisplays()) do
       display:flush()
     end
   end
@@ -187,7 +193,7 @@ end
 
 --- Recompose all documents.
 function Wonderful:recomposeAll()
-  for _, document in ipairs(self.documents) do
+  for _, document in ipairs(self._documents) do
     document:recompose()
   end
 end
@@ -200,12 +206,12 @@ end
 function Wonderful:hit(screen, x, y)
   local hit
 
-  for _, document in ipairs(self.documents) do
-    if document.display.screen == screen and
-       document.display.box:has(x, y) then
+  for _, document in ipairs(self._documents) do
+    if document:getDisplay():getScreen() == screen and
+       document:getDisplay():getBox():has(x, y) then
 
       document:nlrWalk(function(element)
-        if element.calculatedBox:has(x, y) then
+        if element:getCalculatedBox():has(x, y) then
           hit = element
         end
       end)
@@ -219,42 +225,42 @@ end
 -- @tparam string name a signal name
 -- @param cls a @{wonderful.signal.Signal} class
 function Wonderful:addSignal(name, cls)
-  self.signals[name] = cls
+  self._signals[name] = cls
 end
 
 --- Run the event loop.
 function Wonderful:run(inThread)
   local success, traceback = xpcall(function()
-    self.running = true
+    self._running = true
 
     self:recomposeAll()
     self:render()
 
-    while self.running do
+    while self._running do
       local pulled = {event.pull()}
       local name = table.remove(pulled, 1)
 
-      if name and self.signals[name] then
-        local inst = self.signals[name](table.unpack(pulled))
+      if name and self._signals[name] then
+        local inst = self._signals[name](table.unpack(pulled))
 
         if signal.SCREEN_SIGNALS[name] then
-          local hit = self:hit(inst.screen, inst.x, inst.y)
+          local hit = self:hit(inst:getScreen(), inst:getX(), inst:getY())
 
           if hit then
             hit:dispatchEvent(inst)
           end
         elseif signal.KEYBOARD_SIGNALS[name] then
-          local screen = self.keyboards[inst.keyboard]
+          local screen = self._keyboards[inst:getKeyboard()]
 
           if screen then
-            for _, document in ipairs(self.documents) do
-              if document.display.screen == screen then
+            for _, document in ipairs(self._documents) do
+              if document:getDisplay():getScreen() == screen then
                 document:dispatchEvent(inst, true)
               end
             end
           end
         else
-          for _, document in ipairs(self.documents) do
+          for _, document in ipairs(self._documents) do
             document:dispatchEvent(inst, true)
           end
         end
@@ -300,17 +306,17 @@ end
 
 --- Stop the event loop.
 function Wonderful:stop()
-  self.running = false
+  self._running = false
   event.push("[" .. tostring(self) .. "] stop")
 end
 
 --- Destroy an instance of the main class.
 -- Runs @{wonderful.display.DisplayManager:restore}, and cleans up.
 function Wonderful:__destroy__()
-  self.running = false
-  self.displayManager:restore()
-  self.displayManager.displays = {}
-  self.documents = {}
+  self._running = false
+  self._displayManager:restore()
+  self._displayManager:clearDisplays()
+  self._documents = {}
 end
 
 ---

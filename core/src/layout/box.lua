@@ -34,14 +34,19 @@ local BoxLayout = class(Layout, {name = "wonderful.layout.box.BoxLayout"})
 --- The box layout.
 -- @type BoxLayout
 
---- The direction in which the layout children are layed out.
--- @field BoxLayout.direction
-
 --- Construct a new instance.
 -- @tparam number direction a direction in which to lay children out
 -- @see wonderful.layout.box.Direction
 function BoxLayout:__new__(direction)
-  self.direction = direction
+  self._direction = direction
+end
+
+function BoxLayout:setDirection(direction)
+  self._direction = direction
+end
+
+function BoxLayout:getDirection()
+  return self._direction
 end
 
 --- Recompose the layout children.
@@ -57,10 +62,10 @@ function BoxLayout:recompose(element)
   local count = 0
   local lastMut = 0
 
-  local vertical = self.direction == Direction.TopToBottom
-                or self.direction == Direction.BottomToTop
-  local reversed = self.direction == Direction.RightToLeft
-                or self.direction == Direction.BottomToTop
+  local vertical = self._direction == Direction.TopToBottom
+                or self._direction == Direction.BottomToTop
+  local reversed = self._direction == Direction.RightToLeft
+                or self._direction == Direction.BottomToTop
 
   for child in element:getLayoutItems() do
     if child:getStretch() == 0 then
@@ -75,9 +80,9 @@ function BoxLayout:recompose(element)
       table.insert(chunks[i], child)
 
       if vertical then
-        filled = filled + h + margin.t + margin.b
+        filled = filled + h + margin:getTop() + margin:getBottom()
       else
-        filled = filled + w + margin.l + margin.r
+        filled = filled + w + margin:getLeft() + margin:getRight()
       end
     else
       local margin = child:getMargin()
@@ -86,9 +91,9 @@ function BoxLayout:recompose(element)
       count = count + child:getStretch()
 
       if vertical then
-        filled = filled + margin.t + margin.b
+        filled = filled + margin:getTop() + margin:getBottom()
       else
-        filled = filled + margin.l + margin.r
+        filled = filled + margin:getLeft() + margin:getRight()
       end
 
       chunks[i] = {const = false, stretch = child:getStretch(), el = child}
@@ -100,11 +105,11 @@ function BoxLayout:recompose(element)
   local pad = element:getLayoutPadding()
 
   local full = vertical and
-               (box.h - pad.t - pad.b) or
-               (box.w - pad.l - pad.r)
+               (box:getHeight() - pad:getTop() - pad:getBottom()) or
+               (box:getWidth() - pad:getLeft() - pad:getRight())
 
   local basis = (full - filled) / count
-  local x, y = box.x + pad.l, box.y + pad.t
+  local x, y = box:getX() + pad:getLeft(), box:getY() + pad:getTop()
 
   for j, chunk in ipairs(chunks) do
     if chunk.const then
@@ -113,26 +118,26 @@ function BoxLayout:recompose(element)
         local margin = el:getMargin()
 
         if reversed and vertical then
-          el:boxCalculated(Box(x + margin.l,
-                               full - y + margin.b - h,
-                               w,
-                               h))
+          el:setCalculatedBox(Box(x + margin:getLeft(),
+                                  full - y + margin:getBottom() - h,
+                                  w,
+                                  h))
         elseif reversed then
-          el:boxCalculated(Box(full - x - margin.r - w + margin.l,
-                               y + margin.t,
-                               w,
-                               h))
+          el:setCalculatedBox(Box(full - x - margin:getRight() - w + margin:getLeft(),
+                                  y + margin:getTop(),
+                                  w,
+                                  h))
         else
-          el:boxCalculated(Box(x + margin.l,
-                               y + margin.t,
-                               w,
-                               h))
+          el:setCalculatedBox(Box(x + margin:getLeft(),
+                                  y + margin:getTop(),
+                                  w,
+                                  h))
         end
 
         if vertical then
-          y = y + h + margin.t + margin.b
+          y = y + h + margin:getTop() + margin:getBottom()
         else
-          x = x + w + margin.l + margin.r
+          x = x + w + margin:getLeft() + margin:getRight()
         end
       end
     else
@@ -154,28 +159,28 @@ function BoxLayout:recompose(element)
       end
 
       if reversed and vertical then
-        el:boxCalculated(Box(x + margin.l,
-                             full - y + margin.b - h,
-                             w,
-                             h))
+        el:setCalculatedBox(Box(x + margin:getLeft(),
+                                full - y + margin:getBottom() - h,
+                                w,
+                                h))
       elseif reversed then
-        el:boxCalculated(Box(full - x - margin.r - w + margin.l,
-                             y + margin.t,
-                             w,
-                             h))
+        el:setCalculatedBox(Box(full - x - margin:getRight() - w + margin:getLeft(),
+                                y + margin:getTop(),
+                                w,
+                                h))
       else
-        el:boxCalculated(Box(x + margin.l,
-                             y + margin.t,
-                             w,
-                             h))
+        el:setCalculatedBox(Box(x + margin:getLeft(),
+                                y + margin:getTop(),
+                                w,
+                                h))
       end
 
       if vertical then
         filled = filled + h
-        y = y + h + margin.t + margin.b
+        y = y + h + margin:getTop() + margin:getBottom()
       else
         filled = filled + w
-        x = x + w + margin.l + margin.r
+        x = x + w + margin:getLeft() + margin:getRight()
       end
     end
   end
@@ -188,8 +193,8 @@ end
 function BoxLayout:sizeHint(element)
   local width, height = 0, 0
 
-  local vertical = self.direction == Direction.TopToBottom or
-                   self.direction == Direction.BottomToTop
+  local vertical = self._direction == Direction.TopToBottom or
+                   self._direction == Direction.BottomToTop
 
   for child in element:getLayoutItems() do
     local hw, hh = child:sizeHint()
@@ -197,10 +202,10 @@ function BoxLayout:sizeHint(element)
 
     if vertical then
       width = math.max(width, hw)
-      height = height + hh + margin.t + margin.b
+      height = height + hh + margin:getTop() + margin:getBottom()
     else
       height = math.max(height, hh)
-      width = width + hw + margin.l + margin.r
+      width = width + hw + margin:getLeft() + margin:getRight()
     end
   end
 

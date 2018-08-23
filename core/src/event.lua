@@ -49,17 +49,10 @@ Event.bubblable = true
 --- Whether the event runs event listeners at capturing phase.
 Event.capturable = true
 
---- Whether propagation has been stopped.
-Event.canceled = false
-
---- Whether the default listeners has been prevented from running.
-Event.defaultPrevented = false
-
---- The current phase.
-Event.phase = EventPhase.None
-
---- The event target.
-Event.target = nil
+Event._canceled = false
+Event._defaultPrevented = false
+Event._phase = EventPhase.None
+Event._target = nil
 
 --- Prevent the default listeners from running.
 --
@@ -70,7 +63,7 @@ Event.target = nil
 --
 -- @see Event:cancel
 function Event:preventDefault()
-  self.defaultPrevented = true
+  self._defaultPrevented = true
 end
 
 --- Cancel the event, which stops propagation of the event.
@@ -81,8 +74,24 @@ end
 -- @see Event:preventDefault
 function Event:cancel()
   if self.cancelable then
-    self.canceled = true
+    self._canceled = true
   end
+end
+
+function Event:isCanceled()
+  return self._canceled
+end
+
+function Event:isDefaultPrevented()
+  return self._defaultPrevented
+end
+
+function Event:getPhase()
+  return self._phase
+end
+
+function Event:getTarget()
+  return self._target
 end
 
 --- @section end
@@ -92,27 +101,6 @@ local EventListener = class(nil, {name = "wonderful.event.EventListener"})
 
 --- The event listener class.
 -- @type EventListener
-
---- The event target the listener is assigned to.
--- @field EventListener.target
-
---- The event to which the listener is assigned to.
--- @field EventListener.event
-
---- The handler function, called when the listener catches the event.
--- @field EventListener.handler
-
---- Whether the listener is default.
--- @field EventListener.default
-
---- Whether the listener is executed before user-defined listeners.
--- @field EventListener.before
-
---- The function to call if the listener is canceled. **Rewritable**.
--- @field EventListener.onCancel
-
---- Whether the listener is executed at the capture phase.
--- @field EventListener.capture
 
 --- Construct a new instance.
 --
@@ -127,42 +115,66 @@ local EventListener = class(nil, {name = "wonderful.event.EventListener"})
 -- @tparam[optchain] function(target,event,handler) args.onCancel a function to run if the default action gets prevented
 -- @tparam[opt=false] boolean args.capture whether to run it at capturing phase
 function EventListener:__new__(args)
-  self.target = args.target
-  self.event = args.event
-  self.handler = args.handler
-  self.default = not not args.default
-  self.before = self.default and not not args.before
-  self._onCancel = self.before and args.onCancel or nil
-  self.capture = not not args.capture
+  self._target = args.target
+  self._event = args.event
+  self._handler = args.handler
+  self._default = not not args.default
+  self._before = self.default and not not args.before
+  self._onCancel = self._before and args.onCancel or nil
+  self._capture = not not args.capture
 end
 
 --- Removes the listener from the event target it's attached to.
 function EventListener:remove()
-  self.target:_removeEventListener(self)
+  self._target:_removeEventListener(self)
 end
 
 function EventListener:__tostring__()
   return ("%s {target = <%s>, event = <%s>, handler = %s, default = %s, " ..
           "before = %s, onCancel = %s, capture = %s"):format(
     self.NAME,
-    tostring(self.target),
-    tostring(self.event),
-    tostring(self.handler),
-    tostring(self.default),
-    tostring(self.before),
-    tostring(self.onCancel),
-    tostring(self.capture)
+    tostring(self._target),
+    tostring(self._event),
+    tostring(self._handler),
+    tostring(self._default),
+    tostring(self._before),
+    tostring(self._onCancel),
+    tostring(self._capture)
   )
 end
 
-function EventListener.__getters:onCancel()
+function EventListener:getCancelHandler()
   return self._onCancel
 end
 
-function EventListener.__setters:onCancel(value)
-  if self.before then
+function EventListener:setCancelHandler(value)
+  if self._before then
     self._onCancel = value
   end
+end
+
+function EventListener:getTarget()
+  return self._target
+end
+
+function EventListener:getEvent()
+  return self._event
+end
+
+function EventListener:getHandler()
+  return self._handler
+end
+
+function EventListener:isDefault()
+  return self._default
+end
+
+function EventListener:isRunBefore()
+  return self._before
+end
+
+function EventListener:isCapturing()
+  return self._capture
 end
 
 --- @section end
@@ -175,7 +187,7 @@ local EventTarget = class(nil, {name = "wonderful.event.EventTarget"})
 
 --- Construct a new instance.
 function EventTarget:__new__()
-  self.eventListeners = {}
+  self._eventListeners = {}
 end
 
 --- Add a default event listener for the class.
@@ -187,7 +199,7 @@ end
 -- @tparam[opt=false] boolean args.capture whether to run it at capturing phase
 -- @treturn EventListener the listener instance
 function EventTarget:addDefaultListener(args)
-  local listener = EventListener({
+  local listener = EventListener {
     target = self,
     event = args.event,
     handler = args.handler,
@@ -195,13 +207,13 @@ function EventTarget:addDefaultListener(args)
     before = args.before,
     onCancel = args.onCancel,
     capture = args.capture,
-  })
+  }
 
-  if not self.eventListeners[listener.event] then
-    self.eventListeners[listener.event] = {}
+  if not self._eventListeners[listener:getEvent()] then
+    self._eventListeners[listener:getEvent()] = {}
   end
 
-  table.insert(self.eventListeners[listener.event], listener)
+  table.insert(self._eventListeners[listener:getEvent()], listener)
 
   return listener
 end
@@ -213,7 +225,7 @@ end
 -- @tparam[opt=false] boolean args.capture whether to run it at capturing phase
 -- @treturn EventListener the listener instance
 function EventTarget:addListener(args)
-  local listener = EventListener({
+  local listener = EventListener {
     target = self,
     event = args.event,
     handler = args.handler,
@@ -221,13 +233,13 @@ function EventTarget:addListener(args)
     before = false,
     onCancel = nil,
     capture = args.capture,
-  })
+  }
 
-  if not self.eventListeners[listener.event] then
-    self.eventListeners[listener.event] = {}
+  if not self._eventListeners[listener:getEvent()] then
+    self._eventListeners[listener:getEvent()] = {}
   end
 
-  table.insert(self.eventListeners[listener.event], listener)
+  table.insert(self._eventListeners[listener:getEvent()], listener)
 
   return listener
 end
@@ -250,14 +262,14 @@ function EventTarget:findListener(args)
   local onCancel = before and args.onCancel
   local capture = not not args.capture
 
-  local _, listener = tableUtil.first(self.eventListeners[event], function(v)
+  local _, listener = tableUtil.first(self._eventListeners[event], function(v)
     return (
-      v.event == event and
-      v.handler == handler and
-      v.default == default and
-      v.before == before and
-      v.onCancel == onCancel and
-      v.capture == capture
+      v:getEvent() == event and
+      v:getHandler() == handler and
+      v:isDefault == default and
+      v:isRunBefore() == before and
+      v:getCancelHandler() == onCancel and
+      v:isCapturing() == capture
     )
   end)
 
@@ -268,14 +280,14 @@ end
 -- @tparam[opt=false] boolean default whether to remove default listeners as well
 function EventTarget:removeAllListeners(default)
   if default then
-    self.eventListeners = {}
+    self._eventListeners = {}
 
     return
   end
 
-  for _, listeners in pairs(self.eventListeners) do
+  for _, listeners in pairs(self._eventListeners) do
     for idx = #listeners, 1, -1 do
-      if not listeners[idx].default then
+      if not listeners[idx]:isDefault() then
         table.remove(listeners, idx)
       end
     end
@@ -305,7 +317,7 @@ end
 -- @tparam boolean flood whether to use flood dispatch
 -- @treturn boolean whether the propagation was stopped
 function EventTarget:dispatchEvent(event, flood)
-  event.phase = EventPhase.None
+  event._phase = EventPhase.None
 
   if not flood then
     -- Build the event propagation path
@@ -325,30 +337,30 @@ function EventTarget:dispatchEvent(event, flood)
     end
 
     if event.capturable then
-      event.phase = EventPhase.Capturing
+      event._phase = EventPhase.Capturing
 
       for i = #path, 1, -1 do
-        event.target = path[i]
-        event.defaultPrevented = false
+        event._target = path[i]
+        event._defaultPrevented = false
 
         path[i]:_dispatchEvent(event)
 
-        if event.canceled then
+        if event:isCanceled() then
           return true
         end
       end
     end
 
     if event.bubblable then
-      event.phase = EventPhase.Bubbling
+      event._phase = EventPhase.Bubbling
 
       for i = 1, #path, 1 do
-        event.target = path[i]
-        event.defaultPrevented = false
+        event._target = path[i]
+        event._defaultPrevented = false
 
         path[i]:_dispatchEvent(event)
 
-        if event.canceled then
+        if event:isCanceled() then
           return true
         end
       end
@@ -358,13 +370,13 @@ function EventTarget:dispatchEvent(event, flood)
   else
     -- flood dispatch
     local function dispatchCapture(element)
-      event.target = element
-      event.defaultPrevented = false
+      event._target = element
+      event._defaultPrevented = false
 
       element:_dispatchEvent(event)
 
       for _, child in ipairs(element:getChildEventTargets()) do
-        if event.canceled then
+        if event:isCanceled() then
           return true
         end
 
@@ -373,15 +385,15 @@ function EventTarget:dispatchEvent(event, flood)
     end
 
     local function dispatchBubbling(element)
-      event.target = element
-      event.defaultPrevented = false
+      event._target = element
+      event._defaultPrevented = false
 
       local children = element:getChildEventTargets()
 
       for i = #children, 1, -1 do
         dispatchBubbling(children[i])
 
-        if event.canceled then
+        if event:isCanceled() then
           return true
         end
       end
@@ -390,7 +402,7 @@ function EventTarget:dispatchEvent(event, flood)
     end
 
     if event.capturable then
-      event.phase = EventPhase.Capturing
+      event._phase = EventPhase.Capturing
 
       if dispatchCapture(self) then
         return true
@@ -398,7 +410,7 @@ function EventTarget:dispatchEvent(event, flood)
     end
 
     if event.bubblable then
-      event.phase = EventPhase.Bubbling
+      event._phase = EventPhase.Bubbling
 
       if dispatchBubbling(self) then
         return true
@@ -409,33 +421,35 @@ end
 
 function EventTarget:_removeEventListener(listener)
   local removed = not not tableUtil.removeFirst(
-    self.eventListeners[listener.event],
+    self._eventListeners[listener:getEvent()],
     listener
   )
 
-  if removed and #self.eventListeners[listener.event] == 0 then
-    self.eventListeners[listener.event] = nil
+  if removed and #self._eventListeners[listener:getEvent()] == 0 then
+    self._eventListeners[listener:getEvent()] = nil
   end
 
   return removed
 end
 
 function EventTarget:_dispatchEvent(event)
-  if not self.eventListeners[event.class] then
+  if not self._eventListeners[event.class] then
     return
   end
 
   local queue = {}
   local before, user, default = 1, 1, 1
 
-  for _, listener in ipairs(self.eventListeners[event.class]) do
-    if event.phase == EventPhase.Capturing and listener.capture or
-        event.phase == EventPhase.Bubbling and not listener.capture then
-      if not listener.default then
+  for _, listener in ipairs(self._eventListeners[event.class]) do
+    if (event:getPhase() == EventPhase.Capturing and
+          listener:isCapturing() or
+        event:getPhase() == EventPhase.Bubbling and
+          not listener:isCapturing()) then
+      if not listener:isDefault() then
         table.insert(queue, user, listener)
         user = user + 1
         default = default + 1
-      elseif not listener.before then
+      elseif not listener:isBefore() then
         table.insert(queue, default, listener)
         default = default + 1
       else
@@ -448,21 +462,21 @@ function EventTarget:_dispatchEvent(event)
   end
 
   for idx, listener in ipairs(queue) do
-    if idx <= default and not event.canceled and
-        (idx > before and idx <= user or not event.defaultPrevented) then
+    if idx <= default and not event:isCanceled() and
+        (idx > before and idx <= user or not event:isDefaultPrevented()) then
       -- run default-before (if not prevented), user, and default (if not
       -- prevented) listeners
 
       listener.handler(self, event, listener)
 
-      if idx <= before and listener.onCancel then
+      if idx <= before and listener:getCancelHandler() then
         -- if the default-before listener has an on-cancel callback, add it to
         -- the end of the queue again
         table.insert(queue, listener)
       end
-    elseif event.defaultPrevented and idx > default then
+    elseif event:isDefaultPrevented() and idx > default then
       -- if the default listeners are prevented, run on-cancel callbacks
-      listener.onCancel(self, event, listener)
+      listener:getCancelHandler()(self, event, listener)
     end
   end
 end

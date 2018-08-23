@@ -38,41 +38,15 @@ local LeafElement = class(
 --- The leaf element class, which can't store children.
 -- @type LeafElement
 
---- The element's calculated box.
--- @see wonderful.geometry.Box
--- @field LeafElement.calculatedBox
-
---- The document's style instance. May be absent.
--- @field LeafElement.style
-
---- The document's display. May be absent.
--- @field LeafElement.display
-
---- Whether the element is a leaf node.
--- @field LeafElement.isLeaf
-
---- Whether the element is part of the container's element flow (has the
--- @{wonderful.element.attribute.Position|Position} attribute set to either
--- `"static"` or `"relative"`).
---
--- @field LeafElement.isFlowElement
-
---- The viewport (the shown area when the container is scrolled).
--- @field LeafElement.viewport
-
---- Whether the element is part of a free tree.
--- A free tree is a tree without
--- a @{wonderful.element.document.Document|Document} node.
--- @field LeafElement.isFreeTree
-
 --- Construct a new instance.
 function LeafElement:__new__()
-  self.attributes = {}
+  self._attributes = {}
 
   self:superCall(node.ChildNode, "__new__")
   self:superCall(event.EventTarget, "__new__")
 
-  self.calculatedBox = geometry.Box()
+  self._calculatedBox = geometry.Box()
+  self._focused = false
   self:requestRender()
 end
 
@@ -92,7 +66,7 @@ end
 --- Flag the element so that it's rendered the next time `Wonderful:render`
 -- is called.
 function LeafElement:requestRender()
-  self.shouldRedraw = true
+  self._shouldRedraw = true
 
   self:_notifyParentsOfRenderRequest()
 end
@@ -105,9 +79,9 @@ end
 -- @treturn boolean whether the element was actually rendered
 -- @see LeafElement:requestRender
 function LeafElement:render(fbView)
-  if self.shouldRedraw then
+  if self._shouldRedraw then
     self:_render(fbView)
-    self.shouldRedraw = false
+    self._shouldRedraw = false
 
     return true
   end
@@ -128,14 +102,14 @@ end
 -- -- Unsets an attribute.
 -- element:set(Attribute)
 function LeafElement:set(attr)
-  local previous = self.attributes[attr.class]
+  local previous = self._attributes[attr.class]
   local new = attr
 
   if new.is_class then
     new = nil
   end
 
-  self.attributes[attr.class] = new
+  self._attributes[attr.class] = new
 
   if previous then
     previous:onUnset(self, new)
@@ -155,9 +129,9 @@ end
 -- @see wonderful.element.LeafElement:set
 -- @usage
 -- element:set(Attribute("test"))
--- print(element:get(Attribute).value)
+-- print(element:get(Attribute):get())
 function LeafElement:get(clazz, default)
-  local attr = self.attributes[clazz.class]
+  local attr = self._attributes[clazz.class]
 
   if attr then
     return attr
@@ -169,7 +143,7 @@ function LeafElement:get(clazz, default)
 end
 
 function LeafElement:getParentEventTarget()
-  return self.parentNode
+  return self:getParent()
 end
 
 function LeafElement:getChildEventTargets()
@@ -201,55 +175,64 @@ end
 --- Get the element's stretch value.
 -- @treturn wonderful.element.attribute.Stretch
 function LeafElement:getStretch()
-  return self:get(attribute.Stretch, true).value
+  return self:get(attribute.Stretch, true):get()
 end
 
 --- Set a new calculated box.
 -- @tparam wonderful.geometry.Box new the new box
-function LeafElement:boxCalculated(new)
+function LeafElement:setCalculatedBox(new)
   local position = self:get(attribute.Position, true)
 
-  if position.value == "relative" then
+  if position:get() == "relative" then
     local bbox = self:get(attribute.BoundingBox)
-    new.x = new.x + (bbox and bbox.left or 0)
-    new.y = new.y + (bbox and bbox.top or 0)
+    new:setX(new:getX() + (bbox and bbox:getLeft() or 0))
+    new:setY(new:getY() + (bbox and bbox:getTop() or 0))
   end
 
-  self.calculatedBox = new
+  self._calculatedBox = new
 end
 
 function LeafElement:_notifyParentsOfRenderRequest()
-  local ascendant = self.parentNode
+  local ascendant = self:getParent()
 
   while ascendant do
-    ascendant.renderRequestedByChildren = true
+    ascendant._renderRequestedByChildren = true
 
-    ascendant = ascendant.parentNode
+    ascendant = ascendant:getParent()
   end
 end
 
-function LeafElement.__getters:style()
-  return self.rootNode.globalStyle
+function LeafElement:getStyle()
+  return self:getRootNode()._globalStyle
 end
 
-function LeafElement.__getters:display()
-  return self.rootNode.globalDisplay
+function LeafElement:getDisplay()
+  return self:getRootNode()._globalDisplay
 end
 
-function LeafElement.__getters:isLeaf()
+function LeafElement:isLeaf()
   return true
 end
 
-function LeafElement.__getters:isFlowElement()
+function LeafElement:isFlowElement()
   return self:get(attribute.Position, true):isFlowElement()
 end
 
-function LeafElement.__getters:viewport()
-  return self.parentNode.viewport:intersection(self.calculatedBox)
+function LeafElement:getViewport()
+  return self:getParent():getViewport():intersection(self._calculatedBox)
 end
 
-function LeafElement.__getters:isFreeTree()
-  return not self.rootNode:isa(require("wonderful.element.document").Document)
+function LeafElement:isFreeTree()
+  return not self:getRootNode()
+                 :isa(require("wonderful.element.document").Document)
+end
+
+function LeafElement:getCalculatedBox()
+  return self._calculatedBox
+end
+
+function LeafElement:isFocused()
+  return self._focused
 end
 
 ---
@@ -265,32 +248,25 @@ local Element = class({node.ParentNode, LeafElement, layout.LayoutContainer},
 --- A non-leaf element class.
 -- @type Element
 
---- The layout used to position children.
--- @field Element.layout
-
---- Whether the element is a leaf node.
--- @field Element.isLeaf
-
 --- Construct a new element instance.
 function Element:__new__()
   self:superCall(LeafElement, "__new__")
   self:superCall(node.ParentNode, "__new__")
 
-  self.layout = VBoxLayout()
-  self.layout:optimize()
+  self:setLayout(VBoxLayout())
 
-  self.markedToRecompose = true
-  self.hasMarkedDescendant = true
+  self._markedToRecompose = true
+  self._hasMarkedDescendant = true
 end
 
 function Element:getChildEventTargets()
-  return self.childNodes
+  return self:getChildren()
 end
 
 function Element:getLayoutItems()
   return coroutine.wrap(function()
-    for _, element in ipairs(self.childNodes) do
-      if element.isFlowElement then
+    for _, element in ipairs(self:getChildren()) do
+      if element:isFlowElement() then
         coroutine.yield(element)
       end
     end
@@ -302,24 +278,24 @@ function Element:getLayoutPadding()
 end
 
 function Element:getLayoutBox()
-  local x, y, w, h = self.calculatedBox:unpack()
+  local x, y, w, h = self._calculatedBox:unpack()
   local scrollBox = self:get(attribute.ScrollBox)
 
   if scrollBox then
-    if scrollBox.x then
-      x = x + scrollBox.x
+    if scrollBox:getX() then
+      x = x + scrollBox:getX()
     end
 
-    if scrollBox.y then
-      y = y + scrollBox.y
+    if scrollBox:getY() then
+      y = y + scrollBox:getY()
     end
 
-    if scrollBox.w then
-      w = scrollBox.w
+    if scrollBox:getWidth() then
+      w = scrollBox:getWidth()
     end
 
-    if scrollBox.h then
-      h = scrollBox.h
+    if scrollBox:getHeight() then
+      h = scrollBox:getHeight()
     end
   end
 
@@ -351,10 +327,10 @@ function Element:removeChild(index)
 end
 
 function Element:sizeHint()
-  local width, height = self.layout:sizeHint(self)
+  local width, height = self._layout:sizeHint(self)
   local padding = self:getLayoutPadding()
-  return width + padding.l + padding.r,
-         height + padding.t + padding.b
+  return width + padding:getLeft() + padding:getRight(),
+         height + padding:getTop() + padding:getBottom()
 end
 
 --- Mark the element to be recomposed when `recompose` is called for it or
@@ -362,7 +338,7 @@ end
 --
 -- @see wonderful.element.Element:recompose
 function Element:markToRecompose()
-  self.markedToRecompose = true
+  self._markedToRecompose = true
   self:_markParent()
 end
 
@@ -373,73 +349,85 @@ end
 -- @tparam[opt=false] boolean force whether to force recomposing
 -- @see wonderful.element.Element:markToRecompose
 function Element:recompose(force)
-  if self.isFreeTree then
+  if self:isFreeTree() then
     return
   end
 
   if force then
-    self.markedToRecompose = true
+    self._markedToRecompose = true
   end
 
-  if self.markedToRecompose then
-    self.layout:recompose(self)
+  if self._markedToRecompose then
+    self._layout:recompose(self)
     self:requestRender()
 
     local bbox, x, y, w, h
     local layoutBox = self:getLayoutBox()
-    local calcBox = self.calculatedBox
+    local calcBox = self._calculatedBox
 
-    for _, element in ipairs(self.childNodes) do
+    for _, element in ipairs(self:getChildren()) do
       local position = element:get(attribute.Position, true)
 
       if not position:isFlowElement() then
         bbox = element:get(attribute.BoundingBox)
 
-        if position.value == "absolute" then
-          x, y = layoutBox.x, layoutBox.y
-        elseif position.value == "fixed" then
-          x, y = calcBox.x, calcBox.y
+        if position:get() == "absolute" then
+          x, y = layoutBox:getX(), layoutBox:getY()
+        elseif position:get() == "fixed" then
+          x, y = calcBox:getX(), calcBox:getY()
         end
 
         w, h = element:sizeHint()
 
-        element:boxCalculated(geometry.Box(
-          x + (bbox.left or 0),
-          y + (bbox.top or 0),
-          bbox.width or w,
-          bbox.height or h
+        element:setCalculatedBox(geometry.Box(
+          x + (bbox:getLeft() or 0),
+          y + (bbox:getTop() or 0),
+          bbox:getWidth() or w,
+          bbox:getHeight() or h
         ))
       end
     end
   end
 
-  if self.hasMarkedDescendant or self.markedToRecompose then
-    for _, element in pairs(self.childNodes) do
+  if self._hasMarkedDescendant or self._markedToRecompose then
+    for _, element in pairs(self:getChildren()) do
       if element:isa(Element) then
-        if self.markedToRecompose then
-          element.markedToRecompose = true
+        if self._markedToRecompose then
+          element._markedToRecompose = true
         end
 
-        if element.markedToRecompose or element.hasMarkedDescendant then
+        if element._markedToRecompose or element._hasMarkedDescendant then
           element:recompose()
         end
       end
     end
   end
 
-  self.hasMarkedDescendant = false
-  self.markedToRecompose = false
+  self._hasMarkedDescendant = false
+  self._markedToRecompose = false
 end
 
 function Element:_markParent()
-  if self.parentNode then
-    self.parentNode.hasMarkedDescendant = true
-    self.parentNode:_markParent()
+  local ascendant = self:getParent()
+
+  while ascendant do
+    ascendant._hasMarkedDescendant = true
+
+    ascendant = ascendant:getParent()
   end
 end
 
-function Element.__getters:isLeaf()
+function Element:isLeaf()
   return false
+end
+
+function Element:setLayout(layout)
+  layout:optimize()
+  self._layout = layout
+end
+
+function Element:getLayout(layout)
+  return self._layout
 end
 
 --- @export

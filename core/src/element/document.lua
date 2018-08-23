@@ -47,41 +47,41 @@ function Document:__new__(args)
 
   if type(args.style) == "table" and args.style.isa and
       args.style:isa(style.Style) then
-    self.globalStyle = args.style
+    self._globalStyle = args.style
   elseif type(args.style) == "table" and args.style.isa and
       args.style:isa(textBuf.Buffer) then
-    self.globalStyle = style.WonderfulStyle()
+    self._globalStyle = style.WonderfulStyle()
                             :parseFromBuffer(args.style)
                             :stripContext()
   elseif type(args.style) == "table" and args.style.read then
-    self.globalStyle = style.WonderfulStyle()
+    self._globalStyle = style.WonderfulStyle()
                             :parseFromStream(args.style)
                             :stripContext()
   elseif type(args.style) == "string" then
-    self.globalStyle = style.WonderfulStyle()
+    self._globalStyle = style.WonderfulStyle()
                             :parseFromString(args.style)
                             :stripContext()
   else
-    self.globalStyle = style.WonderfulStyle()
+    self._globalStyle = style.WonderfulStyle()
   end
 
-  self.globalDisplay = args.display
+  self._globalDisplay = args.display
 
-  self.calculatedBox = self.globalDisplay.box
+  self._calculatedBox = self.globalDisplay:getBox()
 
-  self:addDefaultListener({
+  self:addDefaultListener {
     event = signal.KeyDown,
     handler = self.onKeyDown,
-  })
+  }
 end
 
 function Document:_render(view)
-  view:fill(1, 1, view.w, view.h, 0xffffff, 0x000000, 1, " ")
+  view:fill(1, 1, view:getWidth(), view:getHeight(), 0xffffff, 0x000000, 1, " ")
 end
 
 function Document:onKeyDown(e)
-  if e.code == kbd.keys.tab then
-    if kbd:isShiftDown(e.keyboard) then
+  if e:getCode() == kbd.keys.tab then
+    if kbd:isShiftDown(e:getKeyboard()) then
       self:switchFocus(true)
     else
       self:switchFocus(false)
@@ -98,7 +98,7 @@ end
 -- @tparam boolean reversed if true, switches to the previous element
 -- @treturn boolean whether the focus was actually switched
 function Document:switchFocus(reversed)
-  local prev = self.focused
+  local prev = self._elementFocused
 
   local traversalFunc
 
@@ -111,7 +111,7 @@ function Document:switchFocus(reversed)
   local found = not prev
 
   local new = traversalFunc(self, function(node)
-    if found and node:get(attribute.Focus, true).enabled then
+    if found and node:get(attribute.Focus, true):isEnabled() then
       return node
     end
 
@@ -121,46 +121,30 @@ function Document:switchFocus(reversed)
   end)
 
   if prev then
-    prev.focused = false
+    prev._focused = false
   end
 
   if new then
-    new.focused = true
+    new._focused = true
   end
 
-  self.focused = new
+  self._elementFocused = new
 
-  if prev then
-    if prev:dispatchEvent(focus.FocusOut(new)) then
-      -- the event was canceled
-      prev.focused = true
-      new.focused = false
-      self.focused = prev
+  if prev and prev:dispatchEvent(focus.FocusOut(new)) or
+      new and new:dispatchEvent(focus.FocusIn(prev)) then
+    -- the event was canceled
+    prev._focused = true
+    new._focused = false
+    self._elementFocused = prev
 
-      return false
-    end
-  end
-
-  if new then
-    if new:dispatchEvent(focus.FocusIn(prev)) then
-      -- the event was canceled
-      prev.focused = true
-      new.focused = false
-      self.focused = prev
-
-      return false
-    end
+    return false
   end
 
   return true
 end
 
-function Document.__getters:focusingContext()
-  return self.rootFocusingContext
-end
-
-function Document.__getters:viewport()
-  return self.calculatedBox
+function Document:getViewport()
+  return self._calculatedBox
 end
 
 return {

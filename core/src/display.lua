@@ -49,19 +49,19 @@ local Display = class(nil, {name = "wonderful.display.Display"})
 
 --- Construct a new display manager instance.
 function DisplayManager:__new__()
-  self.screens = {}
-  self.gpus = {}
-  self.inital = {}
-  self.displays = {}
+  self._screens = {}
+  self._gpus = {}
+  self._inital = {}
+  self._displays = {}
 
-  self.maxDepth = 1
+  self._maxDepth = 1
 
   local deviceInfo = computer.getDeviceInfo() or {}
 
   local noScreens, noGPUs = true, true
 
   for address in component.list("screen", true) do
-    self.screens[address] = {
+    self._screens[address] = {
       address = address,
       depth = tonumber((deviceInfo[address] or
                         {}).width) or 8,
@@ -77,12 +77,12 @@ function DisplayManager:__new__()
     local maxDepth = tonumber((deviceInfo[address] or
                                {}).width) or 8
 
-    self.gpus[address] = {
+    self._gpus[address] = {
       address = address,
       depth = maxDepth
     }
 
-    self.inital[address] = {
+    self._inital[address] = {
       screen = component.invoke(address, "getScreen"),
       depth = component.invoke(address, "getDepth") or maxDepth,
       background = component.invoke(address, "getBackground") or 0x000000,
@@ -90,12 +90,12 @@ function DisplayManager:__new__()
       resolution = {component.invoke(address, "getResolution")}
     }
 
-    if not self.inital[address].resolution[1] then
-      self.inital[address].resolution = {depthResolution(maxDepth)}
+    if not self._inital[address].resolution[1] then
+      self._inital[address].resolution = {depthResolution(maxDepth)}
     end
 
-    if maxDepth > self.maxDepth then
-      self.maxDepth = maxDepth
+    if maxDepth > self._maxDepth then
+      self._maxDepth = maxDepth
     end
 
     noGPUs = false
@@ -109,13 +109,13 @@ function DisplayManager:__new__()
     error("no GPUs available")
   end
 
-  self.primaryScreen = component.getPrimary("screen")
-  self.primaryGPU = component.getPrimary("gpu")
+  self._primaryScreen = component.getPrimary("screen")
+  self._primaryGPU = component.getPrimary("gpu")
 end
 
 --- Restores the previous state of GPUs.
 function DisplayManager:restore()
-  for gpu, inital in pairs(self.inital) do
+  for gpu, inital in pairs(self._inital) do
     local w, h = table.unpack(inital.resolution)
 
     if inital.screen then
@@ -137,14 +137,14 @@ end
 -- @tparam int w the width
 -- @tparam int h the height
 function DisplayManager:setPreferredScreenResolution(address, w, h)
-  self.screens[address].preferredResolution = {w, h}
+  self._screens[address].preferredResolution = {w, h}
 end
 
 --- Forcefully bind a GPU to a screen.
 -- @tparam string screen the screen address
 -- @tparam string gpu the GPU address
 function DisplayManager:forceScreenGPU(screen, gpu)
-  self.screens[screen].forcedGPU = gpu
+  self._screens[screen].forcedGPU = gpu
 end
 
 --- Choose a resolution of a screen.
@@ -155,7 +155,7 @@ function DisplayManager:getScreenResolution(screen)
   local depth = self:getScreenDepth(screen)
 
   local dw, dh = depthResolution(depth)
-  local w, h = table.unpack(self.screens[screen].preferredResolution or
+  local w, h = table.unpack(self._screens[screen].preferredResolution or
                             {math.huge, math.huge})
 
   return math.min(w, dw), math.min(h, dh)
@@ -165,11 +165,11 @@ end
 -- @tparam string screen the screen address
 -- @treturn int the depth
 function DisplayManager:getScreenDepth(screen)
-  screen = self.screens[screen]
+  screen = self._screens[screen]
 
   return math.min(
     screen.depth,
-    screen.forcedGPU and self.gpus[screen.forcedGPU].depth or self.maxDepth
+    screen.forcedGPU and self._gpus[screen.forcedGPU].depth or self._maxDepth
   )
 end
 
@@ -194,14 +194,14 @@ function DisplayManager:newDisplay(spec)
   if not spec.screen then
     local candidates = {}
 
-    for address, screen in pairs(self.screens) do
+    for address, screen in pairs(self._screens) do
       local w, h = self:getScreenResolution(address)
 
       if spec.box and
           -- regions can overlap now
           -- not spec.box:intersectsOneOf(screen.regions) and
-          spec.box.w + spec.box.x <= w and
-          spec.box.h + spec.box.y <= h then
+          spec.box:getWidth() + spec.box:getX() <= w and
+          spec.box:getHeight() + spec.box:getY() <= h then
         screen.box = spec.box
         table.insert(candidates, 1, screen)
       elseif #screen.regions == 0 then
@@ -216,7 +216,7 @@ function DisplayManager:newDisplay(spec)
 
     local primaryIndex
     for i, screen in ipairs(candidates) do
-      if self.primaryScreen == screen.address then
+      if self._primaryScreen == screen.address then
         primaryIndex = i
         break
       end
@@ -236,10 +236,10 @@ function DisplayManager:newDisplay(spec)
   end
 
   local display = Display(
-    self, spec.screen, spec.box, self:getScreenDepth(spec.screen), self.debug
+    self, spec.screen, spec.box, self:getScreenDepth(spec.screen), self._debug
   )
 
-  if not self.debug then
+  if not self._debug then
     display:optimize()
   end
 
@@ -247,7 +247,7 @@ function DisplayManager:newDisplay(spec)
   local gpu = component.proxy(self:getGPU(display))
   gpu.setResolution(w, h)
 
-  table.insert(self.displays, display)
+  table.insert(self._displays, display)
   return display
 end
 
@@ -256,16 +256,16 @@ end
 -- @treturn string a GPU address
 function DisplayManager:getGPU(display)
   local candidates = {}
-  local screen = self.screens[display.screen]
+  local screen = self._screens[display.screen]
 
-  for _, gpu in pairs(self.gpus) do
+  for _, gpu in pairs(self._gpus) do
     if gpu.depth >= screen.depth then
       table.insert(candidates, gpu.address)
     end
   end
 
   table.sort(candidates, function(rhs, lhs)
-    return self.gpus[rhs].depth < self.gpus[lhs].depth
+    return self._gpus[rhs].depth < self._gpus[lhs].depth
   end)
 
   local bindIndex
@@ -285,8 +285,15 @@ function DisplayManager:getGPU(display)
   return candidates[1]
 end
 
----
--- @section end
+function DisplayManager:getDisplays()
+  return self._displays
+end
+
+function DisplayManager:clearDisplays()
+  self._displays = {}
+end
+
+--- @section end
 
 --------------------------------------------------------------------------------
 
@@ -298,24 +305,40 @@ end
 -- You **should not** use this directly.
 -- @see wonderful.display.DisplayManager
 function Display:__new__(manager, screen, box, depth, debug)
-  self.manager = manager
-  self.screen = screen
-  self.box = box
+  self._manager = manager
+  self._screen = screen
+  self._box = box
 
-  self.fb = Framebuffer {
-    w = box.w,
-    h = box.h,
+  self._fb = Framebuffer {
+    w = box:getWidth(),
+    h = box:getHeight(),
     depth = depth,
     debug = debug
   }
 
-  self.fb:optimize()
+  self._fb:optimize()
 end
 
 --- Flush a display's framebuffer onto the display's screen.
 function Display:flush()
-  local gpu = component.proxy(self.manager:getGPU(self))
-  self.fb:flush(self.box.x, self.box.y, gpu)
+  local gpu = component.proxy(self._manager:getGPU(self))
+  self._fb:flush(self._box:getX(), self._box:getY(), gpu)
+end
+
+function Display:getBox()
+  return self._box
+end
+
+function Display:getScreen()
+  return self._screen
+end
+
+function Display:getManager()
+  return self._manager
+end
+
+function Display:getFramebuffer()
+  return self._fb
 end
 
 ---

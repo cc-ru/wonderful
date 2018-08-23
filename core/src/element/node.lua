@@ -24,21 +24,9 @@ local ChildNode = class(nil, {name = "wonderful.element.node.ChildNode"})
 --- The node class that can't store other child nodes.
 -- @type ChildNode
 
---- The reference to the parent node. May be absent.
--- @field ChildNode.parentNode
-
---- The reference to the root node. May be absent.
--- @field ChildNode.rootNode
-
---- Whether the node has a parent node.
--- @field ChildNode.hasParentNode
-
---- The tree level.
--- @field ChildNode.level
-
 --- Construct a new instance.
 function ChildNode:__new_()
-  self.parentNode = nil
+  self._parentNode = nil
 end
 
 --- Perform left-to-right breadth-first tree traversal.
@@ -68,29 +56,40 @@ function ChildNode:rlnWalk(func)
   return func(self)
 end
 
-function ChildNode.__getters:rootNode()
-  if self.rootMemo then
-    return self.rootMemo
+function ChildNode:getParent()
+  return self._parentNode
+end
+
+function ChildNode:getRootNode()
+  if self._rootMemo then
+    return self._rootMemo
   end
 
   local cur = self
 
   while true do
-    if cur.parentNode then
-      cur = cur.parentNode
+    if cur._parentNode then
+      cur = cur._parentNode
     else
-      self.rootMemo = cur
+      self._rootMemo = cur
       return cur
     end
   end
 end
 
-function ChildNode.__getters:hasParentNode()
-  return not not self.parentNode
+function ChildNode:hasParentNode()
+  return not not self._parentNode
 end
 
-function ChildNode.__getters:level()
-  return self.hasParentNode and (self.parentNode.level + 1) or 0
+function ChildNode:getLevel()
+  return self:hasParentNode() and (self._parentNode:getLevel() + 1) or 0
+end
+
+--- Get the index of the node in the parent's child list.
+-- @treturn[1] int the index
+-- @treturn[2] nil the node has no parent
+function ChildNode:getIndex()
+  return self._index
 end
 
 ---
@@ -106,15 +105,13 @@ local ParentNode = class(
 --- The node class that can store child nodes.
 -- @type ParentNode
 
---- The child nodes.
--- @field ParentNode.childNodes
-
---- `true` if the node has child nodes.
--- @field ParentNode.hasChildNodes
-
 --- Construct a new node.
 function ParentNode:__new__()
-  self.childNodes = {}
+  self._childNodes = {}
+end
+
+function ParentNode:getChildren()
+  return self._childNodes
 end
 
 --- Perform left-to-right breadth-first tree traversal.
@@ -136,7 +133,7 @@ function ParentNode:lbfsWalk(func)
     end
 
     if node:isa(ParentNode) then
-      for _, child in ipairs(node.childNodes) do
+      for _, child in ipairs(node._childNodes) do
         table.insert(queue, child)
       end
     end
@@ -155,7 +152,7 @@ function ParentNode:nlrWalk(func)
     return result
   end
 
-  for _, child in ipairs(self.childNodes) do
+  for _, child in ipairs(self._childNodes) do
     result = child:nlrWalk(func)
 
     if result ~= nil then
@@ -170,8 +167,8 @@ end
 -- returned value is returned.
 -- @tparam function(node) func the function to call for each node
 function ParentNode:rlnWalk(func)
-  for i = #self.childNodes, 1, -1 do
-    local result = self.childNodes[i]:rlnWalk(func)
+  for i = #self._childNodes, 1, -1 do
+    local result = self._childNodes[i]:rlnWalk(func)
 
     if result ~= nil then
       return result
@@ -185,14 +182,14 @@ end
 -- @tparam int index the index
 -- @param node the node.
 function ParentNode:insertChild(index, node)
-  if node.hasParentNode then
-    node.parentNode:removeChild(node.index)
+  if node:hasParentNode() then
+    node._parentNode:removeChild(node._index)
   end
 
-  node.parentNode = self
-  node.rootMemo = self.rootNode
+  node._parentNode = self
+  node._rootMemo = self._rootNode
 
-  table.insert(self.childNodes, index, node)
+  table.insert(self._childNodes, index, node)
 
   self:updateIndeces()
 end
@@ -201,15 +198,15 @@ end
 -- @tparam int index the index
 -- @return `false` or the removed node
 function ParentNode:removeChild(index)
-  if not self.childNodes[index] then
+  if not self._childNodes[index] then
     return false
   end
 
-  local node = table.remove(self.childNodes, index)
+  local node = table.remove(self._childNodes, index)
 
-  node.parentNode = nil
-  node.rootMemo = nil
-  node.index = nil
+  node._parentNode = nil
+  node._rootMemo = nil
+  node._index = nil
 
   self:updateIndeces()
 
@@ -225,7 +222,7 @@ end
 --- Append a node.
 -- @param child the node
 function ParentNode:appendChild(child)
-  self:insertChild(#self.childNodes + 1, child)
+  self:insertChild(#self._childNodes + 1, child)
 end
 
 --- Replace a node at a given index.
@@ -244,13 +241,13 @@ function ParentNode:replaceChild(index, child)
 end
 
 function ParentNode:updateIndeces()
-  for i, node in pairs(self.childNodes) do
-    node.index = i
+  for i, node in pairs(self._childNodes) do
+    node._index = i
   end
 end
 
-function ParentNode.__getters:hasChildNodes()
-  return #self.childNodes > 0
+function ParentNode:hasChildNodes()
+  return #self._childNodes > 0
 end
 
 ---
