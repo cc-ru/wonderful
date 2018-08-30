@@ -13,7 +13,7 @@
 -- limitations under the License.
 
 --- Some common signals.
--- @module wonderful.signal
+-- @module wonderful.std.event.signal
 
 local class = require("lua-objects")
 
@@ -21,10 +21,13 @@ local Event = require("wonderful.event").Event
 
 --- The base signal class.
 -- @see wonderful.event.Event
-local Signal = class(Event, {name = "wonderful.signal.Signal"})
+local Signal = class(Event, {name = "wonderful.std.event.signal.Signal"})
 
 --- The `"component_added"` signal.
-local ComponentAdded = class(Signal, {name = "wonderful.signal.ComponentAdded"})
+local ComponentAdded = class(
+  Signal,
+  {name = "wonderful.std.event.signal.ComponentAdded"}
+)
 
 --- The `"component_added"` signal.
 -- @type ComponentAdded
@@ -51,7 +54,7 @@ end
 --- The `"component_removed"` signal.
 local ComponentRemoved = class(
   Signal,
-  {name = "wonderful.signal.ComponentRemoved"}
+  {name = "wonderful.std.event.signal.ComponentRemoved"}
 )
 
 --- The `"component_removed"` signal.
@@ -79,7 +82,7 @@ end
 --- The `"component_available"` signal.
 local ComponentAvailable = class(
   Signal,
-  {name = "wonderful.signal.ComponentAvailable"}
+  {name = "wonderful.std.event.signal.ComponentAvailable"}
 )
 
 --- The `"component_available"` signal.
@@ -101,7 +104,7 @@ end
 --- The `"component_unavailable"` signal.
 local ComponentUnavailable = class(
   Signal,
-  {name = "wonderful.signal.ComponentUnavailable"}
+  {name = "wonderful.std.event.signal.ComponentUnavailable"}
 )
 
 --- The `"component_unavailable"` signal.
@@ -121,7 +124,7 @@ end
 --- @section end
 
 --- The `"touch"` signal.
-local Touch = class(Signal, {name = "wonderful.signal.Touch"})
+local Touch = class(Signal, {name = "wonderful.std.event.signal.Touch"})
 
 --- The `"touch"` signal.
 -- @type Touch
@@ -164,7 +167,7 @@ end
 --- @section end
 
 --- The `"drag"` signal.
-local Drag = class(Signal, {name = "wonderful.signal.Drag"})
+local Drag = class(Signal, {name = "wonderful.std.event.signal.Drag"})
 
 --- The `"drag"` signal.
 -- @type Drag
@@ -207,7 +210,7 @@ end
 --- @section end
 
 --- The `"drop"` signal.
-local Drop = class(Signal, {name = "wonderful.signal.Drop"})
+local Drop = class(Signal, {name = "wonderful.std.event.signal.Drop"})
 
 --- The `"drop"` signal.
 -- @type Drop
@@ -250,7 +253,7 @@ end
 --- @section end
 
 --- The `"scroll"` signal.
-local Scroll = class(Signal, {name = "wonderful.signal.Scroll"})
+local Scroll = class(Signal, {name = "wonderful.std.event.signal.Scroll"})
 
 --- The `"scroll"` signal.
 -- @type Scroll
@@ -293,7 +296,7 @@ end
 --- @section end
 
 --- The `"key_down"` signal.
-local KeyDown = class(Signal, {name = "wonderful.signal.KeyDown"})
+local KeyDown = class(Signal, {name = "wonderful.std.event.signal.KeyDown"})
 
 --- The `"key_down"` signal.
 -- @type KeyDown
@@ -330,7 +333,7 @@ end
 --- @section end
 
 --- The `"key_up"` signal.
-local KeyUp = class(Signal, {name = "wonderful.signal.KeyUp"})
+local KeyUp = class(Signal, {name = "wonderful.std.event.signal.KeyUp"})
 
 --- The `"key_up"` signal.
 -- @type KeyUp
@@ -367,7 +370,7 @@ end
 --- @section end
 
 --- The `"clipboard"` signal.
-local Clipboard = class(Signal, {name = "wonderful.signal.Clipboard"})
+local Clipboard = class(Signal, {name = "wonderful.std.event.signal.Clipboard"})
 
 --- The `"clipboard"` signal.
 -- @type Clipboard
@@ -398,7 +401,7 @@ end
 --- @section end
 
 --- The `"interrupted"` signal.
-local Interrupt = class(Signal, {name = "wonderful.signal.Interrupt"})
+local Interrupt = class(Signal, {name = "wonderful.std.event.signal.Interrupt"})
 
 --- The screen signals.
 -- They are only sent to documents that are displayed on the screen that issued

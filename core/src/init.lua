@@ -27,7 +27,7 @@ local event = require("event")
 local class = require("lua-objects")
 
 local geometry = require("wonderful.geometry")
-local signal = require("wonderful.signal")
+local signal = require("wonderful.std.event.signal")
 local tableUtil = require("wonderful.util.table")
 local iterUtil = require("wonderful.util.iter")
 

@@ -13,14 +13,14 @@
 -- limitations under the License.
 
 --- Focusing events.
--- @module wonderful.element.focus
+-- @module wonderful.std.event.focus
 
 local class = require("lua-objects")
 
 local Event = require("wonderful.event").Event
 
 --- The focus-in event.
-local FocusIn = class(Event, {name = "wonderful.element.focus.FocusIn"})
+local FocusIn = class(Event, {name = "wonderful.std.event.focus.FocusIn"})
 
 --- The focus-in event.
 -- @type FocusIn
@@ -38,7 +38,7 @@ end
 --- @section end
 
 --- The focus-out event.
-local FocusOut = class(Event, {name = "wonderful.element.focus.FocusOut"})
+local FocusOut = class(Event, {name = "wonderful.std.event.focus.FocusOut"})
 
 --- The focus-out event.
 -- @type FocusOut

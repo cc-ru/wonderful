@@ -1,4 +1,4 @@
-{name = "wonderful-components",
+{name = "wonderful-std",
  version = "0.0.0",
  dependencies = {
    {name = "lua-objects", version = "~0.2.0", type = "required"},
