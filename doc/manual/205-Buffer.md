@@ -74,7 +74,7 @@ top-left corner of the view's coordinate box. Futhermore, it **disallows**
 access to the blocks ("pixels") outside of the so-called restricting box (the
 boundary).
 
-![](https://my.mixtape.moe/eoepmz.png)
+![](../img/buf-view.png)
 
 On the picture above, \(1\) is the buffer, \(2\) is the coordinate box, and
 \(3\) is the restricting box.

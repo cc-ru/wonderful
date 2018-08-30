@@ -15,7 +15,7 @@ file = {
   'buffer/src',
   'core/src',
   'common/src',
-  'components/src'
+  'std/src'
 }
 
 dir = 'doc/html/'
