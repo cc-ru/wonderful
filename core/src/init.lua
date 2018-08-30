@@ -29,11 +29,12 @@ local class = require("lua-objects")
 local geometry = require("wonderful.geometry")
 local signal = require("wonderful.signal")
 local tableUtil = require("wonderful.util.table")
+local iterUtil = require("wonderful.util.iter")
 
 local DisplayManager = require("wonderful.display").DisplayManager
 local Document = require("wonderful.element.document").Document
 local Element = require("wonderful.element").Element
-local ipairsRev = tableUtil.ipairsRev
+local ipairsRev = iterUtil.ipairsRev
 
 --- The main class of the library.
 local Wonderful = class(nil, {name = "wonderful.Wonderful"})

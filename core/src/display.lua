@@ -256,7 +256,7 @@ end
 -- @treturn string a GPU address
 function DisplayManager:getGPU(display)
   local candidates = {}
-  local screen = self._screens[display.screen]
+  local screen = self._screens[display:getScreen()]
 
   for _, gpu in pairs(self._gpus) do
     if gpu.depth >= screen.depth then

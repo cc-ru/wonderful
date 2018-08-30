@@ -430,6 +430,21 @@ function Element:getLayout(layout)
   return self._layout
 end
 
+function Element:dumpTree(func, stream)
+  stream:write("Dump of tree rooted at " .. tostring(self) .. ":\n")
+
+  self:nlrWalk(function(node)
+    stream:write(("%s- %s: %s\n"):format(
+      ("  "):rep(node:getLevel() - 1),
+      tostring(node),
+      string.format(func(node))
+    ))
+  end)
+
+  stream:write("\n")
+  stream:close()
+end
+
 --- @export
 return {
   LeafElement = LeafElement,

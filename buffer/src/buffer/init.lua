@@ -400,14 +400,14 @@ function Buffer:intersection(x0, y0, w, h)
   local x1 = x0 + w - 1
   local y1 = y0 + h - 1
 
-  if x1 < self._box.x or y1 < self._box.y then
+  if x1 < self._box:getX() or y1 < self._box:getY() then
     return
   end
 
-  x0 = math.max(x0, self._box.x)
-  y0 = math.max(y0, self._box.y)
-  x1 = math.min(x1, self._box.x1)
-  y1 = math.min(y1, self._box.y1)
+  x0 = math.max(x0, self._box:getX())
+  y0 = math.max(y0, self._box:getY())
+  x1 = math.min(x1, self._box:getX1())
+  y1 = math.min(y1, self._box:getY1())
 
   return x0, y0, x1, y1
 end
@@ -843,8 +843,8 @@ function Framebuffer:compileInstructions(force)
   local palette = self._palette
   local deflate = self._palette.deflate
 
-  local mergeDiff = self._mergeDiff
-  local writeInstruction = self._writeInstruction
+  local mergeDiff = self.mergeDiff
+  local writeInstruction = self.writeInstruction
 
   local tconcat = table.concat
 
@@ -1044,8 +1044,8 @@ function BufferView:absCoords(x, y)
     checkArg(2, y, "number")
   end
 
-  return x + self._coordBox.x - 1,
-         y + self._coordBox.y - 1
+  return x + self._coordBox:getX() - 1,
+         y + self._coordBox:getY() - 1
 end
 
 --- Convert buffer-relative coordinates to view-relative coordinates.
@@ -1058,8 +1058,8 @@ function BufferView:relCoords(x, y)
     checkArg(1, x, "number")
     checkArg(2, y, "number")
   end
-  return x - self._coordBox.x + 1,
-         y - self._coordBox.y + 1
+  return x - self._coordBox:getX() + 1,
+         y - self._coordBox:getY() + 1
 end
 
 --- Check if a cell at given buffer-relative coordinates belongs to the view.

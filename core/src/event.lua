@@ -266,7 +266,7 @@ function EventTarget:findListener(args)
     return (
       v:getEvent() == event and
       v:getHandler() == handler and
-      v:isDefault == default and
+      v:isDefault() == default and
       v:isRunBefore() == before and
       v:getCancelHandler() == onCancel and
       v:isCapturing() == capture
@@ -449,7 +449,7 @@ function EventTarget:_dispatchEvent(event)
         table.insert(queue, user, listener)
         user = user + 1
         default = default + 1
-      elseif not listener:isBefore() then
+      elseif not listener:isRunBefore() then
         table.insert(queue, default, listener)
         default = default + 1
       else
@@ -467,7 +467,7 @@ function EventTarget:_dispatchEvent(event)
       -- run default-before (if not prevented), user, and default (if not
       -- prevented) listeners
 
-      listener.handler(self, event, listener)
+      listener:getHandler()(self, event, listener)
 
       if idx <= before and listener:getCancelHandler() then
         -- if the default-before listener has an on-cancel callback, add it to

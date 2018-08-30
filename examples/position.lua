@@ -29,9 +29,10 @@ function Rectangle:__new__(w, h, bg, name, alpha)
 end
 
 function Rectangle:_render(view)
-  view:fill(1, 1, view.w, view.h, self.bg, self.bg, self.alpha, nil)
+  view:fill(1, 1, view:getWidth(), view:getHeight(),
+            self.bg, self.bg, self.alpha, nil)
   view:set(2, 2, 0x000000, nil, 1, self.name)
-  view:set(2, 3, 0x000000, nil, 1, tostring(self.calculatedBox))
+  view:set(2, 3, 0x000000, nil, 1, tostring(self:getCalculatedBox()))
 end
 
 function Rectangle:sizeHint()
@@ -96,34 +97,35 @@ root:appendChild(
 
 local function shiftByY(element, dy)
   local sb = element:get(ScrollBox, true)
-  element:set(ScrollBox(sb.x or 0, (sb.y or 0) + dy, sb.w, sb.h))
+  element:set(ScrollBox(sb:getX() or 0, (sb:getY() or 0) + dy,
+                        sb:getWidth(), sb:getHeight()))
 end
 
 root:addListener {
   event = wonderful.signal.KeyDown,
   handler = function(self, e, handler)
-    if e.code == kbd.keys.left or e.code == kbd.keys.right then
+    if e:getCode() == kbd.keys.left or e:getCode() == kbd.keys.right then
       local signum = 1
 
-      if e.code == kbd.keys.left then
+      if e:getCode() == kbd.keys.left then
         signum = -1
       end
 
       -- Only update the first five children of `root`.
       for i = 1, 5, 1 do
-        local c = root.childNodes[i]
-        c:set(BoundingBox(c:get(BoundingBox).left + (i - 1) * signum))
+        local c = root:getChildren()[i]
+        c:set(BoundingBox(c:get(BoundingBox):getLeft() + (i - 1) * signum))
       end
-    elseif e.code == kbd.keys.up or e.code == kbd.keys.down then
+    elseif e:getCode() == kbd.keys.up or e:getCode() == kbd.keys.down then
       local dy = 1
 
-      if e.code == kbd.keys.up then
+      if e:getCode() == kbd.keys.up then
         dy = -1
       end
 
       -- Only update the first five children of `root`.
       for i = 1, 5, 1 do
-        shiftByY(root.childNodes[i], dy)
+        shiftByY(root:getChildren()[i], dy)
       end
 
       shiftByY(root, dy)

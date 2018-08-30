@@ -67,7 +67,7 @@ function Document:__new__(args)
 
   self._globalDisplay = args.display
 
-  self._calculatedBox = self.globalDisplay:getBox()
+  self._calculatedBox = self._globalDisplay:getBox()
 
   self:addDefaultListener {
     event = signal.KeyDown,
