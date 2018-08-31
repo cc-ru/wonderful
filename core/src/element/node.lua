@@ -17,101 +17,18 @@
 
 local class = require("lua-objects")
 
---- The node class that can't store other child nodes.
--- @see wonderful.element.node.ParentNode
-local ChildNode = class(nil, {name = "wonderful.element.node.ChildNode"})
-
---- The node class that can't store other child nodes.
--- @type ChildNode
-
---- Construct a new instance.
-function ChildNode:__new_()
-  self._parentNode = nil
-end
-
---- Perform left-to-right breadth-first tree traversal.
---
--- If the function returns a non-`nil` value, traversal is stopped, and the
--- returned value is returned.
--- @tparam function(node) func the function to call for each node
-function ChildNode:lbfsWalk(func)
-  return func(self)
-end
-
---- Perform left-to-right pre-order depth-first traversal.
---
--- If the function returns a non-`nil` value, traversal is stopped, and the
--- returned value is returned.
--- @tparam function(node) func the function to call for each node
-function ChildNode:nlrWalk(func)
-  return func(self)
-end
-
---- Perform right-to-left post-order depth-first traversal.
---
--- If the function returns a non-`nil` value, traversal is stopped, and the
--- returned value is returned.
--- @tparam function(node) func the function to call for each node
-function ChildNode:rlnWalk(func)
-  return func(self)
-end
-
-function ChildNode:getParent()
-  return self._parentNode
-end
-
-function ChildNode:getRootNode()
-  if self._rootMemo then
-    return self._rootMemo
-  end
-
-  local cur = self
-
-  while true do
-    if cur._parentNode then
-      cur = cur._parentNode
-    else
-      self._rootMemo = cur
-      return cur
-    end
-  end
-end
-
-function ChildNode:hasParentNode()
-  return not not self._parentNode
-end
-
-function ChildNode:getLevel()
-  return self:hasParentNode() and (self._parentNode:getLevel() + 1) or 0
-end
-
---- Get the index of the node in the parent's child list.
--- @treturn[1] int the index
--- @treturn[2] nil the node has no parent
-function ChildNode:getIndex()
-  return self._index
-end
-
----
--- @section end
+--- The tree node class.
+local Node = class(nil, {name = "wonderful.element.node.Node"})
 
 --- The node class that can store child nodes.
--- @see wonderful.element.node.ChildNode
-local ParentNode = class(
-  ChildNode,
-  {name = "wonderful.element.node.ParentNode"}
-)
-
---- The node class that can store child nodes.
--- @type ParentNode
+-- @type Node
 
 --- Construct a new node.
-function ParentNode:__new__()
+function Node:__new__()
+  self._parentNode = nil
   self._childNodes = {}
-end
-
-function ParentNode:getChildren()
-  return self._childNodes
+  self._rootMemo = nil
+  self._index = nil
 end
 
 --- Perform left-to-right breadth-first tree traversal.
@@ -120,7 +37,7 @@ end
 -- returned value is returned.
 --
 -- @tparam function(node) func the function to call for each node
-function ParentNode:lbfsWalk(func)
+function Node:lbfsWalk(func)
   local queue = {self}
 
   while #queue > 0 do
@@ -132,10 +49,8 @@ function ParentNode:lbfsWalk(func)
       return result
     end
 
-    if node:isa(ParentNode) then
-      for _, child in ipairs(node._childNodes) do
-        table.insert(queue, child)
-      end
+    for _, child in ipairs(node._childNodes) do
+      table.insert(queue, child)
     end
   end
 end
@@ -145,7 +60,7 @@ end
 -- If the function returns a non-`nil` value, traversal is stopped, and the
 -- returned value is returned.
 -- @tparam function(node) func the function to call for each node
-function ParentNode:nlrWalk(func)
+function Node:nlrWalk(func)
   local result = func(self)
 
   if result ~= nil then
@@ -166,7 +81,7 @@ end
 -- If the function returns a non-`nil` value, traversal is stopped, and the
 -- returned value is returned.
 -- @tparam function(node) func the function to call for each node
-function ParentNode:rlnWalk(func)
+function Node:rlnWalk(func)
   for i = #self._childNodes, 1, -1 do
     local result = self._childNodes[i]:rlnWalk(func)
 
@@ -181,8 +96,8 @@ end
 --- Insert a node at a given index.
 -- @tparam int index the index
 -- @param node the node.
-function ParentNode:insertChild(index, node)
-  if node:hasParentNode() then
+function Node:insertChild(index, node)
+  if node:hasParent() then
     node._parentNode:removeChild(node._index)
   end
 
@@ -197,7 +112,7 @@ end
 --- Remove a node at a given index.
 -- @tparam int index the index
 -- @return `false` or the removed node
-function ParentNode:removeChild(index)
+function Node:removeChild(index)
   if not self._childNodes[index] then
     return false
   end
@@ -215,13 +130,13 @@ end
 
 --- Prepend a node.
 -- @param child the node
-function ParentNode:prependChild(child)
+function Node:prependChild(child)
   self:insertChild(1, child)
 end
 
 --- Append a node.
 -- @param child the node
-function ParentNode:appendChild(child)
+function Node:appendChild(child)
   self:insertChild(#self._childNodes + 1, child)
 end
 
@@ -229,7 +144,7 @@ end
 -- @tparam int index the index
 -- @param child the node
 -- @return `false` or the replaced node
-function ParentNode:replaceChild(index, child)
+function Node:replaceChild(index, child)
   local old = self:removeChild(index)
 
   if not old then
@@ -240,20 +155,59 @@ function ParentNode:replaceChild(index, child)
   return old
 end
 
-function ParentNode:updateIndeces()
+function Node:updateIndeces()
   for i, node in pairs(self._childNodes) do
     node._index = i
   end
 end
 
-function ParentNode:hasChildNodes()
+function Node:hasChildNodes()
   return #self._childNodes > 0
+end
+
+function Node:getParent()
+  return self._parentNode
+end
+
+function Node:getChildren()
+  return self._childNodes
+end
+
+function Node:getRoot()
+  if self._rootMemo then
+    return self._rootMemo
+  end
+
+  local cur = self
+
+  while true do
+    if cur._parentNode then
+      cur = cur._parentNode
+    else
+      self._rootMemo = cur
+      return cur
+    end
+  end
+end
+
+function Node:hasParent()
+  return not not self._parentNode
+end
+
+function Node:getLevel()
+  return self:hasParent() and (self._parentNode:getLevel() + 1) or 0
+end
+
+--- Get the index of the node in the parent's child list.
+-- @treturn[1] int the index
+-- @treturn[2] nil the node has no parent
+function Node:getIndex()
+  return self._index
 end
 
 ---
 -- @export
 return {
-  ChildNode = ChildNode,
-  ParentNode = ParentNode,
+  Node = Node,
 }
 

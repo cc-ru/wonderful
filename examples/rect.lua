@@ -12,7 +12,7 @@ local wmain = wonderful.Wonderful {
   debug = false
 }
 
-local Rectangle = class(wonderful.element.LeafElement, {name = "Rectangle"})
+local Rectangle = class(wonderful.element.Element, {name = "Rectangle"})
 
 local doc = wmain:addDocument {style = wstyle.WonderfulStyle {
   types = {
@@ -37,7 +37,8 @@ function Rectangle:__new__(args)
 end
 
 function Rectangle:_render(view)
-  view:fill(1, 1, view.w, view.h, self.color:get():get(), 0x000000, 1,
+  view:fill(1, 1, view:getWidth(), view:getHeight(),
+            self.color:get():get(), 0x000000, 1,
             math.random() > 0.5 and "#" or "X")
 end
 

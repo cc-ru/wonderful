@@ -12,7 +12,7 @@
 -- See the License for the specific language governing permissions and
 -- limitations under the License.
 
---- The @{wonderful.element.LeafElement|LeafElement} and @{wonderful.element.Element|Element} classes.
+--- The @{wonderful.element.Element|Element} class.
 -- @module wonderful.element
 
 local class = require("lua-objects")
@@ -26,27 +26,25 @@ local node = require("wonderful.element.node")
 local PropRef = require("wonderful.style").PropRef
 local VBoxLayout = require("wonderful.layout.box").VBoxLayout
 
---- The leaf element class, which can't store children.
--- @see wonderful.element.node.ChildNode
--- @see wonderful.event.EventTarget
--- @see wonderful.layout.LayoutItem
-local LeafElement = class(
-  {node.ChildNode, event.EventTarget, layout.LayoutItem},
-  {name = "wonderful.element.LeafElement"}
-)
+--- The base element class.
+local Element = class({node.Node, layout.LayoutContainer, layout.LayoutItem,
+                       event.EventTarget},
+                      {name = "wonderful.element.Element"})
 
---- The leaf element class, which can't store children.
--- @type LeafElement
+--- @type Element
 
---- Construct a new instance.
-function LeafElement:__new__()
-  self._attributes = {}
-
-  self:superCall(node.ChildNode, "__new__")
+--- Construct a new element instance.
+function Element:__new__()
+  self:superCall(node.Node, "__new__")
   self:superCall(event.EventTarget, "__new__")
 
+  self._attributes = {}
   self._calculatedBox = geometry.Box()
   self._focused = false
+  self._markedToRecompose = true
+  self._hasMarkedDescendant = true
+
+  self:setLayout(VBoxLayout())
   self:requestRender()
 end
 
@@ -58,14 +56,14 @@ end
 -- Consider using `requestRender` instead.
 --
 -- @tparam wonderful.buffer.BufferView fbView a view on the framebuffer
--- @see LeafElement:requestRender
-function LeafElement:_render(fbView)
-  error("Abstract method LeafElement:_render not implemented")
+-- @see Element:requestRender
+function Element:_render(fbView)
+  error("Abstract method Element:_render not implemented")
 end
 
 --- Flag the element so that it's rendered the next time `Wonderful:render`
 -- is called.
-function LeafElement:requestRender()
+function Element:requestRender()
   self._shouldRedraw = true
 
   self:_notifyParentsOfRenderRequest()
@@ -77,8 +75,8 @@ end
 --
 -- @tparam wonderful.buffer.BufferView fbView a view on the framebuffer
 -- @treturn boolean whether the element was actually rendered
--- @see LeafElement:requestRender
-function LeafElement:render(fbView)
+-- @see Element:requestRender
+function Element:render(fbView)
   if self._shouldRedraw then
     self:_render(fbView)
     self._shouldRedraw = false
@@ -94,14 +92,14 @@ end
 -- If a class is passed (rather than its instance), the attribute is unset.
 -- @tparam wonderful.element.attribute.Attribute attr the attribute
 -- @return self
--- @see wonderful.element.LeafElement:get
+-- @see wonderful.element.Element:get
 -- @usage
 -- -- Sets an attribute.
 -- element:set(Attribute("test"))
 --
 -- -- Unsets an attribute.
 -- element:set(Attribute)
-function LeafElement:set(attr)
+function Element:set(attr)
   local previous = self._attributes[attr.class]
   local new = attr
 
@@ -126,11 +124,11 @@ end
 -- @param clazz the attribute class
 -- @tparam[opt=false] boolean default whether to return the default if not found
 -- @return the attribute or `nil`
--- @see wonderful.element.LeafElement:set
+-- @see wonderful.element.Element:set
 -- @usage
 -- element:set(Attribute("test"))
 -- print(element:get(Attribute):get())
-function LeafElement:get(clazz, default)
+function Element:get(clazz, default)
   local attr = self._attributes[clazz.class]
 
   if attr then
@@ -142,121 +140,17 @@ function LeafElement:get(clazz, default)
   end
 end
 
-function LeafElement:getParentEventTarget()
-  return self:getParent()
-end
-
-function LeafElement:getChildEventTargets()
-  return {}
-end
-
---- Provide a hint on the element size.
--- @treturn int the width
--- @treturn int the height
-function LeafElement:sizeHint()
-  return 0, 0
-end
-
 --- Create a style property reference.
 -- @tparam string name the property name
 -- @param default a default value
 -- @treturn wonderful.style.PropRef the property reference
 -- @see wonderful.style.PropRef
-function LeafElement:propRef(name, default)
+function Element:propRef(name, default)
   return PropRef(self, name, default)
 end
 
---- Get the element's margin.
--- @treturn wonderful.element.attribute.Margin
-function LeafElement:getMargin()
-  return self:get(attribute.Margin, true)
-end
-
---- Get the element's stretch value.
--- @treturn wonderful.element.attribute.Stretch
-function LeafElement:getStretch()
-  return self:get(attribute.Stretch, true):get()
-end
-
---- Set a new calculated box.
--- @tparam wonderful.geometry.Box new the new box
-function LeafElement:setCalculatedBox(new)
-  local position = self:get(attribute.Position, true)
-
-  if position:get() == "relative" then
-    local bbox = self:get(attribute.BoundingBox)
-    new:setX(new:getX() + (bbox and bbox:getLeft() or 0))
-    new:setY(new:getY() + (bbox and bbox:getTop() or 0))
-  end
-
-  self._calculatedBox = new
-end
-
-function LeafElement:_notifyParentsOfRenderRequest()
-  local ascendant = self:getParent()
-
-  while ascendant do
-    ascendant._renderRequestedByChildren = true
-
-    ascendant = ascendant:getParent()
-  end
-end
-
-function LeafElement:getStyle()
-  return self:getRootNode()._globalStyle
-end
-
-function LeafElement:getDisplay()
-  return self:getRootNode()._globalDisplay
-end
-
-function LeafElement:isLeaf()
-  return true
-end
-
-function LeafElement:isFlowElement()
-  return self:get(attribute.Position, true):isFlowElement()
-end
-
-function LeafElement:getViewport()
-  return self:getParent():getViewport():intersection(self._calculatedBox)
-end
-
-function LeafElement:isFreeTree()
-  return not self:getRootNode()
-                 :isa(require("wonderful.element.document").Document)
-end
-
-function LeafElement:getCalculatedBox()
-  return self._calculatedBox
-end
-
-function LeafElement:isFocused()
-  return self._focused
-end
-
----
--- @section end
-
---- The non-leaf element class.
--- @see wonderful.element.LeafElement
--- @see wonderful.element.node.ParentNode
--- @see wonderful.layout.LayoutContainer
-local Element = class({node.ParentNode, LeafElement, layout.LayoutContainer},
-                      {name = "wonderful.element.Element"})
-
---- A non-leaf element class.
--- @type Element
-
---- Construct a new element instance.
-function Element:__new__()
-  self:superCall(LeafElement, "__new__")
-  self:superCall(node.ParentNode, "__new__")
-
-  self:setLayout(VBoxLayout())
-
-  self._markedToRecompose = true
-  self._hasMarkedDescendant = true
+function Element:getParentEventTarget()
+  return self:getParent()
 end
 
 function Element:getChildEventTargets()
@@ -306,7 +200,7 @@ end
 -- @tparam int index the index
 -- @param child the child element
 function Element:insertChild(index, child)
-  self:superCall(node.ParentNode, "insertChild", index, child)
+  self:superCall(node.Node, "insertChild", index, child)
 
   self:recompose(true)
 end
@@ -315,7 +209,7 @@ end
 -- @tparam int index the index
 -- @return `false` or the removed element
 function Element:removeChild(index)
-  local child = self:superCall(node.ParentNode, "removeChild", index)
+  local child = self:superCall(node.Node, "removeChild", index)
 
   if not child then
     return false
@@ -391,14 +285,12 @@ function Element:recompose(force)
 
   if self._hasMarkedDescendant or self._markedToRecompose then
     for _, element in pairs(self:getChildren()) do
-      if element:isa(Element) then
-        if self._markedToRecompose then
-          element._markedToRecompose = true
-        end
+      if self._markedToRecompose then
+        element._markedToRecompose = true
+      end
 
-        if element._markedToRecompose or element._hasMarkedDescendant then
-          element:recompose()
-        end
+      if element._markedToRecompose or element._hasMarkedDescendant then
+        element:recompose()
       end
     end
   end
@@ -407,18 +299,18 @@ function Element:recompose(force)
   self._markedToRecompose = false
 end
 
-function Element:_markParent()
-  local ascendant = self:getParent()
+--- Set a new calculated box.
+-- @tparam wonderful.geometry.Box new the new box
+function Element:setCalculatedBox(new)
+  local position = self:get(attribute.Position, true)
 
-  while ascendant do
-    ascendant._hasMarkedDescendant = true
-
-    ascendant = ascendant:getParent()
+  if position:get() == "relative" then
+    local bbox = self:get(attribute.BoundingBox)
+    new:setX(new:getX() + (bbox and bbox:getLeft() or 0))
+    new:setY(new:getY() + (bbox and bbox:getTop() or 0))
   end
-end
 
-function Element:isLeaf()
-  return false
+  self._calculatedBox = new
 end
 
 function Element:setLayout(layout)
@@ -430,6 +322,55 @@ function Element:getLayout(layout)
   return self._layout
 end
 
+--- Get the element's margin.
+-- @treturn wonderful.element.attribute.Margin
+function Element:getMargin()
+  return self:get(attribute.Margin, true)
+end
+
+--- Get the element's stretch value.
+-- @treturn wonderful.element.attribute.Stretch
+function Element:getStretch()
+  return self:get(attribute.Stretch, true):get()
+end
+
+function Element:getStyle()
+  return self:getRoot()._globalStyle
+end
+
+function Element:getDisplay()
+  return self:getRoot()._globalDisplay
+end
+
+function Element:isFlowElement()
+  return self:get(attribute.Position, true):isFlowElement()
+end
+
+function Element:getViewport()
+  return self:getParent():getViewport():intersection(self._calculatedBox)
+end
+
+function Element:isFreeTree()
+  return not self:getRoot():isa(require("wonderful.element.document").Document)
+end
+
+function Element:getCalculatedBox()
+  return self._calculatedBox
+end
+
+function Element:isFocused()
+  return self._focused
+end
+
+--- Dumps the tree rooted at self into the stream.
+--
+-- Calls `func` for each element. Returned values are passed to
+-- `string.format` and appended to the element line.
+--
+-- The stream will be automatically closed.
+--
+-- @tparam function(element) func the function to call
+-- @tparam {write=function,close=function} the stream
 function Element:dumpTree(func, stream)
   stream:write("Dump of tree rooted at " .. tostring(self) .. ":\n")
 
@@ -445,9 +386,28 @@ function Element:dumpTree(func, stream)
   stream:close()
 end
 
+function Element:_markParent()
+  local ascendant = self:getParent()
+
+  while ascendant do
+    ascendant._hasMarkedDescendant = true
+
+    ascendant = ascendant:getParent()
+  end
+end
+
+function Element:_notifyParentsOfRenderRequest()
+  local ascendant = self:getParent()
+
+  while ascendant do
+    ascendant._renderRequestedByChildren = true
+
+    ascendant = ascendant:getParent()
+  end
+end
+
 --- @export
 return {
-  LeafElement = LeafElement,
   Element = Element,
 }
 

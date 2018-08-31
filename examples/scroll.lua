@@ -45,7 +45,8 @@ function Rectangle:__new__(args)
 end
 
 function Rectangle:_render(view)
-  view:fill(1, 1, view.w, view.h, 0x000000, self.bg:get():get(), 1, " ")
+  view:fill(1, 1, view:getWidth(), view:getHeight(),
+            0x000000, self.bg:get():get(), 1, " ")
   view:set(1, 1, 0x000000, self.bg:get():get(), 1,
            "Rect #" .. self.i)
   view:set(1, 2, 0x000000, self.bg:get():get(), 1,
@@ -102,12 +103,12 @@ while true do
     local scrollBox = element:get(ScrollBox)
 
     if e[4] == 208 then -- arrow down
-      element:set(ScrollBox(scrollBox.x, scrollBox.y + 1,
-                            scrollBox.w, scrollBox.h))
+      element:set(ScrollBox(scrollBox:getX(), scrollBox:getY() + 1,
+                            scrollBox:getWidth(), scrollBox:getHeight()))
       wmain:render()
     elseif e[4] == 200 then -- arrow up
-      element:set(ScrollBox(scrollBox.x, scrollBox.y - 1,
-                            scrollBox.w, scrollBox.h))
+      element:set(ScrollBox(scrollBox:getX(), scrollBox:getY() - 1,
+                            scrollBox:getWidth(), scrollBox:getHeight()))
       wmain:render()
     end
   end

@@ -33,7 +33,6 @@ local iterUtil = require("wonderful.util.iter")
 
 local DisplayManager = require("wonderful.display").DisplayManager
 local Document = require("wonderful.element.document").Document
-local Element = require("wonderful.element").Element
 local ipairsRev = iterUtil.ipairsRev
 
 --- The main class of the library.
@@ -149,8 +148,7 @@ function Wonderful:render(noFlush)
   local stack = {}
 
   local function push(element, force)
-    if element:isa(Element) and element._renderRequestedByChildren or
-        element._shouldRedraw or force then
+    if element._renderRequestedByChildren or element._shouldRedraw or force then
       table.insert(stack, element)
     end
   end
@@ -175,10 +173,8 @@ function Wonderful:render(noFlush)
         element:render(view)
       end
 
-      if element:isa(Element) then
-        for _, child in ipairsRev(element:getChildren()) do
-          push(child, element._shouldRedraw)
-        end
+      for _, child in ipairsRev(element:getChildren()) do
+        push(child, element._shouldRedraw)
       end
 
       element._renderRequestedByChildren = false

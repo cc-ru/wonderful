@@ -56,19 +56,19 @@ local LayoutItem = class(nil, {name = "wonderful.layout.LayoutItem"})
 -- @treturn number the width
 -- @treturn number the height
 function LayoutItem:sizeHint()
-  return 0, 0
+  error("unimplemented abstract method LayoutItem:sizeHint")
 end
 
 --- An abstract method to get an instance of @{wonderful.geometry.Margin}.
 -- @treturn wonderful.geometry.Margin the margin
 function LayoutItem:getMargin()
-  return Margin(0, 0, 0, 0)
+  error("unimplemented abstract method LayoutItem:getMargin")
 end
 
 --- An abstract method to get a stretch value of the element.
 -- @treturn number the stretch value
 function LayoutItem:getStretch()
-  return 0
+  error("unimplemented abstract method LayoutItem:getStretch")
 end
 
 --- An abstract method that sets the element's calculated box.
