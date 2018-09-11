@@ -216,7 +216,7 @@ end
 
 --- Add a new signal to dispatch.
 -- @tparam string name a signal name
--- @param cls a @{wonderful.signal.Signal} class
+-- @param cls a @{wonderful.std.event.signal.Signal} class
 function Wonderful:addSignal(name, cls)
   self._signals[name] = cls
 end

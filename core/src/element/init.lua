@@ -356,7 +356,7 @@ end
 -- The stream will be automatically closed.
 --
 -- @tparam function(element) func the function to call
--- @tparam {write=function,close=function} the stream
+-- @tparam {write=function,close=function} stream the stream
 function Element:dumpTree(func, stream)
   stream:write("Dump of tree rooted at " .. tostring(self) .. ":\n")
 
