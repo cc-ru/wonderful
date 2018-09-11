@@ -35,41 +35,15 @@ Ah, right! You can add several handlers to the same element and event if you fee
 We also separate class-defined (default) and instance-defined handlers. So you can safely register a default
 handler to make your button flicker, and then defined a click handler—both will be called unless told not to.
 
-#### Styles
-The styling engine allows you to separate the layout (element tree and geometry) and the looks (like colors).
-The style language supports importing other style files and setting variables.
-
-You can create a file `light.wsf`:
-
-```
-[wonderful.component.button.Button] {
-  color: #00ff00;
-}
-```
-
-And `colors-dark.wsf`:
-
-```
-[wonderful.component.button.Button] {
-  color: #00a090;
-}
-```
-
-And then switch between them (when clicked on a button, for example): Buttons would change its color from
-bright green to dark green.
-
 #### Layouts
 A layout provides a way to position their children. It calculates the geometry of its children so you
 needn't specify the position yourself.
 
 #### Extendability and customization
-You can update the default looks using styles. If you need to go beyond that, you can modify a component
-by extending from it.
+You can modify a component by extending from it.
 
 What about creating your own component? That's easy, too: You just need to extend from our base component class,
 `Element` in `wonderful.element`.
-
-The same goes with layouts, styles... Literally everything in the library.
 
 ## Get started
 Start by reading the [Quickstart](Quickstart) article if you're familiar with OpenComputers and non-OC GUI

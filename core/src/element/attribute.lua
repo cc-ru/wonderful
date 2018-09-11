@@ -323,7 +323,6 @@ return {
   Margin = Margin,
   Padding = Padding,
   Focus = Focus,
-  Classes = Classes,
   Stretch = Stretch,
   ScrollBox = ScrollBox,
 }

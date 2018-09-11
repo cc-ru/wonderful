@@ -1,7 +1,7 @@
 -- Spawns a few rectangles, which may change every time
 -- they're rendered, and renders them 10 times.
 --
--- Uses: styles, tree, property references
+-- Uses: tree, property references
 
 local wonderful = require("wonderful")
 
