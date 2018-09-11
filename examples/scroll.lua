@@ -15,20 +15,7 @@ local wmain = wonderful.Wonderful {
 
 local Rectangle = class(wonderful.element.Element, {name = "Rectangle"})
 
-local doc = wmain:addDocument {style = [[
-.root {
-  background-color: #808080;
-};
-
-.level-1 {
-  background-color: #c0c0c0;
-};
-
-.level-2 {
-  background-color: #fff;
-};
-]]
-}
+local doc = wmain:addDocument {}
 
 local i = 0
 
@@ -38,28 +25,27 @@ function Rectangle:__new__(args)
   self.w = args.w
   self.h = args.h
   self.i = tostring(i)
-  self.bg = self:propRef("background-color",
-                         wonderful.style.property.BgColor({0xc3c3c3}))
+  self.bg = 0xc3c3c3
 
   i = i + 1
 end
 
 function Rectangle:_render(view)
   view:fill(1, 1, view:getWidth(), view:getHeight(),
-            0x000000, self.bg:get():get(), 1, " ")
-  view:set(1, 1, 0x000000, self.bg:get():get(), 1,
+            0x000000, self.bg, " ")
+  view:set(1, 1, 0x000000, self.bg 1,
            "Rect #" .. self.i)
-  view:set(1, 2, 0x000000, self.bg:get():get(), 1,
+  view:set(1, 2, 0x000000, self.bg, 1,
            "calc " .. tostring(self.calculatedBox))
-  view:set(1, 3, 0x000000, self.bg:get():get(), 1,
+  view:set(1, 3, 0x000000, self.bg, 1,
            "view " .. tostring(self.viewport))
-  view:set(1, 4, 0x000000, self.bg:get():get(), 1,
+  view:set(1, 4, 0x000000, self.bg, 1,
            "lyot " .. tostring(self:getLayoutBox()))
-  view:set(1, 5, 0x000000, self.bg:get():get(), 1,
+  view:set(1, 5, 0x000000, self.bg, 1,
            "cord " .. tostring(view.coordBox))
-  view:set(1, 6, 0x000000, self.bg:get():get(), 1,
+  view:set(1, 6, 0x000000, self.bg, 1,
            "vbox " .. tostring(view.box))
-  view:set(1, 7, 0x000000, self.bg:get():get(), 1,
+  view:set(1, 7, 0x000000, self.bg, 1,
            "lybx " .. tostring(self.parentNode:getLayoutBox()))
 end
 

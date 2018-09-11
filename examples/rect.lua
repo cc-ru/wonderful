@@ -4,7 +4,6 @@
 -- Uses: styles, tree, property references
 
 local wonderful = require("wonderful")
-local wstyle = require("wonderful.style")
 
 local class = require("lua-objects")
 
@@ -14,23 +13,13 @@ local wmain = wonderful.Wonderful {
 
 local Rectangle = class(wonderful.element.Element, {name = "Rectangle"})
 
-local doc = wmain:addDocument {style = wstyle.WonderfulStyle {
-  types = {
-    Rect = Rectangle
-  },
-  string = [[
-@Rect {
-  color: #eee;
-};
-]]
-}}
+local doc = wmain:addDocument {}
 
 local i = 1
 
 function Rectangle:__new__(args)
   self:superCall("__new__", args)
 
-  self.color = self:propRef("color")
   self.i = i
 
   i = i + 1
@@ -38,7 +27,7 @@ end
 
 function Rectangle:_render(view)
   view:fill(1, 1, view:getWidth(), view:getHeight(),
-            self.color:get():get(), 0x000000, 1,
+            0xffffff, 0x000000, 1,
             math.random() > 0.5 and "#" or "X")
 end
 

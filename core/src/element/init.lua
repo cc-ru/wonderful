@@ -23,7 +23,6 @@ local geometry = require("wonderful.geometry")
 local layout = require("wonderful.layout")
 local node = require("wonderful.element.node")
 
-local PropRef = require("wonderful.style").PropRef
 local VBoxLayout = require("wonderful.layout.box").VBoxLayout
 
 --- The base element class.
@@ -138,15 +137,6 @@ function Element:get(clazz, default)
   else
     return nil
   end
-end
-
---- Create a style property reference.
--- @tparam string name the property name
--- @param default a default value
--- @treturn wonderful.style.PropRef the property reference
--- @see wonderful.style.PropRef
-function Element:propRef(name, default)
-  return PropRef(self, name, default)
 end
 
 function Element:getParentEventTarget()
@@ -332,10 +322,6 @@ end
 -- @treturn wonderful.element.attribute.Stretch
 function Element:getStretch()
   return self:get(attribute.Stretch, true):get()
-end
-
-function Element:getStyle()
-  return self:getRoot()._globalStyle
 end
 
 function Element:getDisplay()

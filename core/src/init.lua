@@ -106,7 +106,6 @@ end
 -- @tparam[opt] int args.w a width of the document region
 -- @tparam[opt] int args.h a height of the document region
 -- @tparam[opt] string args.screen a screen address
--- @tparam[opt] wonderful.style.Style|wonderful.style.buffer.Buffer|{["read"]=function,...}|string args.style a value to pass to the @{wonderful.element.document.Document|Document}'s constructor as a style
 -- @treturn wonderful.element.document.Document the document instance
 -- @see wonderful.element.document.Document:__new__
 function Wonderful:addDocument(args)
@@ -130,10 +129,7 @@ function Wonderful:addDocument(args)
     display:optimize()
   end
 
-  local document = Document {
-    style = args.style,
-    display = display
-  }
+  local document = Document {display = display}
 
   if not self._debug then
     document:optimize()

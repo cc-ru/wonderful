@@ -17,13 +17,4 @@
    {url = "src/layout/init.lua", path = "/usr/lib/wonderful/layout/init.lua"},
    {url = "src/std/event/focus.lua", path = "/usr/lib/wonderful/std/event/focus.lua"},
    {url = "src/std/event/signal.lua", path = "/usr/lib/wonderful/std/event/signal.lua"},
-   {url = "src/style/buffer.lua", path = "/usr/lib/wonderful/style/buffer.lua"},
-   {url = "src/style/init.lua", path = "/usr/lib/wonderful/style/init.lua"},
-   {url = "src/style/interpreter.lua", path = "/usr/lib/wonderful/style/interpreter.lua"},
-   {url = "src/style/lexer.lua", path = "/usr/lib/wonderful/style/lexer.lua"},
-   {url = "src/style/node.lua", path = "/usr/lib/wonderful/style/node.lua"},
-   {url = "src/style/parser.lua", path = "/usr/lib/wonderful/style/parser.lua"},
-   {url = "src/style/property.lua", path = "/usr/lib/wonderful/style/property.lua"},
-   {url = "src/style/selector.lua", path = "/usr/lib/wonderful/style/selector.lua"},
-   {url = "src/style/type.lua", path = "/usr/lib/wonderful/style/type.lua"},
  }}

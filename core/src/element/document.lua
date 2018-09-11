@@ -23,8 +23,6 @@ local attribute = require("wonderful.element.attribute")
 local element = require("wonderful.element")
 local focus = require("wonderful.std.event.focus")
 local signal = require("wonderful.signal")
-local style = require("wonderful.style")
-local textBuf = require("wonderful.style.buffer")
 
 --- The document class.
 -- The root element of a render tree.
@@ -40,30 +38,9 @@ local Document = class(
 
 --- Construct a new document.
 -- @tparam table args a keyword argument table
--- @tparam[opt] wonderful.style.Style|wonderful.style.buffer.Buffer|{["read"]=function,...}|string args.style a style instance, or a text buffer or input stream or string to parse and use as a style for the document
 -- @tparam wonderful.display.Display args.display a display
 function Document:__new__(args)
   self:superCall(element.Element, "__new__")
-
-  if type(args.style) == "table" and args.style.isa and
-      args.style:isa(style.Style) then
-    self._globalStyle = args.style
-  elseif type(args.style) == "table" and args.style.isa and
-      args.style:isa(textBuf.Buffer) then
-    self._globalStyle = style.WonderfulStyle()
-                            :parseFromBuffer(args.style)
-                            :stripContext()
-  elseif type(args.style) == "table" and args.style.read then
-    self._globalStyle = style.WonderfulStyle()
-                            :parseFromStream(args.style)
-                            :stripContext()
-  elseif type(args.style) == "string" then
-    self._globalStyle = style.WonderfulStyle()
-                            :parseFromString(args.style)
-                            :stripContext()
-  else
-    self._globalStyle = style.WonderfulStyle()
-  end
 
   self._globalDisplay = args.display
 
