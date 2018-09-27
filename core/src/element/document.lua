@@ -22,9 +22,9 @@ local kbd = require("keyboard")
 local attribute = require("wonderful.element.attribute")
 local element = require("wonderful.element")
 local focus = require("wonderful.std.event.focus")
-local signal = require("wonderful.signal")
 local style = require("wonderful.style")
 local textBuf = require("wonderful.style.buffer")
+local signal = require("wonderful.std.event.signal")
 
 --- The document class.
 -- The root element of a render tree.
