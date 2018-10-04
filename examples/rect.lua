@@ -37,6 +37,8 @@ end
 
 local Dummy = class(wonderful.element.Element, {name = "Dummy"})
 
+function Dummy:_render() end
+
 function Dummy:sizeHint()
   return 80, 25
 end
@@ -50,6 +52,7 @@ for _ = 1, 25 do
 end
 
 for _ = 1, 10 do
+  doc:requestRender()
   wmain:render()
   os.sleep(0.05)
 end
