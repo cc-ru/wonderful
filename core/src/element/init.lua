@@ -33,11 +33,18 @@ local Element = class({node.Node, layout.LayoutContainer, layout.LayoutItem,
 --- @type Element
 
 --- Construct a new element instance.
-function Element:__new__()
+function Element:__new__(args)
   self:superCall(node.Node, "__new__")
   self:superCall(event.EventTarget, "__new__")
 
-  self._attributes = {}
+  self.position = attribute.Position(self)
+  self.boundingBox = attribute.BoundingBox(self)
+  self.margin = attribute.Margin(self)
+  self.padding = attribute.Padding(self)
+  self.focusable = attribute.Focusable(self)
+  self.stretch = attribute.Stretch(self)
+  self.scrollBox = attribute.ScrollBox(self)
+
   self._calculatedBox = geometry.Box()
   self._focused = false
   self._markedToRecompose = true
@@ -86,59 +93,6 @@ function Element:render(fbView)
   return false
 end
 
---- Set an attribute.
---
--- If a class is passed (rather than its instance), the attribute is unset.
--- @tparam wonderful.element.attribute.Attribute attr the attribute
--- @return self
--- @see wonderful.element.Element:get
--- @usage
--- -- Sets an attribute.
--- element:set(Attribute("test"))
---
--- -- Unsets an attribute.
--- element:set(Attribute)
-function Element:set(attr)
-  local previous = self._attributes[attr.class]
-  local new = attr
-
-  if new.is_class then
-    new = nil
-  end
-
-  self._attributes[attr.class] = new
-
-  if previous then
-    previous:onUnset(self, new)
-  end
-
-  if new then
-    new:onSet(self, previous)
-  end
-
-  return self
-end
-
---- Get an attribute by its class.
--- @param clazz the attribute class
--- @tparam[opt=false] boolean default whether to return the default if not found
--- @return the attribute or `nil`
--- @see wonderful.element.Element:set
--- @usage
--- element:set(Attribute("test"))
--- print(element:get(Attribute):get())
-function Element:get(clazz, default)
-  local attr = self._attributes[clazz.class]
-
-  if attr then
-    return attr
-  elseif default and clazz then
-    return clazz()
-  else
-    return nil
-  end
-end
-
 function Element:getParentEventTarget()
   return self:getParent()
 end
@@ -158,12 +112,12 @@ function Element:getLayoutItems()
 end
 
 function Element:getLayoutPadding()
-  return self:get(attribute.Padding, true)
+  return self.padding
 end
 
 function Element:getLayoutBox()
   local x, y, w, h = self._calculatedBox:unpack()
-  local scrollBox = self:get(attribute.ScrollBox)
+  local scrollBox = self.scrollBox
 
   if scrollBox then
     if scrollBox:getX() then
@@ -250,10 +204,10 @@ function Element:recompose(force)
     local calcBox = self._calculatedBox
 
     for _, element in ipairs(self:getChildren()) do
-      local position = element:get(attribute.Position, true)
+      local position = element.position
 
       if not position:isFlowElement() then
-        bbox = element:get(attribute.BoundingBox)
+        bbox = element.boundingBox
 
         if position:get() == "absolute" then
           x, y = layoutBox:getX(), layoutBox:getY()
@@ -292,10 +246,10 @@ end
 --- Set a new calculated box.
 -- @tparam wonderful.geometry.Box new the new box
 function Element:setCalculatedBox(new)
-  local position = self:get(attribute.Position, true)
+  local position = self.position
 
   if position:get() == "relative" then
-    local bbox = self:get(attribute.BoundingBox)
+    local bbox = self.boundingBox
     new:setX(new:getX() + (bbox and bbox:getLeft() or 0))
     new:setY(new:getY() + (bbox and bbox:getTop() or 0))
   end
@@ -315,13 +269,13 @@ end
 --- Get the element's margin.
 -- @treturn wonderful.element.attribute.Margin
 function Element:getMargin()
-  return self:get(attribute.Margin, true)
+  return self.margin
 end
 
 --- Get the element's stretch value.
 -- @treturn wonderful.element.attribute.Stretch
 function Element:getStretch()
-  return self:get(attribute.Stretch, true):get()
+  return self.stretch:get()
 end
 
 function Element:getDisplay()
@@ -329,7 +283,7 @@ function Element:getDisplay()
 end
 
 function Element:isFlowElement()
-  return self:get(attribute.Position, true):isFlowElement()
+  return self.position:isFlowElement()
 end
 
 function Element:getViewport()

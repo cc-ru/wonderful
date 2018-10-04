@@ -262,18 +262,18 @@ end
 --- @section end
 
 --- The focus attribute.
-local Focus = class(RecomposingAttribute,
-                    {name = "wonderful.element.attribute.Focus"})
+local Focusable = class(RecomposingAttribute,
+                        {name = "wonderful.element.attribute.Focusable"})
 
---- @type Focus
+--- @type Focusable
 
-function Focus:_initialize(enable)
+function Focusable:_initialize(enable)
   self:setEnabled(enable)
 end
 
 --- Enable or disable focusing for the element.
 -- @tparam[opt=true] boolean enable whether to enable focusing on an element
-function Focus:setEnabled(enable)
+function Focusable:setEnabled(enable)
   if enable == nil then
     self._enabled = true
   else
@@ -283,7 +283,7 @@ end
 
 --- Check whether focusing is enabled for the element.
 -- @treturn boolean whether focusing is enabled
-function Focus:isEnabled()
+function Focusable:isEnabled()
   return self._enabled
 end
 
@@ -360,11 +360,12 @@ end
 --- @export
 return {
   Attribute = Attribute,
+  RecomposingAttribute = RecomposingAttribute,
   Position = Position,
   BoundingBox = BoundingBox,
   Margin = Margin,
   Padding = Padding,
-  Focus = Focus,
+  Focusable = Focusable,
   Stretch = Stretch,
   ScrollBox = ScrollBox,
 }
