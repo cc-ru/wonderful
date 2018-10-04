@@ -20,51 +20,71 @@ local class = require("lua-objects")
 --- A box class, defined by its top-left corner coordinates, width, and height.
 local Box = class(nil, {name = "wonderful.geometry.Box"})
 
---- A box class, defined by its top-left point coordinates, width, and height.
--- @type Box
+--- @type Box
 
 --- Construct a new box.
--- @tparam number x the abscissa of a top-left point
--- @tparam number y the ordinate of a top-left point
--- @tparam number w a width
--- @tparam nubmer h a height
+-- @tparam ?number x the left coordinate
+-- @tparam ?number y the top coordinate
+-- @tparam ?number w a width
+-- @tparam ?nubmer h a height
 function Box:__new__(x, y, w, h)
-  self._x = x
-  self._y = y
-  self._w = w
-  self._h = h
+  self:set(x, y, w, h)
 end
 
+--- Get the left coordinate.
+-- @treturn ?number the left coordinate
 function Box:getX()
   return self._x
 end
 
+--- Get the top coordinate.
+-- @treturn ?number the top coordinate
 function Box:getY()
   return self._y
 end
 
+--- Get the width.
+-- @treturn ?number the width
 function Box:getWidth()
   return self._w
 end
 
+--- Get the height.
+-- @treturn ?number the height
 function Box:getHeight()
   return self._h
 end
 
+--- Set new box values. Shorthand for setting each value individually.
+function Box:set(x, y, w, h)
+  self:setX(x)
+  self:setY(y)
+  self:setWidth(w)
+  self:setHeight(h)
+end
+
+--- Set the left coordinate.
+-- @tparam ?number the left coordinate
 function Box:setX(x)
-  self._x = x
+  self._x = type(x) == "number" and x or nil
 end
 
+--- Set the top coordinate.
+-- @tparam ?number the top coordinate
 function Box:setY(y)
-  self._y = y
+  self._y = type(y) == "number" and y or nil
 end
 
+--- Set the width.
+-- @tparam ?number the width
 function Box:setWidth(w)
-  self._w = w
+  self._w = type(w) == "number" and w or nil
 end
 
+--- Set the height.
+-- @tparam ?number the height
 function Box:setHeight(h)
-  self._h = h
+  self._h = type(h) == "number" and h or nil
 end
 
 function Box:__tostring__()
@@ -153,59 +173,99 @@ function Box:unpack()
   return self:getX(), self:getY(), self:getWidth(), self:getHeight()
 end
 
+--- Check if all parameters are defined.
+-- @treturn boolean whether all paramter are defined
 function Box:isStrict()
   return self:getX() and self:getY() and self:getWidth() and self:getHeight()
 end
 
+--- Check if the width and height are both defined.
+-- @treturn boolean whether width and height are both defined
 function Box:isDimStrict()
   return self:getWidth() and self:getHeight()
 end
 
+--- Check if the top-left point is defined.
+-- @treturn boolean whether the top-left point is defined
 function Box:isPosStrict()
   return self:getWidth() and self:getHeight()
 end
 
+--- Get the right coordinate.
+-- @treturn number the right coordinate
 function Box:getX1()
   return self:getX() + self:getWidth() - 1
 end
 
+--- Get the bottom coordinate.
+-- @treturn number the bottom coordinate
 function Box:getY1()
   return self:getY() + self:getHeight() - 1
 end
 
----
--- @section end
+--- @section end
 
 --- The margin class.
 local Margin = class(nil, {name = "wonderful.geometry.Margin"})
 
---- The margin class.
--- @type Margin
+--- @type Margin
 
---- Construct a new @{wonderful.geometry.Margin} class.
--- @tparam number l a left margin
--- @tparam number t a top margin
--- @tparam number r a right margin
--- @tparam number b a bottom margin
-function Margin:__new__(l, t, r, b)
+--- Set the margins. A shorthand for setting each margin individually.
+-- @tparam ?int l the left margin
+-- @tparam ?int t the top margin
+-- @tparam ?int r the right margin
+-- @tparam ?int b the bottom margin
+function Margin:set(l, t, r, b)
+  self:setLeft(l)
+  self:setTop(t)
+  self:setRight(r)
+  self:setBottom(b)
+end
+
+--- Set the left margin.
+-- @tparam ?int l the left margin
+function Margin:setLeft(l)
   self._l = type(l) == "number" and l or 0
+end
+
+--- Set the top margin.
+-- @tparam ?int t the top margin
+function Margin:setTop(t)
   self._t = type(t) == "number" and t or 0
-  self._r = type(r) == "number" and r or 0
+end
+
+--- Set the right margin.
+-- @tparam ?int r the right margin
+function Margin:setRight(r)
+  self._r = type(t) == "number" and r or 0
+end
+
+--- Set the bottom margin.
+-- @tparam ?int b the bottom margin
+function Margin:setBottom(b)
   self._b = type(b) == "number" and b or 0
 end
 
+--- Get the left margin.
+-- @treturn int the left margin
 function Margin:getLeft()
   return self._l
 end
 
+--- Get the top margin.
+-- @treturn int the left margin
 function Margin:getTop()
   return self._t
 end
 
+--- Get the right margin.
+-- @treturn int the right margin
 function Margin:getRight()
   return self._r
 end
 
+--- Get the bottom margin.
+-- @treturn int the bottom margin
 function Margin:getBottom()
   return self._b
 end
@@ -215,33 +275,64 @@ end
 --- The padding class.
 local Padding = class(nil, {name = "wonderful.geometry.Padding"})
 
---- The padding class.
--- @type Padding
+--- @type Padding
 
---- Construct a new @{wonderful.geometry.Padding} instance.
--- @tparam number l a left padding
--- @tparam number t a top padding
--- @tparam number r a right padding
--- @tparam number b a bottom padding
-function Padding:__new__(l, t, r, b)
+--- Set the paddings. A shorthand for setting each padding individually.
+-- @tparam ?int l the left padding
+-- @tparam ?int t the top padding
+-- @tparam ?int r the right padding
+-- @tparam ?int b the bottom padding
+function Padding:set(l, t, r, b)
+  self:setLeft(l)
+  self:setTop(t)
+  self:setRight(r)
+  self:setBottom(b)
+end
+
+--- Set the left padding.
+-- @tparam ?int l the left padding
+function Padding:setLeft(l)
   self._l = type(l) == "number" and l or 0
+end
+
+--- Set the top padding.
+-- @tparam ?int t the top padding
+function Padding:setTop(t)
   self._t = type(t) == "number" and t or 0
-  self._r = type(r) == "number" and r or 0
+end
+
+--- Set the right padding.
+-- @tparam ?int r the right padding
+function Padding:setRight(r)
+  self._r = type(t) == "number" and r or 0
+end
+
+--- Set the bottom padding.
+-- @tparam ?int b the bottom padding
+function Padding:setBottom(b)
   self._b = type(b) == "number" and b or 0
 end
 
+--- Get the left padding.
+-- @treturn int the left padding
 function Padding:getLeft()
   return self._l
 end
 
+--- Get the top padding.
+-- @treturn int the left padding
 function Padding:getTop()
   return self._t
 end
 
+--- Get the right padding.
+-- @treturn int the right padding
 function Padding:getRight()
   return self._r
 end
 
+--- Get the bottom padding.
+-- @treturn int the bottom padding
 function Padding:getBottom()
   return self._b
 end

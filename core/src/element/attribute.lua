@@ -22,33 +22,57 @@ local tableUtil = require("wonderful.util.table")
 
 local isin = tableUtil.isin
 
---- The abstract atribute class.
+--- The base attribute class.
 local Attribute = class(
   nil,
   {name = "wonderful.element.attribute.Attribute"}
 )
 
---- The base atribute class.
--- @type Attribute
+--- @type Attribute
 
---- The on-set handler, called when the attribute is set.
--- @param element the element the attribute is assigned to.
--- @param[opt] previous the previous value, if any
-function Attribute:onSet(element, previous)
+--- Construct a new attribute.
+-- @param element the element to which the attribute is applied to
+-- @param ... the arguments to the concrete attribute initializer
+function Attribute:__new__(element, ...)
+  self.__element = element
+
+  self:_initialize(...)
 end
 
---- The on-unset handler, called when the attribute is unset.
--- @param element the element the attribute was removed from.
--- @param[opt] new the new value, if any
-function Attribute:onUnset(element, new)
+--- Initialize the attribute with the default or passed value(s).
+--
+-- This method is called automatically by the attribute constructor.
+function Attribute:_initialize() end
+
+--- Get the element to which the attribute is applied to.
+-- @return the element
+function Attribute:getElement()
+  return self.__element
 end
 
----
--- @section end
+--- @section end
+
+--- Attributes that mark its element's parent for recomposing.
+local RecomposingAttribute = class(
+  Attribute,
+  {name = "wonderful.element.attribute.RecomposingAttribute"}
+)
+
+--- @type RecomposingAttribute
+
+function RecomposingAttribute:recomposeParent()
+  local parent = self:getElement():getParent()
+
+  if parent then
+    parent:markToRecompose()
+  end
+end
+
+--- @section end
 
 --- The position attribute.
 local Position = class(
-  Attribute,
+  RecomposingAttribute,
   {name = "wonderful.element.attribute.Position"}
 )
 
@@ -66,14 +90,8 @@ Position.OPTIONS = {
   fixed = true
 }
 
---- Construct a new instance.
--- @tparam ?string value one of "static", "absolute", "relative", "fixed"
-function Position:__new__(value)
-  if self.OPTIONS[value] then
-    self._value = value
-  else
-    self._value = self.DEFAULT
-  end
+function Position:_initialize(value)
+  self:set(value)
 end
 
 --- Checks if the value is set to `"static"` or `"relative"`.
@@ -82,16 +100,11 @@ function Position:isFlowElement()
   return self._value == "static" or self._value == "relative"
 end
 
-function Position:onSet(element, previous)
-  if element:getParent() then
-    element:getParent():markToRecompose()
-  end
-end
-
-function Position:onUnset(element, new)
-  if element:getParent() and not new then
-    element:getParent():markToRecompose()
-  end
+--- Set a new attribute value.
+-- @tparam ?string value one of "static", "absolute", "relative", or "fixed"
+function Position:set(value)
+  self._value = self.OPTIONS[value] and value or self.DEFAULT
+  self:recomposeParent()
 end
 
 function Position:get()
@@ -106,45 +119,72 @@ local BoundingBox = class(
   {name = "wonderful.element.attribute.BoundingBox"}
 )
 
---- The bounding box attribute.
--- @type BoundingBox
+--- @type BoundingBox
 
---- Construct a new instance.
+function BoundingBox:_initialize(l, t, w, h)
+  self:set(l, t, w, h)
+end
+
+--- Set a new bounding box.
 -- @tparam ?int l the left offset
 -- @tparam ?int t the top offset
 -- @tparam ?int w the width
 -- @tparam ?int h the height
-function BoundingBox:__new__(l, t, w, h)
-  self._left = l
-  self._top = t
-  self._width = w
-  self._height = h
+function BoundingBox:set(l, t, w, h)
+  self:setLeft(l)
+  self:setTop(t)
+  self:setWidth(w)
+  self:setHeight(h)
 end
 
-function BoundingBox:onSet(element, previous)
-  if element:getParent() then
-    element:getParent():markToRecompose()
-  end
+--- Set the left offset.
+-- @tparam ?int l the left offset
+function BoundingBox:setLeft(l)
+  self._left = tonumber(l)
+  self:recomposeParent()
 end
 
-function BoundingBox:onUnset(element, new)
-  if element:getParent() and not new then
-    element:getParent():markToRecompose()
-  end
+--- Set the top offset.
+-- @tparam ?int t the top offset
+function BoundingBox:setTop(t)
+  self._top = tonumber(t)
+  self:recomposeParent()
 end
 
+--- Set the width.
+-- @tparam ?int w the width
+function BoundingBox:setWidth(w)
+  self._width = tonumber(w)
+  self:recomposeParent()
+end
+
+--- Set the height.
+-- @tparam ?int h the height
+function BoundingBox:setHeight(h)
+  self._height = tonumber(h)
+  self:recomposeParent()
+end
+
+--- Get the left offset.
+-- @treturn ?int the offset
 function BoundingBox:getLeft()
   return self._left
 end
 
+--- Get the top offset.
+-- @treturn ?int the offset
 function BoundingBox:getTop()
   return self._top
 end
 
+--- Get the width.
+-- @treturn ?int the width
 function BoundingBox:getWidth()
   return self._width
 end
 
+--- Get the height.
+-- @treturn ?int the height
 function BoundingBox:getHeight()
   return self._height
 end
@@ -154,80 +194,86 @@ end
 --- The margin attribute.
 -- @see wonderful.geometry.Margin
 local Margin = class(
-  {Attribute, geometry.Margin},
+  {RecomposingAttribute, geometry.Margin},
   {name = "wonderful.element.attribute.Margin"}
 )
 
---- The margin attribute.
--- @type Margin
+--- @type Margin
 
---- Construct a new instance.
--- @tparam ?int l the left margin
--- @tparam ?int t the top margin
--- @tparam ?int r the right margin
--- @tparam ?int b the bottom margin
-function Margin:__new__(...)
-  self:superCall(geometry.Margin, "__new__", ...)
+function Margin:_initialize(l, t, r, b)
+  self:set(l, t, r, b)
 end
 
-function Margin:onSet(element, previous)
-  if element:getParent() then
-    element:getParent():markToRecompose()
-  end
+function Margin:setLeft(l)
+  self:superCall(geometry.Margin, "setLeft", l)
+  self:recomposeParent()
 end
 
-function Margin:onUnset(element, new)
-  if element:getParent() and not new then
-    element:getParent():markToRecompose()
-  end
+function Margin:setTop(t)
+  self:superCall(geometry.Margin, "setTop", t)
+  self:recomposeParent()
 end
 
----
--- @section end
+function Margin:setRight(r)
+  self:superCall(geometry.Margin, "setRight", r)
+  self:recomposeParent()
+end
+
+function Margin:setBottom(b)
+  self:superCall(geometry.Margin, "setBottom", b)
+  self:recomposeParent()
+end
+
+--- @section end
 
 --- The padding attribute.
 -- @see wonderful.geometry.Padding
 local Padding = class(
-  {Attribute, geometry.Padding},
+  {RecomposingAttribute, geometry.Padding},
   {name = "wonderful.element.attribute.Padding"}
 )
 
---- The padding attribute.
--- @type Padding
+--- @type Padding
 
---- Construct a new instance.
--- @tparam ?int l the left padding
--- @tparam ?int t the top padding
--- @tparam ?int r the right padding
--- @tparam ?int b the bottom padding
-function Padding:__new__(...)
-  self:superCall(geometry.Padding, "__new__", ...)
+function Padding:_initialize(l, t, r, b)
+  self:set(l, t, r, b)
 end
 
-function Padding:onSet(element, previous)
-  if element:getParent() then
-    element:getParent():markToRecompose()
-  end
+function Padding:setLeft(l)
+  self:superCall(geometry.Padding, "setLeft", l)
+  self:recomposeParent()
 end
 
-function Padding:onUnset(element, new)
-  if element:getParent() and not new then
-    element:getParent():markToRecompose()
-  end
+function Padding:setTop(t)
+  self:superCall(geometry.Padding, "setTop", t)
+  self:recomposeParent()
 end
 
----
--- @section end
+function Padding:setRight(r)
+  self:superCall(geometry.Padding, "setRight", r)
+  self:recomposeParent()
+end
+
+function Padding:setBottom(b)
+  self:superCall(geometry.Padding, "setBottom", b)
+  self:recomposeParent()
+end
+
+--- @section end
 
 --- The focus attribute.
-local Focus = class(Attribute, {name = "wonderful.element.attribute.Focus"})
+local Focus = class(RecomposingAttribute,
+                    {name = "wonderful.element.attribute.Focus"})
 
---- The focus attribute.
--- @type Focus
+--- @type Focus
 
---- Construct a new instance.
+function Focus:_initialize(enable)
+  self:setEnabled(enable)
+end
+
+--- Enable or disable focusing for the element.
 -- @tparam[opt=true] boolean enable whether to enable focusing on an element
-function Focus:__new__(enable)
+function Focus:setEnabled(enable)
   if enable == nil then
     self._enabled = true
   else
@@ -235,6 +281,8 @@ function Focus:__new__(enable)
   end
 end
 
+--- Check whether focusing is enabled for the element.
+-- @treturn boolean whether focusing is enabled
 function Focus:isEnabled()
   return self._enabled
 end
@@ -245,77 +293,71 @@ end
 -- @see wonderful.layout.Layout
 local Stretch = class(Attribute, {name = "wonderful.element.attribute.Stretch"})
 
---- The stretch attribute.
--- @type Stretch
+--- @type Stretch
 
 --- The default value of the attribute (`0`).
 Stretch.DEFAULT = 0
 
---- Construct a new instance.
--- @tparam ?number stretch a value
-function Stretch:__new__(stretch)
-  stretch = tonumber(stretch)
+function Stretch:_initialize(stretch)
+  self:set(stretch)
+end
 
-  if stretch and stretch >= 0 then
+--- Set the stretch value.
+-- @tparam ?number stretch the value
+function Stretch:set(stretch)
+  if type(stretch) == "number" and stretch >= 0 then
     self._value = stretch
   else
     self._value = self.DEFAULT
   end
+
+  self:recomposeParent()
 end
 
-function Stretch:onSet(element, previous)
-  if element:getParent() then
-    element:getParent():markToRecompose()
-  end
-end
-
-function Stretch:onUnset(element, new)
-  if element:getParent() and not new then
-    element:getParent():markToRecompose()
-  end
-end
-
+--- Get the stretch value.
+-- @treturn number the stretch value
 function Stretch:get()
   return self._value
 end
 
----
--- @section end
+--- @section end
 
 --- The scroll box attribute.
 -- @see wonderful.geometry.Box
 local ScrollBox = class(
-  {Attribute, geometry.Box},
+  {RecomposingAttribute, geometry.Box},
   {name = "wonderful.element.attribute.ScrollBox"}
 )
 
---- The scroll box attribute.
--- @type ScrollBox
+--- @type ScrollBox
 
---- Construct a new instance.
--- @tparam ?int x
--- @tparam ?int y
--- @tparam ?int w
--- @tparam ?int h
-function ScrollBox:__new__(x, y, w, h)
-  self:superCall(geometry.Box, "__new__", x, y, w, h)
+function ScrollBox:_initialize(x, y, w, h)
+  self:set(x, y, w, h)
 end
 
-function ScrollBox:onSet(element, previous)
-  element:markToRecompose()
+function ScrollBox:setX(x)
+  self:superCall(geometry.Box, "setX", x)
+  self:recomposeParent()
 end
 
-function ScrollBox:onUnset(element, new)
-  if not new then
-    element:markToRecompose()
-  end
+function ScrollBox:setY(y)
+  self:superCall(geometry.Box, "setY", y)
+  self:recomposeParent()
 end
 
----
--- @section end
+function ScrollBox:setWidth(w)
+  self:superCall(geometry.Box, "setWidth", w)
+  self:recomposeParent()
+end
 
----
--- @export
+function ScrollBox:setHeight(h)
+  self:superCall(geometry.Box, "setHeight", h)
+  self:recomposeParent()
+end
+
+--- @section end
+
+--- @export
 return {
   Attribute = Attribute,
   Position = Position,
