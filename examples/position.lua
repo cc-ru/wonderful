@@ -118,7 +118,7 @@ local function shiftByY(element, dy)
 end
 
 root:addListener {
-  event = wonderful.signal.KeyDown,
+  event = wonderful.std.event.signal.KeyDown,
   handler = function(self, e, handler)
     if e:getCode() == kbd.keys.left or e:getCode() == kbd.keys.right then
       local signum = 1

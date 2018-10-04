@@ -39,7 +39,7 @@ local Document = class(
 -- @tparam table args a keyword argument table
 -- @tparam wonderful.display.Display args.display a display
 function Document:__new__(args)
-  self:superCall(element.Element, "__new__")
+  self:superCall(element.Element, "__new__", args)
 
   self._globalDisplay = args.display
 

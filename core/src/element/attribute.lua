@@ -115,7 +115,7 @@ end
 
 --- The bounding box attribute.
 local BoundingBox = class(
-  Attribute,
+  RecomposingAttribute,
   {name = "wonderful.element.attribute.BoundingBox"}
 )
 
@@ -291,7 +291,8 @@ end
 
 --- The stretch attribute.
 -- @see wonderful.layout.Layout
-local Stretch = class(Attribute, {name = "wonderful.element.attribute.Stretch"})
+local Stretch = class(RecomposingAttribute,
+                      {name = "wonderful.element.attribute.Stretch"})
 
 --- @type Stretch
 

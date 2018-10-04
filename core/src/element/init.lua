@@ -34,27 +34,21 @@ local Element = class({node.Node, layout.LayoutContainer, layout.LayoutItem,
 
 --- Construct a new element instance.
 function Element:__new__(args)
+  args = args or {}
+
   self:superCall(node.Node, "__new__")
   self:superCall(event.EventTarget, "__new__")
 
   self.position = attribute.Position(self, args.position)
 
-  self.boundingBox = attribute.BoundingBox(
-    self, type(args.boundingBox) == "table" and
-          table.unpack(args.boundingBox) or nil)
+  self.boundingBox = attribute.BoundingBox(self,
+                                           table.unpack(args.boundingBox or {}))
 
-  self.margin = attribute.Margin(self, type(args.margin) == "table" and
-                                       table.unpack(args.margin) or nil)
-
-  self.padding = attribute.Padding(self, type(args.padding) == "table" and
-                                         table.unpack(args.padding) or nil)
-
+  self.margin = attribute.Margin(self, table.unpack(args.margin or {}))
+  self.padding = attribute.Padding(self, table.unpack(args.padding or {}))
   self.focusable = attribute.Focusable(self, args.focusable)
   self.stretch = attribute.Stretch(self, args.stretch)
-
-  self.scrollBox = attribute.ScrollBox(self, type(args.scrollBox) == "table" and
-                                             table.unpack(args.scrollBox) or
-                                             nil)
+  self.scrollBox = attribute.ScrollBox(self, table.unpack(args.scrollBox or {}))
 
   self._calculatedBox = geometry.Box()
   self._focused = false
