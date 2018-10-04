@@ -7,25 +7,20 @@ local thread = require("thread")
 local class = require("lua-objects")
 local wonderful = require("wonderful")
 
-local BoundingBox = wonderful.element.attribute.BoundingBox
-local Margin = wonderful.element.attribute.Margin
-local Position = wonderful.element.attribute.Position
-local ScrollBox = wonderful.element.attribute.ScrollBox
-
 local wmain = wonderful.Wonderful {debug = false}
 
 local doc = wmain:addDocument()
 
 local Rectangle = class(wonderful.element.Element, {name = "Rectangle"})
 
-function Rectangle:__new__(w, h, bg, name, alpha)
-  self:superCall("__new__")
+function Rectangle:__new__(args)
+  self:superCall("__new__", args)
 
-  self.w = w
-  self.h = h
-  self.name = name
-  self.bg = bg
-  self.alpha = alpha or 1
+  self.w = args.w
+  self.h = args.h
+  self.name = args.name
+  self.bg = args.bg
+  self.alpha = args.alpha or 1
 end
 
 function Rectangle:_render(view)
@@ -47,58 +42,79 @@ function Rectangle:__tostring__()
   )
 end
 
-local root = Rectangle(160, 50, 0x808080, "root")
-  :set(ScrollBox(0, 0))
+local root = Rectangle {w = 160,
+                        h = 50,
+                        bg = 0x808080,
+                        name = "root",
+                        scrollBox = {0, 0}}
 
 doc:appendChild(root)
 
 for i = 1, 5, 1 do
-  local c = Rectangle(146, 15, 0xc2c2c2, "container #" .. i)
-    :set(Margin(2, 1, 0, 0))
-    -- Here, we declare the positioning as relative. This makes
-    -- the following attribute, which is ignored if the position is
-    -- unset or set to static, specify the offset relative to the usual
-    -- position, computed by the layout.
-    :set(Position("relative"))
-    :set(BoundingBox(i - 1))
+  local c = Rectangle {w = 146,
+                       h = 15,
+                       bg = 0xc2c2c2,
+                       name = "container #" .. i,
+                       margin = {2, 1, 0, 0},
+
+  -- Here, we declare the positioning as relative. This makes
+  -- the following attribute, which is ignored if the position is
+  -- set to static, specify the offset relative to the usual
+  -- position computed by the layout.
+                       position = "relative",
+                       boundingBox = {i - 1}}
 
   root:appendChild(c)
 
   for j = 1, 5, 1 do
     c:appendChild(
-      Rectangle(142, 7, 0xffffff, "child #" .. i .. "." .. j)
-        :set(Margin(2, 1, 0, 0))
+      Rectangle {w = 142,
+                 h = 7,
+                 bg = 0xffffff,
+                 name = "child #" .. i .. "." .. j,
+                 margin = {2, 1, 0, 0}}
     )
   end
 end
 
 root:appendChild(
-  Rectangle(156, 7, 0xa5a5a5, "absolute element", 0.5)
-    -- This pops it out of the element flow: its position isn't
-    -- calculated by the layout. The position is still relative to
-    -- the scroll box, though: it scrolls as if it was a part of
-    -- the element flow.
-    :set(Position("absolute"))
-    -- Arguments: left offset, top offset, width, height.
-    --
-    -- Here, the height isn't specified: the value will therefore be taken
-    -- from `Rectangle:sizeHint()`
-    :set(BoundingBox(4, 6, 125))
+  Rectangle {w = 156,
+             h = 7,
+             bg = 0xa5a5a5,
+             name = "absolute element",
+             alpha = 0.5,
+
+  -- This pops it out of the element flow: its position isn't
+  -- calculated by the layout. The position is still relative to
+  -- the scroll box, though: it scrolls as if it was a part of
+  -- the element flow.
+             position = "absolute",
+
+  -- Arguments: left offset, top offset, width, height.
+  --
+  -- Here, the height isn't specified: the value will therefore be taken
+  -- from `Rectangle:sizeHint()`
+             boundingBox = {4, 6, 125}}
 )
 
 root:appendChild(
-  Rectangle(156, 7, 0xa5a5a5, "fixed element", 0.5)
-    -- Fixed positioning is similar to absolute, but it is relative to
-    -- the parent's calculated box. In other words, it doesn't scroll
-    -- at all.
-    :set(Position("fixed"))
-    :set(BoundingBox(3, 10, 125))
+  Rectangle {w = 156,
+             h = 7,
+             bg = 0xa5a5a5,
+             name = "fixed element",
+             alpha = 0.5,
+
+  -- Fixed positioning is similar to absolute, but it is relative to
+  -- the parent's calculated box. In other words, it doesn't scroll
+  -- at all.
+             position = "fixed",
+             boundingBox = {3, 10, 125}}
 )
 
 local function shiftByY(element, dy)
-  local sb = element:get(ScrollBox, true)
-  element:set(ScrollBox(sb:getX() or 0, (sb:getY() or 0) + dy,
-                        sb:getWidth(), sb:getHeight()))
+  local sb = element.scrollBox
+
+  sb:setY((sb:getY() or 0) + dy)
 end
 
 root:addListener {
@@ -114,7 +130,7 @@ root:addListener {
       -- Only update the first five children of `root`.
       for i = 1, 5, 1 do
         local c = root:getChildren()[i]
-        c:set(BoundingBox(c:get(BoundingBox):getLeft() + (i - 1) * signum))
+        c.boundingBox:setLeft(c.boundingBox:getLeft() + (i - 1) * signum)
       end
     elseif e:getCode() == kbd.keys.up or e:getCode() == kbd.keys.down then
       local dy = 1
