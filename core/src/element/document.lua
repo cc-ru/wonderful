@@ -19,7 +19,6 @@ local class = require("lua-objects")
 
 local kbd = require("keyboard")
 
-local attribute = require("wonderful.element.attribute")
 local element = require("wonderful.element")
 local focus = require("wonderful.std.event.focus")
 local signal = require("wonderful.std.event.signal")
@@ -88,7 +87,7 @@ function Document:switchFocus(reversed)
   local found = not prev
 
   local new = traversalFunc(self, function(node)
-    if found and node:get(attribute.Focus, true):isEnabled() then
+    if found and node.focusable:isEnabled() then
       return node
     end
 
