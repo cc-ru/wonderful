@@ -70,12 +70,12 @@ local InstructionTypes = {
 }
 
 --- A non-renderable buffer.
+-- @cl Buffer
 local Buffer = class(nil, {name = "wonderful.buffer.Buffer"})
 
 local BufferView
 
---- A non-renderable buffer.
--- @type Buffer
+--- @type Buffer
 
 --- Construct a new buffer.
 --
@@ -778,10 +778,11 @@ end
 --------------------------------------------------------------------------------
 
 --- A flushable buffer.
+-- @cl Framebuffer
+-- @extends Buffer
 local Framebuffer = class(Buffer, {name = "wonderful.buffer.Framebuffer"})
 
---- A flushable buffer.
--- @type Framebuffer
+--- @type Framebuffer
 
 --- Construct a new framebuffer.
 -- @tparam table args a keyword argument table
@@ -1012,13 +1013,14 @@ end
 --------------------------------------------------------------------------------
 
 --- A view on some rectangular area within a buffer
+-- @cl BufferView
+-- @extends Buffer
 BufferView = class(
   Buffer,
   {name = "wonderful.buffer.BufferView"}
 )
 
---- A view on some rectangular area within a buffer
--- @type BufferView
+--- @type BufferView
 
 --- Construct a view.
 --

@@ -24,16 +24,17 @@ local focus = require("wonderful.std.event.focus")
 local signal = require("wonderful.std.event.signal")
 
 --- The document class.
+--
 -- The root element of a render tree.
--- @see wonderful.element.Element
+--
+-- @cl Document
+-- @extends wonderful.element.Element
 local Document = class(
   element.Element,
   {name = "wonderful.element.document.Document"}
 )
 
---- The document class.
--- The root element of a render tree.
--- @type Document
+--- @type Document
 
 --- Construct a new document.
 -- @tparam table args a keyword argument table
@@ -123,6 +124,7 @@ function Document:getViewport()
   return self._calculatedBox
 end
 
+--- @export
 return {
   Document = Document
 }

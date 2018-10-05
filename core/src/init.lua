@@ -36,10 +36,10 @@ local Document = require("wonderful.element.document").Document
 local ipairsRev = iterUtil.ipairsRev
 
 --- The main class of the library.
+-- @cl Wonderful
 local Wonderful = class(nil, {name = "wonderful.Wonderful"})
 
---- The main class of the library.
--- @type Wonderful
+--- @type Wonderful
 
 --- Construct a new instance.
 --
@@ -312,8 +312,7 @@ function Wonderful:__destroy__()
   self._documents = {}
 end
 
----
--- @export
+--- @export
 local module = {
   Wonderful = Wonderful,
 }

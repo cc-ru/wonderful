@@ -35,10 +35,10 @@ local EventPhase = {
 }
 
 --- The base event class, which represents an event.
+-- @cl Event
 local Event = class(nil, {name = "wonderful.event.Event"})
 
---- The base event class, which represents an event.
--- @type Event
+--- @type Event
 
 --- Whether the event can be canceled.
 Event.cancelable = true
@@ -97,10 +97,10 @@ end
 --- @section end
 
 --- The event listener class.
+-- @cl EventListener
 local EventListener = class(nil, {name = "wonderful.event.EventListener"})
 
---- The event listener class.
--- @type EventListener
+--- @type EventListener
 
 --- Construct a new instance.
 --
@@ -180,10 +180,10 @@ end
 --- @section end
 
 --- The base event target class.
+-- @cl EventTarget
 local EventTarget = class(nil, {name = "wonderful.event.EventTarget"})
 
---- The base event target class.
--- @type EventTarget
+--- @type EventTarget
 
 --- Construct a new instance.
 function EventTarget:__new__()

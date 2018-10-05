@@ -26,6 +26,11 @@ local node = require("wonderful.element.node")
 local VBoxLayout = require("wonderful.layout.box").VBoxLayout
 
 --- The base element class.
+-- @cl wonderful.element.Element
+-- @extends wonderful.element.node.Node
+-- @extends wonderful.layout.LayoutContainer
+-- @extends wonderful.layout.LayoutItem
+-- @extends wonderful.event.EventTarget
 local Element = class({node.Node, layout.LayoutContainer, layout.LayoutItem,
                        event.EventTarget},
                       {name = "wonderful.element.Element"})

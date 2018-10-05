@@ -18,10 +18,10 @@
 local class = require("lua-objects")
 
 --- The tree node class.
+-- @cl Node
 local Node = class(nil, {name = "wonderful.element.node.Node"})
 
---- The node class that can store child nodes.
--- @type Node
+--- @type Node
 
 --- Construct a new node.
 function Node:__new__()
@@ -205,8 +205,7 @@ function Node:getIndex()
   return self._index
 end
 
----
--- @export
+--- @export
 return {
   Node = Node,
 }

@@ -20,10 +20,11 @@ local class = require("lua-objects")
 local Event = require("wonderful.event").Event
 
 --- The focus-in event.
+-- @cl FocusIn
+-- @extends wonderful.event.Event
 local FocusIn = class(Event, {name = "wonderful.std.event.focus.FocusIn"})
 
---- The focus-in event.
--- @type FocusIn
+--- @type FocusIn
 
 --- Construct a new instance.
 -- @param[opt] previous the previously focused element
@@ -38,10 +39,11 @@ end
 --- @section end
 
 --- The focus-out event.
+-- @cl FocusOut
+-- @extends wonderful.event.Event
 local FocusOut = class(Event, {name = "wonderful.std.event.focus.FocusOut"})
 
---- The focus-out event.
--- @type FocusOut
+--- @type FocusOut
 
 --- Construct a new instance.
 -- @param[opt] new the currently focused element

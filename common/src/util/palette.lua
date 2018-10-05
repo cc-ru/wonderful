@@ -110,8 +110,7 @@ local function t1inflate(palette, index)
   return palette[index + 1]
 end
 
----
--- @section end
+--- @section end
 
 --- Construct a new T1 palette.
 -- Such a palette contains two colors, one of which is black.
@@ -150,8 +149,7 @@ end
 local t2deflate = t1deflate
 local t2inflate = t1inflate
 
----
--- @section end
+--- @section end
 
 --- Construct a new T2 palette.
 -- Such a palette contains 16 fixed colors.
@@ -284,8 +282,7 @@ local function t3deflate(palette, color)
   end
 end
 
----
--- @section end
+--- @section end
 
 --- Construct a new T3 palette.
 -- Such a palette contains 16 variable and 240 fixed colors. The variable colors
@@ -338,8 +335,7 @@ local t2 = generateT2Palette()
 --- A pre-generated T3 palette with default palette colors.
 local t3 = generateT3Palette()
 
----
--- @export
+--- @export
 return {
   t1 = t1,
   t2 = t2,

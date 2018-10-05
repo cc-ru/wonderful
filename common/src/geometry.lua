@@ -18,6 +18,7 @@
 local class = require("lua-objects")
 
 --- A box class, defined by its top-left corner coordinates, width, and height.
+-- @cl Box
 local Box = class(nil, {name = "wonderful.geometry.Box"})
 
 --- @type Box
@@ -64,25 +65,25 @@ function Box:set(x, y, w, h)
 end
 
 --- Set the left coordinate.
--- @tparam ?number the left coordinate
+-- @tparam ?number x the left coordinate
 function Box:setX(x)
   self._x = type(x) == "number" and x or nil
 end
 
 --- Set the top coordinate.
--- @tparam ?number the top coordinate
+-- @tparam ?number y the top coordinate
 function Box:setY(y)
   self._y = type(y) == "number" and y or nil
 end
 
 --- Set the width.
--- @tparam ?number the width
+-- @tparam ?number w the width
 function Box:setWidth(w)
   self._w = type(w) == "number" and w or nil
 end
 
 --- Set the height.
--- @tparam ?number the height
+-- @tparam ?number h the height
 function Box:setHeight(h)
   self._h = type(h) == "number" and h or nil
 end
@@ -206,6 +207,7 @@ end
 --- @section end
 
 --- The margin class.
+-- @cl Margin
 local Margin = class(nil, {name = "wonderful.geometry.Margin"})
 
 --- @type Margin
@@ -273,6 +275,7 @@ end
 --- @section end
 
 --- The padding class.
+-- @cl Padding
 local Padding = class(nil, {name = "wonderful.geometry.Padding"})
 
 --- @type Padding

@@ -23,6 +23,7 @@ local tableUtil = require("wonderful.util.table")
 local isin = tableUtil.isin
 
 --- The base attribute class.
+-- @cl Attribute
 local Attribute = class(
   nil,
   {name = "wonderful.element.attribute.Attribute"}
@@ -53,6 +54,8 @@ end
 --- @section end
 
 --- Attributes that mark its element's parent for recomposing.
+-- @cl RecomposingAttribute
+-- @extends Attribute
 local RecomposingAttribute = class(
   Attribute,
   {name = "wonderful.element.attribute.RecomposingAttribute"}
@@ -71,13 +74,14 @@ end
 --- @section end
 
 --- The position attribute.
+-- @cl Position
+-- @extends RecomposingAttribute
 local Position = class(
   RecomposingAttribute,
   {name = "wonderful.element.attribute.Position"}
 )
 
---- The position attribute.
--- @type Position
+--- @type Position
 
 --- The default value (`"static"`).
 Position.DEFAULT = "static"
@@ -114,6 +118,8 @@ end
 --- @section end
 
 --- The bounding box attribute.
+-- @cl BoundingBox
+-- @extends RecomposingAttribute
 local BoundingBox = class(
   RecomposingAttribute,
   {name = "wonderful.element.attribute.BoundingBox"}
@@ -192,7 +198,9 @@ end
 --- @section end
 
 --- The margin attribute.
--- @see wonderful.geometry.Margin
+-- @cl Margin
+-- @extends RecomposingAttribute
+-- @extends wonderful.geometry.margin
 local Margin = class(
   {RecomposingAttribute, geometry.Margin},
   {name = "wonderful.element.attribute.Margin"}
@@ -227,7 +235,9 @@ end
 --- @section end
 
 --- The padding attribute.
--- @see wonderful.geometry.Padding
+-- @cl Padding
+-- @extends RecomposingAttribute
+-- @extends wonderful.geometry.Padding
 local Padding = class(
   {RecomposingAttribute, geometry.Padding},
   {name = "wonderful.element.attribute.Padding"}
@@ -262,7 +272,9 @@ end
 --- @section end
 
 --- The focus attribute.
-local Focusable = class(RecomposingAttribute,
+-- @cl Focusable
+-- @extends Attribute
+local Focusable = class(Attribute,
                         {name = "wonderful.element.attribute.Focusable"})
 
 --- @type Focusable
@@ -290,6 +302,8 @@ end
 --- @section end
 
 --- The stretch attribute.
+-- @cl Stretch
+-- @extends RecomposingAttribute
 -- @see wonderful.layout.Layout
 local Stretch = class(RecomposingAttribute,
                       {name = "wonderful.element.attribute.Stretch"})
@@ -324,7 +338,9 @@ end
 --- @section end
 
 --- The scroll box attribute.
--- @see wonderful.geometry.Box
+-- @cl ScrollBox
+-- @extends RecomposingAttribute
+-- @extends wonderful.geometry.Box
 local ScrollBox = class(
   {RecomposingAttribute, geometry.Box},
   {name = "wonderful.element.attribute.ScrollBox"}

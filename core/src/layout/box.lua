@@ -29,10 +29,11 @@ local Direction = {
 }
 
 --- The box layout.
+-- @cl BoxLayout
+-- @extends wonderful.layout.Layout
 local BoxLayout = class(Layout, {name = "wonderful.layout.box.BoxLayout"})
 
---- The box layout.
--- @type BoxLayout
+--- @type BoxLayout
 
 --- Construct a new instance.
 -- @tparam number direction a direction in which to lay children out
@@ -212,15 +213,14 @@ function BoxLayout:sizeHint(element)
   return width, height
 end
 
----
--- @section end
+--- @section end
 
 --- A specialized version of `BoxLayout` that uses a vertical layout direction.
--- @see wonderful.layout.box.BoxLayout
+-- @cl VBoxLayout
+-- @extends BoxLayout
 local VBoxLayout = class(BoxLayout, {name = "wonderful.layout.box.VBoxLayout"})
 
---- A specialized version of `BoxLayout` that uses a vertical layout direction.
--- @type VBoxLayout
+--- @type VBoxLayout
 
 --- Construct a new instance.
 -- @tparam boolean reversed whether to set the direction to bottom-to-top
@@ -229,15 +229,14 @@ function VBoxLayout:__new__(reversed)
                  reversed and Direction.BottomToTop or Direction.TopToBottom)
 end
 
----
--- @section end
+--- @section end
 
 --- A specialized version of `BoxLayout` that uses a horizontal layout direction.
--- @see wonderful.layout.box.BoxLayout
+-- @cl HBoxLayout
+-- @extends BoxLayout
 local HBoxLayout = class(BoxLayout, {name = "wonderful.layout.box.HBoxLayout"})
 
---- A specialized version of `BoxLayout` that uses a horizontal layout direction.
--- @type HBoxLayout
+--- @type HBoxLayout
 
 --- Construct a new instance.
 -- @tparam boolean reversed whether to set the direction to right-to-left
@@ -246,8 +245,7 @@ function HBoxLayout:__new__(reversed)
                  reversed and Direction.RightToLeft or Direction.LeftToRight)
 end
 
----
--- @export
+--- @export
 return {
   Direction = Direction,
   BoxLayout = BoxLayout,

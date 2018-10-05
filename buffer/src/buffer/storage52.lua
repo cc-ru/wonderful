@@ -18,13 +18,13 @@
 local class = require("lua-objects")
 
 --- The base buffer storage class.
+-- @cl BufferStorage
 local BufferStorage = class(
   nil,
   {name = "wonderful.buffer.storage.BufferStorage"}
 )
 
---- The base buffer storage class.
--- @type BufferStorage
+--- @type BufferStorage
 
 --- The data struct.
 -- Given i, j, the cell's character and packed color should be available
@@ -81,10 +81,11 @@ function BufferStorage:getDiff(x, y)
   return self.data[i][j], self.data[i][j + 1]
 end
 
----
--- @section end
+--- @section end
 
 --- The T1 buffer storage class.
+-- @cl BufferStorageT1
+-- @extends BufferStorage
 local BufferStorageT1 = class(
   BufferStorage,
   {name = "wonderful.buffer.storage.BufferStorageT1"}
@@ -111,6 +112,8 @@ function BufferStorageT1:indexDiff(x, y)
 end
 
 --- The T2 buffer storage class.
+-- @cl BufferStorageT2
+-- @extends BufferStorage
 local BufferStorageT2 = class(
   BufferStorage,
   {name = "wonderful.buffer.storage.BufferStorageT2"}
@@ -137,6 +140,8 @@ function BufferStorageT2:indexDiff(x, y)
 end
 
 --- The T3 buffer storage class.
+-- @cl BufferStorageT3
+-- @extends BufferStorage
 local BufferStorageT3 = class(
   BufferStorage,
   {name = "wonderful.buffer.storage.BufferStorageT3"}
@@ -166,8 +171,7 @@ function BufferStorageT3:indexDiff(x, y)
   return (i - i % 1024) * 0x400p-20 + 1, (i - 1) % 1024 + 1
 end
 
----
--- @export
+--- @export
 return {
   BufferStorage = BufferStorage,
   BufferStorageT1 = BufferStorageT1,

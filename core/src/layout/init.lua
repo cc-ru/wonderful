@@ -20,10 +20,10 @@ local class = require("lua-objects")
 local Margin = require("wonderful.geometry").Margin
 
 --- The abstract layout class.
+-- @cl Layout
 local Layout = class(nil, {name = "wonderful.layout.Layout"})
 
---- The abstract layout class.
--- @type Layout
+--- @type Layout
 
 --- An abstract method to recompose the layout children.
 -- Given a layout container, the method implementation should calculated and set
@@ -43,14 +43,13 @@ function Layout:sizeHint(el)
   error("unimplemented abstract method Layout:sizeHint")
 end
 
----
--- @section end
+--- @section end
 
 --- The abstract layout item class.
+-- @cl LayoutItem
 local LayoutItem = class(nil, {name = "wonderful.layout.LayoutItem"})
 
---- The abstract layout item class.
--- @type LayoutItem
+--- @type LayoutItem
 
 --- An abstract method to estimate the size of the element.
 -- @treturn number the width
@@ -77,14 +76,13 @@ function LayoutItem:setCalculatedBox(box)
   error("unimplemented abstract method LayoutItem:setCalculatedBox")
 end
 
----
--- @section end
-
---- The abstract layout container class.
-local LayoutContainer = class(nil, {name = "wonderful.layout.LayoutContainer"})
+--- @section end
 
 --- The abstract layout container class.
 -- @type LayoutContainer
+local LayoutContainer = class(nil, {name = "wonderful.layout.LayoutContainer"})
+
+--- @type LayoutContainer
 
 --- An abstract method to get the layout items.
 -- @treturn function an iterator function over the layout items
@@ -98,8 +96,7 @@ function LayoutContainer:getLayoutPadding()
   error("unimplemented abstract method LayoutContainer:getLayoutPadding")
 end
 
----
--- @export
+--- @export
 return {
   Layout = Layout,
   LayoutItem = LayoutItem,

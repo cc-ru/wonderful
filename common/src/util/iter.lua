@@ -100,8 +100,7 @@ local function chain(...)
   return continue
 end
 
----
--- @export
+--- @export
 return {
   wrap = wrap,
   ipairsSorted = ipairsSorted,

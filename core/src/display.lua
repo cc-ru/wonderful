@@ -38,14 +38,17 @@ local function depthResolution(depth)
 end
 
 --- A class that manages GPU pool and stores displays.
+-- @cl DisplayManager
 local DisplayManager = class(nil, {name = "wonderful.display.DisplayManager"})
 
 --- A display class.
+--
 -- A display is a reference to an area on a screen.
+--
+-- @cl Display
 local Display = class(nil, {name = "wonderful.display.Display"})
 
---- A class that manages GPU poll and stores displays.
--- @type DisplayManager
+--- @type DisplayManager
 
 --- Construct a new display manager instance.
 function DisplayManager:__new__()
@@ -297,9 +300,7 @@ end
 
 --------------------------------------------------------------------------------
 
---- A display class.
--- A display is a reference to an area on a screen.
--- @type Display
+--- @type Display
 
 --- Construct a new display.
 -- You **should not** use this directly.
@@ -341,8 +342,7 @@ function Display:getFramebuffer()
   return self._fb
 end
 
----
--- @export
+--- @export
 return {
   DisplayManager = DisplayManager,
   Display = Display,
