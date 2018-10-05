@@ -29,3 +29,12 @@ no_space_before_args = true
 convert_opt = true
 wrap = true
 sort_modules = true
+
+new_type('cl', 'Classes and inheritance', false)
+
+custom_tags = {
+  {'extends', title = 'Parent classes', hidden = false,
+   format = function(value)
+     return typename(value)
+   end}
+}
