@@ -115,22 +115,22 @@ function ScrollBox:_initialize(x, y, w, h)
 end
 
 function ScrollBox:setX(x)
-  self:superCall(geometry.Box, "setX", x)
+  geometry.Box.setX(self, x)
   self:requestComposition()
 end
 
 function ScrollBox:setY(y)
-  self:superCall(geometry.Box, "setY", y)
+  geometry.Box.setY(self, y)
   self:requestComposition()
 end
 
 function ScrollBox:setWidth(w)
-  self:superCall(geometry.Box, "setWidth", w)
+  geometry.Box.setWidth(self, w)
   self:requestComposition()
 end
 
 function ScrollBox:setHeight(h)
-  self:superCall(geometry.Box, "setHeight", h)
+  geometry.Box.setHeight(self, h)
   self:requestComposition()
 end
 

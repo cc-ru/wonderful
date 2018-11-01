@@ -35,7 +35,7 @@ local RelativeLayout = class(
 function RelativeLayout:__new__(args)
   args = args or {}
 
-  self:superCall("__new__", args)
+  Layout.__new__(self, args)
 
   -- This is a two-dimensional child vector that stores their position and
   -- width.
@@ -95,7 +95,7 @@ function RelativeLayout:insertChild(x, y, width, height, element)
   --
   -- so index i = (lastIndex + 2) // 3 * 3 + 1
 
-  self:superCall("insertChild", element)
+  Layout.insertChild(self, element)
 
   -- this is (y << 8) | x
   self._positions[index + 1] = y * 256 + x
@@ -118,7 +118,7 @@ function RelativeLayout:removeChild(element)
     return false
   end
 
-  self:superCall("removeChild", element)
+  Layout.removeChild(self, element)
 
   self._positions[index + 1] = nil
   self._positions[index + 2] = nil
@@ -157,7 +157,7 @@ function RelativeLayout:replaceChild(element1, element2, x, y, width, height)
     x, y, width, height = self:_getPositionData(element1)
   end
 
-  self:superCall("replaceChild", element)
+  Layout.replaceChild(self, element)
 
   self._positions[index + 1] = y * 256 + x
   self._positions[index + 2] = width

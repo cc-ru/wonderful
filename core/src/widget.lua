@@ -40,7 +40,7 @@ local Widget = class(RelativeLayout, {name = "wonderful.widget.Widget"})
 function Widget:__new__(args)
   args = args or {}
 
-  self:superCall("__new__", args)
+  RelativeLayout.__new__(self, args)
 
   self.focusable = attribute.Focusable(self, false)
 
@@ -98,7 +98,7 @@ function Widget:isFocused(_element)
 end
 
 function Widget:requestComposition()
-  self:superCall(RelativeLayout, "requestComposition")
+  RelativeLayout.requestComposition(self)
   self:requestRender()
 end
 

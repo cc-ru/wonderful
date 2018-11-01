@@ -18,7 +18,7 @@ local doc = wmain:addDocument {}
 local i = 1
 
 function Rectangle:__new__(args)
-  self:superCall("__new__", args)
+  wonderful.widget.Widget.__new__(self, args)
 
   self.i = i
 

@@ -220,7 +220,7 @@ local BoxLayout = class({ListMixin, Layout},
 function BoxLayout:__new__(args)
   args = args or {}
 
-  self:superCall(Layout, "__new__", args)
+  Layout.__new__(self, args)
 
   self._direction = args.direction
   self._padding = Padding(self, args.padding and table.unpack(args.padding))
@@ -307,7 +307,7 @@ end
 function BoxLayout:insertChild(index, element, stretch)
   self:requestComposition()
 
-  self:superCall("insertChild", index, element)
+  Layout.insertChild(self, index, element)
 
   local margin = Margin(self)
 
@@ -325,7 +325,7 @@ end
 function BoxLayout:removeChild(index)
   self:requestComposition()
 
-  local removedElement = self:superCall("removeChild", index)
+  local removedElement = Layout.removeChild(self, index)
 
   if removedElement then
     self._margins[removedElement] = nil
@@ -354,7 +354,7 @@ end
 function BoxLayout:replaceChild(index, child, stretch)
   self:requestComposition()
 
-  local removedElement = self:superCall("replaceChild", index, child)
+  local removedElement = Layout.replaceChild(self, index, child)
 
   if removedElement then
     local margin = self._margins[removedElement]
@@ -543,7 +543,7 @@ function VBoxLayout:__new__(args)
   args.direction = getVerticalDirection(args.reversed)
   args.reversed = nil
 
-  self:superCall("__new__", args)
+  BoxLayout.__new__(self, args)
 end
 
 --- Set the direction in which to lay children out.
@@ -552,7 +552,7 @@ end
 --
 -- @tparam boolean reversed whether to set the direction to bottom-to-top
 function VBoxLayout:setDirection(reversed)
-  self:superCall("setDirection", getVerticalDirection(reversed))
+  BoxLayout.setDirection(self, getVerticalDirection(reversed))
 end
 
 --- @section end
@@ -571,7 +571,7 @@ function HBoxLayout:__new__(args)
   args.direction = getHorizontalDirection(args.reversed)
   args.reversed = nil
 
-  self:superCall("__new__", args)
+  BoxLayout.__new__(self, args)
 end
 
 --- Set the direction in which to lay children out.
@@ -580,7 +580,7 @@ end
 --
 -- @tparam boolean reversed whether to set the direction to right-to-left
 function HBoxLayout:setDirection(reversed)
-  self:superCall("setDirection", getHorizontalDirection(reversed))
+  BoxLayout.setDirection(self, getHorizontalDirection(reversed))
 end
 
 --- @export

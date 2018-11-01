@@ -791,7 +791,7 @@ local Framebuffer = class(Buffer, {name = "wonderful.buffer.Framebuffer"})
 -- @tparam int args.depth a color depth
 -- @tparam boolean args.debug whether the debug mode should be set
 function Framebuffer:__new__(args)
-  self:superCall("__new__", args)
+  Buffer.__new__(self, args)
 
   self._dirty = {}
 
@@ -1133,7 +1133,7 @@ function BufferView:intersection(x0, y0, w, h)
 
   x0, y0 = self:absCoords(x0, y0)
 
-  return self:superCall("intersection", x0, y0, w, h)
+  return Buffer.intersection(self, x0, y0, w, h)
 end
 
 --- Create a view relative to the view.

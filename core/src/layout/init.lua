@@ -49,7 +49,7 @@ local Layout = class(Element, {name = "wonderful.layout.Layout"})
 function Layout:__new__(args)
   args = args or {}
 
-  self:superCall("__new__", args)
+  Element.__new__(self, args)
 
   self._shouldCompose = TrappedFlag(shouldComposeGetter, true, true, self)
   self._boundingBox = geometry.Box()

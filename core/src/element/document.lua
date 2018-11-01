@@ -46,7 +46,7 @@ local Document = class(
 -- @tparam table args a keyword argument table
 -- @tparam wonderful.display.Display args.display a display
 function Document:__new__(args)
-  self:superCall(Layout, "__new__", args)
+  Layout.__new__(self, args)
 
   self._globalDisplay = args.display
   self._elementFocused = nil
@@ -134,7 +134,7 @@ function Document:insertChild(element)
     previousChild = self:removeChild()
   end
 
-  self:superCall("insertChild", 1, element)
+  Layout.insertChild(self, 1, element)
 
   self:requestComposition()
 
@@ -145,7 +145,7 @@ end
 -- @return[1] the removed element
 -- @treturn[2] `nil` the docuemnt had no child
 function Document:removeChild()
-  self:superCall("removeChild", 1)
+  Layout.removeChild(self, 1)
 end
 
 function Document:_compose(layoutBox)

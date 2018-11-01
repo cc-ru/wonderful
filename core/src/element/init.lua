@@ -43,8 +43,8 @@ local Element = class({node.Node, event.EventTarget},
 function Element:__new__(args)
   args = args or {}
 
-  self:superCall(node.Node, "__new__")
-  self:superCall(event.EventTarget, "__new__")
+  node.Node.__new__(self)
+  event.EventTarget.__new__(self)
 
   -- This has to be here because of the requirement of `Node:flagWalk`.
   -- The flag itself is only raised by widgets, though.

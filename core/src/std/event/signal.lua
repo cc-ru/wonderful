@@ -38,7 +38,7 @@ local ComponentAdded = class(
 -- @tparam string address a component address
 -- @tparam string componentType a component type
 function ComponentAdded:__new__(address, componentType)
-  self:superCall(Signal, "__new__")
+  Signal.__new__(self)
   self._address = address
   self._componentType = componentType
 end
@@ -67,7 +67,7 @@ local ComponentRemoved = class(
 -- @tparam string address a component address
 -- @tparam string componentType a component type
 function ComponentRemoved:__new__(address, componentType)
-  self:superCall(Signal, "__new__")
+  Signal.__new__(self)
   self._address = address
   self._componentType = componentType
 end
@@ -95,7 +95,7 @@ local ComponentAvailable = class(
 --- Construct a new instance.
 -- @tparam string componentType a component type
 function ComponentAvailable:__new__(componentType)
-  self:superCall(Signal, "__new__")
+  Signal.__new__(self)
   self._componentType = componentType
 end
 
@@ -118,7 +118,7 @@ local ComponentUnavailable = class(
 --- Construct a new instance.
 -- @tparam string componentType a component type
 function ComponentUnavailable:__new__(componentType)
-  self:superCall(Signal, "__new__")
+  Signal.__new__(self)
   self._componentType = componentType
 end
 
@@ -142,7 +142,7 @@ local Touch = class(Signal, {name = "wonderful.std.event.signal.Touch"})
 -- @tparam int button a button number
 -- @tparam ?string playerName a player name
 function Touch:__new__(screen, x, y, button, playerName)
-  self:superCall(Signal, "__new__")
+  Signal.__new__(self)
   self._screen = screen
   self._x = x
   self._y = y
@@ -186,7 +186,7 @@ local Drag = class(Signal, {name = "wonderful.std.event.signal.Drag"})
 -- @tparam int button a button number
 -- @tparam ?string playerName a player name
 function Drag:__new__(screen, x, y, button, playerName)
-  self:superCall(Signal, "__new__")
+  Signal.__new__(self)
   self._screen = screen
   self._x = x
   self._y = y
@@ -230,7 +230,7 @@ local Drop = class(Signal, {name = "wonderful.std.event.signal.Drop"})
 -- @tparam int button a button number
 -- @tparam ?string playerName a player name
 function Drop:__new__(screen, x, y, button, playerName)
-  self:superCall(Signal, "__new__")
+  Signal.__new__(self)
   self._screen = screen
   self._x = x
   self._y = y
@@ -274,7 +274,7 @@ local Scroll = class(Signal, {name = "wonderful.std.event.signal.Scroll"})
 -- @tparam int direction a direction of scrolling
 -- @tparam ?string playerName a player name
 function Scroll:__new__(screen, x, y, direction, playerName)
-  self:superCall(Signal, "__new__")
+  Signal.__new__(self)
   self._screen = screen
   self._x = x
   self._y = y
@@ -317,7 +317,7 @@ local KeyDown = class(Signal, {name = "wonderful.std.event.signal.KeyDown"})
 -- @tparam int code a key code
 -- @tparam ?string playerName a player name
 function KeyDown:__new__(keyboard, char, code, playerName)
-  self:superCall(Signal, "__new__")
+  Signal.__new__(self)
   self._keyboard = keyboard
   self._char = char
   self._code = code
@@ -355,7 +355,7 @@ local KeyUp = class(Signal, {name = "wonderful.std.event.signal.KeyUp"})
 -- @tparam int code a key code
 -- @tparam ?string playerName a player name
 function KeyUp:__new__(keyboard, char, code, playerName)
-  self:superCall(Signal, "__new__")
+  Signal.__new__(self)
   self._keyboard = keyboard
   self._char = char
   self._code = code
@@ -392,7 +392,7 @@ local Clipboard = class(Signal, {name = "wonderful.std.event.signal.Clipboard"})
 -- @tparam string value an inserted string
 -- @tparam string playerName a player name
 function Clipboard:__new__(keyboard, value, playerName)
-  self:superCall(Signal, "__new__")
+  Signal.__new__(self)
   self._keyboard = keyboard
   self._value = value
   self._playerName = playerName
