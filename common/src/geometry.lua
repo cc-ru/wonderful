@@ -112,8 +112,8 @@ end
 -- @tparam ?number h a height
 -- @treturn wonderful.geometry.Box the box instance
 function Box:relative(x, y, w, h)
-  return Box(self._x + (x and x - 1),
-             self._y + (y and y - 1),
+  return Box(self._x + (x and (x - 1) or 0),
+             self._y + (y and (y - 1) or 0),
              w or self._w,
              h or self._h)
 end

@@ -188,7 +188,7 @@ function RelativeLayout:_getPositionData(element)
 end
 
 function RelativeLayout:_compose(box)
-  for child in self:getChildren() do
+  for _, child in pairs(self:getChildren()) do
     local x, y, width, height = self:_getPositionData(child)
     local shWidth, shHeight = child:sizeHint()
 
@@ -202,7 +202,7 @@ end
 function RelativeLayout:sizeHint()
   local width, height = 0, 0
 
-  for child in self:getChildren() do
+  for _, child in pairs(self:getChildren()) do
     local x, y, childWidth, childHeight = self:_getPositionData(child)
     local shWidth, shHeight = child:sizeHint()
 

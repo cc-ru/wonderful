@@ -149,8 +149,8 @@ function Document:removeChild()
 end
 
 function Document:_compose(layoutBox)
-  for child in self:getChildren() do
-    child:_setBoundingBox(layoutBox)
+  for _, child in pairs(self:getChildren()) do
+    child:getBoundingBox():setBox(layoutBox)
   end
 end
 

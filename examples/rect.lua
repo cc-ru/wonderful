@@ -35,16 +35,17 @@ function Rectangle:sizeHint()
   return 80, 1
 end
 
-local box = wonderful.layout.box.BoxLayout()
+local box = wonderful.layout.box.VBoxLayout()
 doc:insertChild(box)
 
 for _ = 1, 25 do
   box:appendChild(Rectangle())
 end
 
+wmain:compose()
+
 for _ = 1, 10 do
-  doc:requestRender()
-  wmain:render()
+  wmain:render(false, true)
   os.sleep(0.05)
 end
 

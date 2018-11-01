@@ -280,7 +280,7 @@ function BoxLayout:sizeHint()
 
   local vertical = self:isVertical()
 
-  for child in self:getChildren() do
+  for _, child in pairs(self:getChildren()) do
     local hw, hh = child:sizeHint()
     local margin = self._margins[child]
 
@@ -373,7 +373,7 @@ function BoxLayout:replaceChild(index, child, stretch)
   return nil
 end
 
-function BoxLayout:_compose(layoutBox)
+function BoxLayout:_compose(box)
   local reversed = self:isReversed()
   local vertical = self:isVertical()
 
@@ -489,7 +489,7 @@ function BoxLayout:_buildChildChunks(reversed, vertical)
   local count = 0
   local lastMut = 0
 
-  for child in self:getChildren() do
+  for _, child in pairs(self:getChildren()) do
     if self._stretch[child] == 0 then
       local w, h = child:sizeHint()
       local margin = self._margins[child]
@@ -540,6 +540,8 @@ local VBoxLayout = class(BoxLayout, {name = "wonderful.layout.box.VBoxLayout"})
 -- @tparam[opt=false] boolean args.reversed whether to set the direction to
 -- bottom-to-top
 function VBoxLayout:__new__(args)
+  args = args or {}
+
   args.direction = getVerticalDirection(args.reversed)
   args.reversed = nil
 
@@ -568,6 +570,8 @@ local HBoxLayout = class(BoxLayout, {name = "wonderful.layout.box.HBoxLayout"})
 -- @tparam table args keyword argument table
 -- @tparam boolean args.reversed whether to set the direction to right-to-left
 function HBoxLayout:__new__(args)
+  args = args or {}
+
   args.direction = getHorizontalDirection(args.reversed)
   args.reversed = nil
 

@@ -63,8 +63,8 @@ function Widget:_render(fbView)
 end
 
 --- Flag the element to render it the next time `Wonderful:render` is called.
-function Widget:requestRender()
-  self._shouldRender:raise()
+function Widget:requestRender(_quiet)
+  self._shouldRender:raise(_quiet)
 end
 
 --- Check whether render is requested, and call `_render` if it is. Do
@@ -74,9 +74,9 @@ end
 -- @treturn boolean whether the element was actually rendered
 -- @see Widget:requestRender
 function Widget:flush(fbView)
-  if self._shouldRedraw:isRaised() then
+  if self._shouldRender:isRaised() then
     self:_render(fbView)
-    self._shouldRedraw:lower()
+    self._shouldRender:lower()
 
     return true
   end

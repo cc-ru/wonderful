@@ -33,6 +33,7 @@ local iterUtil = require("wonderful.util.iter")
 
 local DisplayManager = require("wonderful.display").DisplayManager
 local Document = require("wonderful.element.document").Document
+local Widget = require("wonderful.widget").Widget
 local ipairsRev = iterUtil.ipairsRev
 
 --- The main class of the library.
@@ -140,13 +141,13 @@ function Wonderful:addDocument(args)
 end
 
 --- Render the documents.
-function Wonderful:render(noFlush)
+function Wonderful:render(noFlush, force)
   for _, document in ipairs(self._documents) do
     local buffer = document:getDisplay():getFramebuffer()
 
-    document:flagWalk(function(widget)
-      -- This function can only be ever called for widgets, but let's check
-      -- nevertheless.
+    local walker = force and document.nlrWalk or document.flagWalk
+
+    walker(document, function(widget)
       if widget:isa(Widget) and widget:getBoundingBox() then
         local coordBox = widget:getBoundingBox()
         local viewport = widget:getViewport()
@@ -155,9 +156,13 @@ function Wonderful:render(noFlush)
                                  coordBox:getWidth(), coordBox:getHeight(),
                                  viewport:unpack())
 
+        if force then
+          widget:requestRender(true)
+        end
+
         widget:flush(view)
       end
-    end)
+    end, "_shouldRender")
   end
 
   if not noFlush then
@@ -172,7 +177,7 @@ function Wonderful:compose()
   for _, document in ipairs(self._documents) do
     document:flagWalk(function(element)
       element:commitComposition()
-    end)
+    end, "_shouldCompose")
   end
 end
 
