@@ -17,6 +17,8 @@
 
 local class = require("lua-objects")
 
+local isin = require("wonderful.util.table").isin
+
 --- The tree node class.
 -- @cl Node
 local Node = class(nil, {name = "wonderful.element.node.Node"})
@@ -27,8 +29,7 @@ local Node = class(nil, {name = "wonderful.element.node.Node"})
 function Node:__new__()
   self._parentNode = nil
   self._childNodes = {}
-  self._rootMemo = nil
-  self._index = nil
+  self._indexMap = {}
 end
 
 --- Perform left-to-right breadth-first tree traversal.
@@ -59,6 +60,7 @@ end
 --
 -- If the function returns a non-`nil` value, traversal is stopped, and the
 -- returned value is returned.
+--
 -- @tparam function(node) func the function to call for each node
 function Node:nlrWalk(func)
   local result = func(self)
@@ -80,6 +82,7 @@ end
 --
 -- If the function returns a non-`nil` value, traversal is stopped, and the
 -- returned value is returned.
+--
 -- @tparam function(node) func the function to call for each node
 function Node:rlnWalk(func)
   for i = #self._childNodes, 1, -1 do
@@ -93,26 +96,72 @@ function Node:rlnWalk(func)
   return func(self)
 end
 
+do
+  local function flagWalker(node, func, key, forced)
+    local flag = node[key]
+    local flagRaised = forced or flag:isRaised()
+    local trapSetOff = flagRaised or flag:isSetOff()
+
+    if flagRaised then
+      func(node)
+    end
+
+    if trapSetOff then
+      for _, child in ipairs(node._childNodes) do
+        flagWalker(child, func, key, flagRaised)
+      end
+
+      flag:reset()
+      flag:lower()
+    end
+  end
+
+  --- Perform left-to-right pre-order depth-first traversal of flagged nodes.
+  --
+  -- All nodes in the tree must have a @{wonderful.util.flag.TrappedFlag|flag},
+  -- which is used to determine whether to descend and process:
+  --
+  -- - The walker only descends if the flag it raised or its trap is set off.
+  -- - The callback is called if the node or its descendant has its flag raised.
+  --
+  -- @tparam function(node) func the function to call for each node to be
+  -- processed
+  -- @param key the key by which index nodes to get the flag
+  function Node:flagWalk(func, key)
+    return flagWalker(self, func, key, false)
+  end
+end
+
 --- Insert a node at a given index.
+--
+-- If the node already has a parent, removes that node from its parent
+-- beforehand.
+--
 -- @tparam int index the index
--- @param node the node.
+-- @param node the node
 function Node:insertChild(index, node)
   if node:hasParent() then
-    node._parentNode:removeChild(node._index)
+    node._parentNode:removeChild(node)
   end
 
   node._parentNode = self
-  node._rootMemo = self._rootNode
+
+  self._indexMap[node] = index
 
   table.insert(self._childNodes, index, node)
 
-  self:updateIndeces()
+  self:_updateNodeIndeces()
 end
 
---- Remove a node at a given index.
--- @tparam int index the index
--- @return `false` or the removed node
+--- Remove a node.
+-- @tparam int|Node index the index or the node
+-- @return[0] the removed node
+-- @treturn[1] `false` the node is not a child
 function Node:removeChild(index)
+  if type(index) ~= "number" then
+    index = self._indexMap[index]
+  end
+
   if not self._childNodes[index] then
     return false
   end
@@ -120,30 +169,18 @@ function Node:removeChild(index)
   local node = table.remove(self._childNodes, index)
 
   node._parentNode = nil
-  node._rootMemo = nil
-  node._index = nil
+  self._indexMap[node] = nil
 
-  self:updateIndeces()
+  self:_updateNodeIndeces()
 
   return node
 end
 
---- Prepend a node.
--- @param child the node
-function Node:prependChild(child)
-  self:insertChild(1, child)
-end
-
---- Append a node.
--- @param child the node
-function Node:appendChild(child)
-  self:insertChild(#self._childNodes + 1, child)
-end
-
 --- Replace a node at a given index.
--- @tparam int index the index
+-- @tparam int|Node index the index or the node
 -- @param child the node
--- @return `false` or the replaced node
+-- @return[0] the replaced node
+-- @treturn[1] `false` the node is not a child
 function Node:replaceChild(index, child)
   local old = self:removeChild(index)
 
@@ -152,61 +189,102 @@ function Node:replaceChild(index, child)
   end
 
   self:insertChild(index, child)
+
   return old
 end
 
-function Node:updateIndeces()
+function Node:_updateNodeIndeces()
   for i, node in pairs(self._childNodes) do
-    node._index = i
+    self._indexMap[node] = i
   end
 end
 
-function Node:hasChildNodes()
+--- Check whether the node has children.
+-- @treturn boolean
+function Node:hasChildren()
   return #self._childNodes > 0
 end
 
+--- Get the parent node.
+-- @return[1] the parent node
+-- @treturn[2] `nil` the node has no parent
 function Node:getParent()
   return self._parentNode
 end
 
+--- Get the table of the node's children.
+-- @treturn table
 function Node:getChildren()
   return self._childNodes
 end
 
+--- Get the root node.
+-- @return the root node
 function Node:getRoot()
-  if self._rootMemo then
-    return self._rootMemo
-  end
-
   local cur = self
 
   while true do
-    if cur._parentNode then
-      cur = cur._parentNode
+    if cur:hasParent() then
+      cur = cur:getParent()
     else
-      self._rootMemo = cur
       return cur
     end
   end
 end
 
+--- Check whether the node has a parent.
+-- @treturn boolean
 function Node:hasParent()
   return not not self._parentNode
 end
 
+--- Calculate the depth level of the node in the tree.
+--
+-- The root's level is `0`; its children have the level of `1`, and so on.
+--
+-- @treturn int
 function Node:getLevel()
   return self:hasParent() and (self._parentNode:getLevel() + 1) or 0
 end
 
---- Get the index of the node in the parent's child list.
+--- Get the index of a child in the list.
+-- @param child the child
 -- @treturn[1] int the index
 -- @treturn[2] nil the node has no parent
-function Node:getIndex()
-  return self._index
+function Node:getIndex(child)
+  return select(2, isin(child, self:getChildren()))
+end
+
+--- @section end
+
+--- A mixin class that adds the methods `appendChild` and `prependChild`.
+--
+-- If you extend from this class, you have to implement methods `insertChild`
+-- and `getChildren` yourself.
+--
+-- @cl wonderful.element.node.ListMixin
+local ListMixin = class(nil, {name = "wonderful.element.node.ListMixin"})
+
+--- @type ListMixin
+
+--- Prepend a node.
+--
+-- `node:prependChild(...)` is equivalent to `node:insertChild(1, ...)`.
+function ListMixin:prependChild(...)
+  self:insertChild(1, ...)
+end
+
+--- Append a node.
+--
+-- `node:appendChild(...)` is equivalent to
+-- `node:insertChild(#node:getChildren() + 1, ...)`.
+function ListMixin:appendChild(...)
+  self:insertChild(#self:getChildren() + 1, ...)
 end
 
 --- @export
 return {
   Node = Node,
+  ListMixin = ListMixin,
 }
 

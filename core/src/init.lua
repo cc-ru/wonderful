@@ -141,40 +141,23 @@ end
 
 --- Render the documents.
 function Wonderful:render(noFlush)
-  local stack = {}
-
-  local function push(element, force)
-    if element._renderRequestedByChildren or element._shouldRedraw or force then
-      table.insert(stack, element)
-    end
-  end
-
   for _, document in ipairs(self._documents) do
-    push(document)
-
     local buffer = document:getDisplay():getFramebuffer()
 
-    while #stack > 0 do
-      local element = table.remove(stack, #stack)
+    document:flagWalk(function(widget)
+      -- This function can only be ever called for widgets, but let's check
+      -- nevertheless.
+      if widget:isa(Widget) and widget:getBoundingBox() then
+        local coordBox = widget:getBoundingBox()
+        local viewport = widget:getViewport()
 
-      if element._shouldRedraw and element:getCalculatedBox() then
-        local coordBox = element:getCalculatedBox()
-        local viewport = element:getViewport()
+        local view = buffer:view(coordBox:getX(), coordBox:getY(),
+                                 coordBox:getWidth(), coordBox:getHeight(),
+                                 viewport:unpack())
 
-        local view = buffer:view(
-          coordBox:getX(), coordBox:getY(),
-          coordBox:getWidth(), coordBox:getHeight(),
-          viewport:unpack())
-
-        element:render(view)
+        widget:flush(view)
       end
-
-      for _, child in ipairsRev(element:getChildren()) do
-        push(child, element._shouldRedraw)
-      end
-
-      element._renderRequestedByChildren = false
-    end
+    end)
   end
 
   if not noFlush then
@@ -184,10 +167,12 @@ function Wonderful:render(noFlush)
   end
 end
 
---- Recompose all documents.
-function Wonderful:recomposeAll()
+--- Compose all documents.
+function Wonderful:compose()
   for _, document in ipairs(self._documents) do
-    document:recompose()
+    document:flagWalk(function(element)
+      element:commitComposition()
+    end)
   end
 end
 

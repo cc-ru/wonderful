@@ -17,89 +17,129 @@
 
 local class = require("lua-objects")
 
-local Margin = require("wonderful.geometry").Margin
+local attribute = require("wonderful.element.attribute")
+local geometry = require("wonderful.geometry")
 
---- The abstract layout class.
--- @cl Layout
-local Layout = class(nil, {name = "wonderful.layout.Layout"})
+local Element = require("wonderful.element").Element
+local TrappedFlag = require("wonderful.util.flag").TrappedFlag
+
+local function shouldComposeGetter(layout)
+  local parent = layout:getParent()
+
+  if parent then
+    return parent._shouldCompose
+  end
+end
+
+--- The base layout class.
+--
+-- Handles element positioning.
+--
+-- @cl wonderful.layout.Layout
+-- @extends wonderful.element.Element
+local Layout = class(Element, {name = "wonderful.layout.Layout"})
 
 --- @type Layout
 
---- An abstract method to recompose the layout children.
--- Given a layout container, the method implementation should calculated and set
--- its children's calculated boxes.
--- @param el an instance of a class that inherits from `LayoutContainer`
-function Layout:recompose(el)
-  error("unimplemented abstract method Layout:recompose")
+--- @field Layout.scrollBox
+-- The @{wonderful.element.attribute.ScrollBox|ScrollBox} attribute.
+
+--- Construct a new instance.
+-- @tparam table args keyword argument table
+function Layout:__new__(args)
+  args = args or {}
+
+  self:superCall("__new__", args)
+
+  self.scrollBox = attribute.ScrollBox(self, table.unpack(args.scrollBox or {}))
+
+  self._boundingBox = geometry.Box()
+  self._shouldCompose = TrappedFlag(shouldComposeGetter, true, true, self)
 end
 
---- An abstract method to estimate the size of an element.
--- It should calculate the size that a layout container will take with all of
--- its children.
--- @param el an instance of a class that inherits from `LayoutContainer`
--- @treturn number the width
--- @treturn number the height
-function Layout:sizeHint(el)
-  error("unimplemented abstract method Layout:sizeHint")
+--- Abstract method to compose children.
+--
+-- if you're making your own layout, provide an implementation for this method.
+--
+-- Calling this method forcefully composes the children, which is discouraged.
+-- Consider using `requestComposition` instead.
+--
+-- @tparam wonderful.geometry.Box layoutBox the layout box relative to which
+-- elements are to be composed
+-- @see Layout:requestComposition
+function Layout:_compose(layoutBox)
+  error("Abstract method Layout:_compose unimplemented")
 end
 
---- @section end
-
---- The abstract layout item class.
--- @cl LayoutItem
-local LayoutItem = class(nil, {name = "wonderful.layout.LayoutItem"})
-
---- @type LayoutItem
-
---- An abstract method to estimate the size of the element.
--- @treturn number the width
--- @treturn number the height
-function LayoutItem:sizeHint()
-  error("unimplemented abstract method LayoutItem:sizeHint")
+--- Flag the element to compose its children the next time `Wonderful:compose`
+-- is called.
+function Layout:requestComposition()
+  self._shouldCompose:raise()
 end
 
---- An abstract method to get an instance of @{wonderful.geometry.Margin}.
--- @treturn wonderful.geometry.Margin the margin
-function LayoutItem:getMargin()
-  error("unimplemented abstract method LayoutItem:getMargin")
+--- Checks whether composition is requested, and calls `_compose` if it is. Does
+-- nothing otherwise.
+--
+-- @treturn boolean whether composition was requested
+-- @see Layout:requestComposition
+function Layout:commitComposition()
+  if self:isFreeTree() then
+    return false
+  end
+
+  if self._shouldCompose:isRaised() then
+    self:_compose(self:getLayoutBox())
+    self._shouldCompose:lower()
+
+    return true
+  end
+
+  return false
 end
 
---- An abstract method to get a stretch value of the element.
--- @treturn number the stretch value
-function LayoutItem:getStretch()
-  error("unimplemented abstract method LayoutItem:getStretch")
+--- Abstract method to estimate the layout size, including its children.
+-- @treturn int the width
+-- @treturn int the height
+function Layout:sizeHint()
+  error("Abstract method Layout:sizeHint unimplemented")
 end
 
---- An abstract method that sets the element's calculated box.
--- @tparam wonderful.geometry.Box box the new calculated box
-function LayoutItem:setCalculatedBox(box)
-  error("unimplemented abstract method LayoutItem:setCalculatedBox")
+--- Get the element's bounding box.
+-- @treturn wonderful.geometry.Box
+function Layout:getBoundingBox()
+  return self._boundingBox
 end
 
---- @section end
+--- Calculate the layout's viewport.
+--
+-- Viewport is the actual visible area of an element.
+--
+-- @treturn wonderful.geometry.Box
+function Layout:getViewport()
+  local parent = self:getParent()
 
---- The abstract layout container class.
--- @type LayoutContainer
-local LayoutContainer = class(nil, {name = "wonderful.layout.LayoutContainer"})
-
---- @type LayoutContainer
-
---- An abstract method to get the layout items.
--- @treturn function an iterator function over the layout items
-function LayoutContainer:getLayoutItems()
-  error("unimplemented abstract method LayoutContainer:getLayoutItems")
+  if parent then
+    -- Crop the element so that it does not exceed the parent's viewport.
+    return parent:getViewport():intersection(self:getBoundingBox())
+  else
+    -- The root element is never scrolled, so it may never be cropped;
+    -- therefore, its viewport is its bounding box.
+    return self:getBoundingBox()
+  end
 end
 
---- An abstract method to get the layout padding.
--- @treturn wonderful.geometry.Padding the padding
-function LayoutContainer:getLayoutPadding()
-  error("unimplemented abstract method LayoutContainer:getLayoutPadding")
+--- Calculate the layout box relative to which the layout's children are
+-- positioned.
+--
+-- The layout box is the bounding box shifted by the values of the scroll box.
+--
+-- @treturn wonderful.geometry.Box
+function Layout:getLayoutBox()
+  return self:getBoundingBox():relative(self.scrollBox:unpack())
 end
 
 --- @export
 return {
   Layout = Layout,
-  LayoutItem = LayoutItem,
-  LayoutContainer = LayoutContainer,
 }
 

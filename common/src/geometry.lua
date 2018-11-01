@@ -97,16 +97,19 @@ function Box:__tostring__()
 end
 
 --- Create a new box relative to itself.
--- @tparam number x the relative abscissa of a top-left point
--- @tparam number y the relative ordinate of a top-left point
--- @tparam number w a width
--- @tparam number h a height
+--
+-- If some arguments are `nil`, the values are copied from self.
+--
+-- @tparam ?number x the relative abscissa of the top-left point
+-- @tparam ?number y the relative ordinate of the top-left point
+-- @tparam ?number w a width
+-- @tparam ?number h a height
 -- @treturn wonderful.geometry.Box the box instance
 function Box:relative(x, y, w, h)
-  return Box(self._x + x - 1,
-             self._y + y - 1,
-             w,
-             h)
+  return Box(self._x + (x and x - 1),
+             self._y + (y and y - 1),
+             w or self._w,
+             h or self._h)
 end
 
 --- Check if a point belongs to the box.
@@ -206,144 +209,8 @@ end
 
 --- @section end
 
---- The margin class.
--- @cl Margin
-local Margin = class(nil, {name = "wonderful.geometry.Margin"})
-
---- @type Margin
-
---- Set the margins. A shorthand for setting each margin individually.
--- @tparam ?int l the left margin
--- @tparam ?int t the top margin
--- @tparam ?int r the right margin
--- @tparam ?int b the bottom margin
-function Margin:set(l, t, r, b)
-  self:setLeft(l)
-  self:setTop(t)
-  self:setRight(r)
-  self:setBottom(b)
-end
-
---- Set the left margin.
--- @tparam ?int l the left margin
-function Margin:setLeft(l)
-  self._l = type(l) == "number" and l or 0
-end
-
---- Set the top margin.
--- @tparam ?int t the top margin
-function Margin:setTop(t)
-  self._t = type(t) == "number" and t or 0
-end
-
---- Set the right margin.
--- @tparam ?int r the right margin
-function Margin:setRight(r)
-  self._r = type(t) == "number" and r or 0
-end
-
---- Set the bottom margin.
--- @tparam ?int b the bottom margin
-function Margin:setBottom(b)
-  self._b = type(b) == "number" and b or 0
-end
-
---- Get the left margin.
--- @treturn int the left margin
-function Margin:getLeft()
-  return self._l
-end
-
---- Get the top margin.
--- @treturn int the left margin
-function Margin:getTop()
-  return self._t
-end
-
---- Get the right margin.
--- @treturn int the right margin
-function Margin:getRight()
-  return self._r
-end
-
---- Get the bottom margin.
--- @treturn int the bottom margin
-function Margin:getBottom()
-  return self._b
-end
-
---- @section end
-
---- The padding class.
--- @cl Padding
-local Padding = class(nil, {name = "wonderful.geometry.Padding"})
-
---- @type Padding
-
---- Set the paddings. A shorthand for setting each padding individually.
--- @tparam ?int l the left padding
--- @tparam ?int t the top padding
--- @tparam ?int r the right padding
--- @tparam ?int b the bottom padding
-function Padding:set(l, t, r, b)
-  self:setLeft(l)
-  self:setTop(t)
-  self:setRight(r)
-  self:setBottom(b)
-end
-
---- Set the left padding.
--- @tparam ?int l the left padding
-function Padding:setLeft(l)
-  self._l = type(l) == "number" and l or 0
-end
-
---- Set the top padding.
--- @tparam ?int t the top padding
-function Padding:setTop(t)
-  self._t = type(t) == "number" and t or 0
-end
-
---- Set the right padding.
--- @tparam ?int r the right padding
-function Padding:setRight(r)
-  self._r = type(t) == "number" and r or 0
-end
-
---- Set the bottom padding.
--- @tparam ?int b the bottom padding
-function Padding:setBottom(b)
-  self._b = type(b) == "number" and b or 0
-end
-
---- Get the left padding.
--- @treturn int the left padding
-function Padding:getLeft()
-  return self._l
-end
-
---- Get the top padding.
--- @treturn int the left padding
-function Padding:getTop()
-  return self._t
-end
-
---- Get the right padding.
--- @treturn int the right padding
-function Padding:getRight()
-  return self._r
-end
-
---- Get the bottom padding.
--- @treturn int the bottom padding
-function Padding:getBottom()
-  return self._b
-end
-
 --- @export
 return {
   Box = Box,
-  Margin = Margin,
-  Padding = Padding,
 }
 

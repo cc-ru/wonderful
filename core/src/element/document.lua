@@ -19,18 +19,24 @@ local class = require("lua-objects")
 
 local kbd = require("keyboard")
 
-local element = require("wonderful.element")
 local focus = require("wonderful.std.event.focus")
 local signal = require("wonderful.std.event.signal")
+
+local Layout = require("wonderful.layout").Layout
+local Widget = require("wonderful.widget").Widget
 
 --- The document class.
 --
 -- The root element of a render tree.
 --
+-- The document is a layout that has a single child. On composition, that child
+-- is provided with the whole area of the document. One would usually set
+-- another layout (e.g. a box) as the child to allow for the most flexibility.
+--
 -- @cl Document
--- @extends wonderful.element.Element
+-- @extends wonderful.layout.Layout
 local Document = class(
-  element.Element,
+  Layout,
   {name = "wonderful.element.document.Document"}
 )
 
@@ -40,20 +46,17 @@ local Document = class(
 -- @tparam table args a keyword argument table
 -- @tparam wonderful.display.Display args.display a display
 function Document:__new__(args)
-  self:superCall(element.Element, "__new__", args)
+  self:superCall(Layout, "__new__", args)
 
   self._globalDisplay = args.display
+  self._elementFocused = nil
 
-  self._calculatedBox = self._globalDisplay:getBox()
+  self:_setBoundingBox(self._globalDisplay:getBox())
 
   self:addDefaultListener {
     event = signal.KeyDown,
     handler = self.onKeyDown,
   }
-end
-
-function Document:_render(view)
-  view:fill(1, 1, view:getWidth(), view:getHeight(), 0xffffff, 0x000000, 1, " ")
 end
 
 function Document:onKeyDown(e)
@@ -88,7 +91,7 @@ function Document:switchFocus(reversed)
   local found = not prev
 
   local new = traversalFunc(self, function(node)
-    if found and node.focusable:isEnabled() then
+    if found and node:isa(Widget) and node.focusable:isEnabled() then
       return node
     end
 
@@ -120,8 +123,50 @@ function Document:switchFocus(reversed)
   return true
 end
 
-function Document:getViewport()
-  return self._calculatedBox
+--- Set the child of the document.
+-- @param element the child element
+-- @return[1] the previously set child
+-- @treturn[2] `nil` the document had no child
+function Document:insertChild(element)
+  local previousChild = nil
+
+  if self:hasChildren() then
+    previousChild = self:removeChild()
+  end
+
+  self:superCall("insertChild", 1, element)
+
+  self:requestComposition()
+
+  return previousCHild
+end
+
+--- Remove the child of the document.
+-- @return[1] the removed element
+-- @treturn[2] `nil` the docuemnt had no child
+function Document:removeChild()
+  self:superCall("removeChild", 1)
+end
+
+function Document:_compose(layoutBox)
+  for child in self:getChildren() do
+    child:_setBoundingBox(layoutBox)
+  end
+end
+
+function Document:getDisplay()
+  return self._globalDisplay
+end
+
+function Document:sizeHint()
+  local box = self._globalDisplay:getBox()
+
+  return box:getWidth(),
+         box:getHeight()
+end
+
+function Document:isFocused(element)
+  return self._elementFocused == element
 end
 
 --- @export
