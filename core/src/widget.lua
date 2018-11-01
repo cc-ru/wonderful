@@ -98,7 +98,7 @@ function Widget:isFocused(_element)
 end
 
 function Widget:requestComposition()
-  self:superCall(Layout, "requestComposition")
+  self:superCall(RelativeLayout, "requestComposition")
   self:requestRender()
 end
 

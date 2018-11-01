@@ -18,7 +18,6 @@
 
 local class = require("lua-objects")
 
-local Box = require("wonderful.geometry").Box
 local Layout = require("wonderful.layout").Layout
 
 --- The relative layout.
@@ -34,6 +33,8 @@ local RelativeLayout = class(
 --- Construct a new instance.
 -- @tparam table args keyword argument table
 function RelativeLayout:__new__(args)
+  args = args or {}
+
   self:superCall("__new__", args)
 
   -- This is a two-dimensional child vector that stores their position and
@@ -194,7 +195,7 @@ function RelativeLayout:_compose(box)
     width = width or shWidth
     height = height or shHeight
 
-    child:getBoundingBox():set(box:relative(x, y, width, height))
+    child:getBoundingBox():setBox(box:relative(x, y, width, height))
   end
 end
 

@@ -11,7 +11,7 @@ local wmain = wonderful.Wonderful {
   debug = false
 }
 
-local Rectangle = class(wonderful.element.Element, {name = "Rectangle"})
+local Rectangle = class(wonderful.widget.Widget, {name = "Rectangle"})
 
 local doc = wmain:addDocument {}
 
@@ -35,20 +35,11 @@ function Rectangle:sizeHint()
   return 80, 1
 end
 
-local Dummy = class(wonderful.element.Element, {name = "Dummy"})
-
-function Dummy:_render() end
-
-function Dummy:sizeHint()
-  return 80, 25
-end
-
-local dummy = Dummy()
-
-doc:appendChild(dummy)
+local box = wonderful.layout.box.BoxLayout()
+doc:insertChild(box)
 
 for _ = 1, 25 do
-  dummy:appendChild(Rectangle())
+  box:appendChild(Rectangle())
 end
 
 for _ = 1, 10 do
@@ -56,3 +47,4 @@ for _ = 1, 10 do
   wmain:render()
   os.sleep(0.05)
 end
+

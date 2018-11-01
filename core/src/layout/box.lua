@@ -17,7 +17,6 @@
 
 local class = require("lua-objects")
 
-local Box = require("wonderful.geometry").Box
 local Layout = require("wonderful.layout").Layout
 local ListMixin = require("wonderful.element.node").ListMixin
 local Margin = require("wonderful.geometry").Margin
@@ -219,9 +218,11 @@ local BoxLayout = class({ListMixin, Layout},
 -- @tparam number args.direction the direction in which to lay children out
 -- @see Direction
 function BoxLayout:__new__(args)
-  self:superCall("__new__", args)
-  self._direction = args.direction
+  args = args or {}
 
+  self:superCall(Layout, "__new__", args)
+
+  self._direction = args.direction
   self._padding = Padding(self, args.padding and table.unpack(args.padding))
 
   -- [element] => (wonderful.geometry.Margin) margin
@@ -405,22 +406,22 @@ function BoxLayout:_handleConstChunk(chunk, full, reversed, vertical, x, y)
     local margin = self._margins[el]
 
     if reversed and vertical then
-      el:getBoundingBox():set(Box(x + margin:getLeft(),
-                                  full - y + margin:getBottom() - h,
-                                  w,
-                                  h))
+      el:getBoundingBox():set(x + margin:getLeft(),
+                              full - y + margin:getBottom() - h,
+                              w,
+                              h)
     elseif reversed then
       el:getBoundingBox():set(
-        Box(full - x - margin:getRight() - w + margin:getLeft(),
-            y + margin:getTop(),
-            w,
-            h)
+        full - x - margin:getRight() - w + margin:getLeft(),
+        y + margin:getTop(),
+        w,
+        h
       )
     else
-      el:getBoundingBox():set(Box(x + margin:getLeft(),
-                                  y + margin:getTop(),
-                                  w,
-                                  h))
+      el:getBoundingBox():set(x + margin:getLeft(),
+                              y + margin:getTop(),
+                              w,
+                              h)
     end
 
     if vertical then
@@ -453,22 +454,20 @@ function BoxLayout:_handleNonConstChunk(chunk, full, reversed, vertical, basis,
   end
 
   if reversed and vertical then
-    el:getBoundingBox():set(Box(x + margin:getLeft(),
-                                full - y + margin:getBottom() - h,
-                                w,
-                                h))
+    el:getBoundingBox():set(x + margin:getLeft(),
+                            full - y + margin:getBottom() - h,
+                            w,
+                            h)
   elseif reversed then
-    el:getBoundingBox():set(
-      Box(full - x - margin:getRight() - w + margin:getLeft(),
-          y + margin:getTop(),
-          w,
-          h)
-    )
+    el:getBoundingBox():set(full - x - margin:getRight() - w + margin:getLeft(),
+                            y + margin:getTop(),
+                            w,
+                            h)
   else
-    el:getBoundingBox():set(Box(x + margin:getLeft(),
-                                y + margin:getTop(),
-                                w,
-                                h))
+    el:getBoundingBox():set(x + margin:getLeft(),
+                            y + margin:getTop(),
+                            w,
+                            h)
   end
 
   if vertical then

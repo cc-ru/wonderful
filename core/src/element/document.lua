@@ -51,7 +51,7 @@ function Document:__new__(args)
   self._globalDisplay = args.display
   self._elementFocused = nil
 
-  self:_setBoundingBox(self._globalDisplay:getBox())
+  self:getBoundingBox():setBox(self._globalDisplay:getBox())
 
   self:addDefaultListener {
     event = signal.KeyDown,

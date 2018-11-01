@@ -51,10 +51,10 @@ function Layout:__new__(args)
 
   self:superCall("__new__", args)
 
-  self.scrollBox = attribute.ScrollBox(self, table.unpack(args.scrollBox or {}))
-
-  self._boundingBox = geometry.Box()
   self._shouldCompose = TrappedFlag(shouldComposeGetter, true, true, self)
+  self._boundingBox = geometry.Box()
+
+  self.scrollBox = attribute.ScrollBox(self, table.unpack(args.scrollBox or {}))
 end
 
 --- Abstract method to compose children.

@@ -64,6 +64,12 @@ function Box:set(x, y, w, h)
   self:setHeight(h)
 end
 
+--- Copy the values from another box.
+-- @tparam Box box the box
+function Box:setBox(box)
+  self:set(box:unpack())
+end
+
 --- Set the left coordinate.
 -- @tparam ?number x the left coordinate
 function Box:setX(x)
