@@ -21,21 +21,24 @@ The manual pages and API reference are available on
 [doc.fomalhaut.me](https://doc.fomalhaut.me/wonderful/).
 
 ## Current state
-The current state is precisely determined as following: "Stable API?
-What's that?" We've been building the library for almost 8 months, and are still
-quite far from getting it done.
+I've been building the library for almost a year (wow), and am still quite far
+from getting it done.
 
 The library consists of 4 parts, each packaged separately:
 - `wonderful-common`, common utilities used by other parts
 - `wonderful-buffer`, the render buffer
 - `wonderful-core`, the GUI core
-- `wonderful-components`, the provided-by-default collection of GUI components
+- `wonderful-std`, the provided-by-default collection of something (hopefully
+  widgets).
 
 As for now, only `common` and `buffer` got their `0.1.0` releases; other
 parts have yet to be released.
 
 Visit the [issue tracker](https://github.com/cc-ru/wonderful/issues) for the
 list of tasks.
+
+I have to admit that this project is only barely alive. It's not yet dead,
+though.
 
 ## Installation
 Want to tinker with the library nonetheless? Here's how to install wonderful.
