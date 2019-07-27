@@ -21,9 +21,6 @@ The manual pages and API reference are available on
 [doc.fomalhaut.me](https://doc.fomalhaut.me/wonderful/).
 
 ## Current state
-I've been building the library for almost a year (wow), and am still quite far
-from getting it done.
-
 The library consists of 4 parts, each packaged separately:
 - `wonderful-common`, common utilities used by other parts
 - `wonderful-buffer`, the render buffer
@@ -37,8 +34,7 @@ parts have yet to be released.
 Visit the [issue tracker](https://github.com/cc-ru/wonderful/issues) for the
 list of tasks.
 
-I have to admit that this project is only barely alive. It's not yet dead,
-though.
+The project is certainly comatose.
 
 ## Installation
 Want to tinker with the library nonetheless? Here's how to install wonderful.
